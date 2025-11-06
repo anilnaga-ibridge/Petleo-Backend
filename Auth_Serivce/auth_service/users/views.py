@@ -2134,6 +2134,19 @@ class VerifyOTPView(APIView):
                     user.save(update_fields=['is_active'])
 
                 # ✅ Kafka Event — send "USER_VERIFIED"
+                # try:
+                #     user_data = {
+                #         "auth_user_id": str(user.id),
+                #         "phone_number": user.phone_number,
+                #         "email": user.email,
+                #         "full_name": user.full_name,
+                #         "role": user.role.name if user.role else None,
+                #         "permissions": [p.codename for p in user.role.permissions.all()] if user.role else [],
+                #     }
+                #     publish_event("USER_VERIFIED", user_data)
+                # except Exception as e:
+                #     logger.error(f"Kafka USER_VERIFIED publish failed: {e}")
+                # ✅ Kafka Event — send "USER_VERIFIED"
                 try:
                     user_data = {
                         "auth_user_id": str(user.id),
@@ -2143,9 +2156,11 @@ class VerifyOTPView(APIView):
                         "role": user.role.name if user.role else None,
                         "permissions": [p.codename for p in user.role.permissions.all()] if user.role else [],
                     }
-                    publish_event("USER_VERIFIED", user_data)
+                    # ✅ Pass the role explicitly so the event goes to the correct topic
+                    publish_event("USER_VERIFIED", user_data, role=user_data.get("role"))
                 except Exception as e:
                     logger.error(f"Kafka USER_VERIFIED publish failed: {e}")
+
 
                 return Response(
                     {"message": "Phone verified. You can now login."},
@@ -2217,55 +2232,180 @@ class LogoutView(APIView):
         return Response({"message": "Logged out. Tokens revoked."}, status=status.HTTP_200_OK)
 
 
-# ---------------------- REGISTER SUPERADMIN ----------------------
+# # ---------------------- REGISTER SUPERADMIN ----------------------
+# @api_view(["POST"])
+# def register_superadmin(request):
+#     """Create SuperAdmin (only once)."""
+#     try:
+#         data = request.data
+#         email = data.get("email")
+#         contact = data.get("contact")
+#         first_name = data.get("first_name", "")
+#         last_name = data.get("last_name", "")
+
+#         # Check if exists
+#         if User.objects.filter(email=email).exists():
+#             return Response({"message": "SuperAdmin already exists"}, status=status.HTTP_200_OK)
+
+#         # Create SuperAdmin role if not exists
+#         role, _ = Role.objects.get_or_create(name="SuperAdmin")
+
+#         # Create user
+#         user = User.objects.create(
+#             id=uuid.uuid4(),
+#             email=email,
+#             contact=contact,
+#             first_name=first_name,
+#             last_name=last_name,
+#             role=role,
+#             is_active=True,
+#             is_super_admin=True,
+#         )
+
+#         # ✅ Kafka Event — SuperAdmin created
+#         try:
+#             publish_event("SUPERADMIN_CREATED", {
+#                 "auth_user_id": str(user.id),
+#                 "email": user.email,
+#                 "contact": user.contact,
+#                 "role": "SuperAdmin",
+#             })
+#         except Exception as e:
+#             logger.error(f"Kafka SUPERADMIN_CREATED publish failed: {e}")
+
+#         return Response({"message": "SuperAdmin created", "user_id": str(user.id)}, status=status.HTTP_201_CREATED)
+
+#     except Exception as e:
+#         logger.exception("Failed to register superadmin.")
+#         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+
+# ---------------------- REGISTER USER (ADMIN + SERVICE PROVIDER) ----------------------
 @api_view(["POST"])
 def register_superadmin(request):
-    """Create SuperAdmin (only once)."""
+    """
+    Unified API to register:
+      - Admin (created by SuperAdmin)
+      - Service Provider (self-registration)
+    """
     try:
         data = request.data
         email = data.get("email")
         contact = data.get("contact")
         first_name = data.get("first_name", "")
         last_name = data.get("last_name", "")
+        user_type = data.get("user_type", "").lower()  # "admin" or "service_provider"
+        provider_type = data.get("provider_type", "organization")  # org / individual
 
-        # Check if exists
+        if not email or not contact or not user_type:
+            return Response(
+                {"error": "Missing required fields: email, contact, or user_type"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # 🔍 Prevent duplicate user
         if User.objects.filter(email=email).exists():
-            return Response({"message": "SuperAdmin already exists"}, status=status.HTTP_200_OK)
+            return Response(
+                {"message": "User already exists"},
+                status=status.HTTP_200_OK
+            )
 
-        # Create SuperAdmin role if not exists
-        role, _ = Role.objects.get_or_create(name="SuperAdmin")
+        # ---------------------- ADMIN REGISTRATION (BY SUPERADMIN) ----------------------
+        if user_type == "admin":
+            # 🧩 Ensure only SuperAdmin can create Admins
+            created_by = request.headers.get("Created-By")
+            if not created_by:
+                return Response(
+                    {"error": "Missing 'Created-By' header (SuperAdmin ID required)."},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
 
-        # Create user
-        user = User.objects.create(
-            id=uuid.uuid4(),
-            email=email,
-            contact=contact,
-            first_name=first_name,
-            last_name=last_name,
-            role=role,
-            is_active=True,
-            is_super_admin=True,
-        )
+            try:
+                super_admin = User.objects.get(id=created_by, is_super_admin=True)
+            except User.DoesNotExist:
+                return Response(
+                    {"error": "Only SuperAdmin can create Admin users."},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
 
-        # ✅ Kafka Event — SuperAdmin created
-        try:
-            publish_event("SUPERADMIN_CREATED", {
+            # 🧩 Create Role
+            role, _ = Role.objects.get_or_create(name="Admin")
+
+            user = User.objects.create(
+                id=uuid.uuid4(),
+                email=email,
+                contact=contact,
+                first_name=first_name,
+                last_name=last_name,
+                role=role,
+                is_active=True,
+                is_super_admin=False,
+            )
+
+            event_data = {
                 "auth_user_id": str(user.id),
                 "email": user.email,
                 "contact": user.contact,
-                "role": "SuperAdmin",
-            })
-        except Exception as e:
-            logger.error(f"Kafka SUPERADMIN_CREATED publish failed: {e}")
+                "role": "admin",
+                "created_by": str(super_admin.id),
+            }
 
-        return Response({"message": "SuperAdmin created", "user_id": str(user.id)}, status=status.HTTP_201_CREATED)
+            try:
+                publish_event("ADMIN_CREATED", event_data, role="admin")
+                logger.info(f"✅ ADMIN_CREATED event published for {user.email}")
+            except Exception as e:
+                logger.error(f"❌ Kafka ADMIN_CREATED publish failed: {e}")
+
+            return Response(
+                {"message": "Admin created successfully", "user_id": str(user.id)},
+                status=status.HTTP_201_CREATED,
+            )
+
+        # ---------------------- SERVICE PROVIDER REGISTRATION ----------------------
+        elif user_type == "service_provider":
+            role, _ = Role.objects.get_or_create(name="ServiceProvider")
+
+            user = User.objects.create(
+                id=uuid.uuid4(),
+                email=email,
+                contact=contact,
+                first_name=first_name,
+                last_name=last_name,
+                role=role,
+                is_active=True,
+            )
+
+            event_data = {
+                "auth_user_id": str(user.id),
+                "email": user.email,
+                "contact": user.contact,
+                "full_name": f"{user.first_name} {user.last_name}".strip(),
+                "role": "organization" if provider_type == "organization" else "individual",
+                "permissions": [],
+            }
+
+            try:
+                publish_event("USER_CREATED", event_data, role=provider_type)
+                logger.info(f"✅ USER_CREATED event published for {user.email}")
+            except Exception as e:
+                logger.error(f"❌ Kafka USER_CREATED publish failed: {e}")
+
+            return Response(
+                {"message": "Service Provider registered successfully", "user_id": str(user.id)},
+                status=status.HTTP_201_CREATED,
+            )
+
+        else:
+            return Response(
+                {"error": "Invalid user_type. Use 'admin' or 'service_provider'."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
     except Exception as e:
-        logger.exception("Failed to register superadmin.")
+        logger.exception("❌ Failed to register user.")
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
-
 
 
 

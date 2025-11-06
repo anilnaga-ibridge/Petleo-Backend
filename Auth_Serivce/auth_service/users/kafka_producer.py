@@ -9,18 +9,18 @@
 #     value_serializer=lambda v: json.dumps(v).encode('utf-8')
 # )
 
-def publish_user_created_event(user_data):
-    """
-    Publish user data to Kafka topic 'user_created'
-    Currently disabled - enable when Kafka is set up
-    """
-    # When Kafka is available, uncomment:
-    # producer.send('user_created', user_data)
-    # producer.flush()
+# def publish_user_created_event(user_data):
+#     """
+#     Publish user data to Kafka topic 'user_created'
+#     Currently disabled - enable when Kafka is set up
+#     """
+#     # When Kafka is available, uncomment:
+#     # producer.send('user_created', user_data)
+#     # producer.flush()
     
-    # For now, just log the event
-    print(f"User created event: {user_data}")
-    pass
+#     # For now, just log the event
+#     print(f"User created event: {user_data}")
+#     pass
 
 
 # orchestrator/kafka_publish.py
@@ -794,6 +794,86 @@ def publish_user_created_event(user_data):
 #         logger.error(f"❌ Kafka error while sending {event_type}: {e}")
 #     except Exception as e:
 #         logger.exception(f"⚠️ Unexpected error while sending {event_type}: {e}")
+# import json
+# import logging
+# import time
+# from kafka import KafkaProducer
+# from kafka.errors import KafkaError, NoBrokersAvailable
+# from django.conf import settings
+
+# logger = logging.getLogger(__name__)
+
+# # -----------------------------
+# # Global Kafka Configuration
+# # -----------------------------
+# KAFKA_BROKER_URL = getattr(settings, "KAFKA_BROKER_URL", "localhost:9092")
+# DEFAULT_TOPIC = getattr(settings, "KAFKA_EVENT_TOPIC", "service_events")
+# SERVICE_NAME = getattr(settings, "SERVICE_NAME", None)
+
+# if not SERVICE_NAME:
+#     raise ValueError("❌ Missing SERVICE_NAME in Django settings. Example: SERVICE_NAME = 'auth_service'")
+
+# logger.info(f"🚀 Initializing Kafka Producer for service: {SERVICE_NAME}")
+# logger.info(f"🔗 Connecting to Kafka broker at: {KAFKA_BROKER_URL}")
+
+# # -----------------------------
+# # Initialize Kafka Producer
+# # -----------------------------
+# producer = None
+# for attempt in range(3):  # try 3 times to connect
+#     try:
+#         producer = KafkaProducer(
+#             bootstrap_servers=[KAFKA_BROKER_URL],
+#             value_serializer=lambda v: json.dumps(v).encode("utf-8"),
+#             acks="all",
+#             retries=3,
+#         )
+#         logger.info("✅ Connected to Kafka broker successfully!")
+#         break
+#     except NoBrokersAvailable:
+#         logger.warning(f"⚠️ Attempt {attempt+1}/3 — Kafka broker not available at {KAFKA_BROKER_URL}. Retrying in 5s...")
+#         time.sleep(5)
+#     except Exception as e:
+#         logger.error(f"❌ Unexpected error while initializing Kafka Producer: {e}")
+#         break
+
+# if not producer:
+#     logger.error(f"❌ Failed to connect to Kafka after 3 attempts — proceeding without Kafka connection.")
+
+# # -----------------------------
+# # Publish Event Function
+# # -----------------------------
+# def publish_event(event_type: str, data: dict, topic: str = DEFAULT_TOPIC):
+#     """
+#     Generic Kafka event publisher used across microservices.
+#     Every event includes:
+#         - service (which service sent it)
+#         - event_type
+#         - data (payload)
+#     """
+#     if not event_type or not isinstance(data, dict):
+#         logger.warning("⚠️ Invalid Kafka event: missing event_type or data.")
+#         return
+
+#     if not producer:
+#         logger.warning("⚠️ Kafka Producer not initialized. Skipping event publish.")
+#         return
+
+#     event = {
+#         "service": SERVICE_NAME,
+#         "event_type": event_type,
+#         "data": data,
+#     }
+
+#     try:
+#         logger.info(f"📤 Sending event '{event_type}' from {SERVICE_NAME} → topic '{topic}'...")
+#         future = producer.send(topic, value=event)
+#         future.get(timeout=10)  # block to ensure delivery
+#         logger.info(f"✅ Successfully sent '{event_type}' to Kafka topic '{topic}'.")
+#     except KafkaError as e:
+#         logger.error(f"❌ Kafka error while sending {event_type}: {e}")
+#     except Exception as e:
+#         logger.exception(f"⚠️ Unexpected error while sending {event_type}: {e}")
 import json
 import logging
 import time
@@ -804,14 +884,22 @@ from django.conf import settings
 logger = logging.getLogger(__name__)
 
 # -----------------------------
-# Global Kafka Configuration
+# Kafka Configuration
 # -----------------------------
 KAFKA_BROKER_URL = getattr(settings, "KAFKA_BROKER_URL", "localhost:9092")
-DEFAULT_TOPIC = getattr(settings, "KAFKA_EVENT_TOPIC", "service_events")
-SERVICE_NAME = getattr(settings, "SERVICE_NAME", None)
 
-if not SERVICE_NAME:
-    raise ValueError("❌ Missing SERVICE_NAME in Django settings. Example: SERVICE_NAME = 'auth_service'")
+# Default topic (fallback)
+DEFAULT_TOPIC = getattr(settings, "KAFKA_EVENT_TOPIC", "service_events")
+
+# Role-based topic map
+TOPIC_MAP = {
+    "individual": "individual_events",
+    "organization": "organization_events",
+    "super_admin": "admin_events",
+    "pet_owner": "pet_owner_events",
+}
+
+SERVICE_NAME = getattr(settings, "SERVICE_NAME", "auth_service")
 
 logger.info(f"🚀 Initializing Kafka Producer for service: {SERVICE_NAME}")
 logger.info(f"🔗 Connecting to Kafka broker at: {KAFKA_BROKER_URL}")
@@ -820,7 +908,7 @@ logger.info(f"🔗 Connecting to Kafka broker at: {KAFKA_BROKER_URL}")
 # Initialize Kafka Producer
 # -----------------------------
 producer = None
-for attempt in range(3):  # try 3 times to connect
+for attempt in range(3):
     try:
         producer = KafkaProducer(
             bootstrap_servers=[KAFKA_BROKER_URL],
@@ -831,26 +919,40 @@ for attempt in range(3):  # try 3 times to connect
         logger.info("✅ Connected to Kafka broker successfully!")
         break
     except NoBrokersAvailable:
-        logger.warning(f"⚠️ Attempt {attempt+1}/3 — Kafka broker not available at {KAFKA_BROKER_URL}. Retrying in 5s...")
+        logger.warning(
+            f"⚠️ Attempt {attempt + 1}/3 — Kafka broker not available at {KAFKA_BROKER_URL}. Retrying in 5s..."
+        )
         time.sleep(5)
     except Exception as e:
         logger.error(f"❌ Unexpected error while initializing Kafka Producer: {e}")
         break
 
 if not producer:
-    logger.error(f"❌ Failed to connect to Kafka after 3 attempts — proceeding without Kafka connection.")
-
+    logger.error("❌ Failed to connect to Kafka after 3 attempts — proceeding without Kafka connection.")
+def publish_user_created_event(user_data):
+    """
+    Publish user data to Kafka topic 'user_created'
+    Currently disabled - enable when Kafka is set up
+    """
+    # When Kafka is available, uncomment:
+    # producer.send('user_created', user_data)
+    # producer.flush()
+    
+    # For now, just log the event
+    print(f"User created event: {user_data}")
+    pass
 # -----------------------------
 # Publish Event Function
 # -----------------------------
-def publish_event(event_type: str, data: dict, topic: str = DEFAULT_TOPIC):
+def publish_event(event_type: str, data: dict, role: str = None):
     """
-    Generic Kafka event publisher used across microservices.
-    Every event includes:
-        - service (which service sent it)
-        - event_type
-        - data (payload)
+    Publishes an event to Kafka based on user role.
+    - 'individual' → service_provider_service
+    - 'organization' → service_provider_service
+    - 'super_admin' → super_admin_service
+    - 'pet_owner' → pet_owner_service
     """
+
     if not event_type or not isinstance(data, dict):
         logger.warning("⚠️ Invalid Kafka event: missing event_type or data.")
         return
@@ -859,17 +961,26 @@ def publish_event(event_type: str, data: dict, topic: str = DEFAULT_TOPIC):
         logger.warning("⚠️ Kafka Producer not initialized. Skipping event publish.")
         return
 
+    # Determine correct topic based on role
+    target_topic = TOPIC_MAP.get(role, DEFAULT_TOPIC)
+
     event = {
         "service": SERVICE_NAME,
         "event_type": event_type,
         "data": data,
+        "role": role,
+        "timestamp": int(time.time()),
     }
 
     try:
-        logger.info(f"📤 Sending event '{event_type}' from {SERVICE_NAME} → topic '{topic}'...")
-        future = producer.send(topic, value=event)
-        future.get(timeout=10)  # block to ensure delivery
-        logger.info(f"✅ Successfully sent '{event_type}' to Kafka topic '{topic}'.")
+        logger.info(
+            f"📤 Sending '{event_type}' for role='{role}' from {SERVICE_NAME} → topic '{target_topic}'..."
+        )
+        future = producer.send(target_topic, value=event)
+        future.get(timeout=10)
+        logger.info(
+            f"✅ Event '{event_type}' successfully sent to Kafka topic '{target_topic}'."
+        )
     except KafkaError as e:
         logger.error(f"❌ Kafka error while sending {event_type}: {e}")
     except Exception as e:

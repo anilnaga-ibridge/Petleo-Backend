@@ -1,0 +1,4 @@
+-- -- Runs automatically on first postgres start
+-- CREATE DATABASE "Auth_Service";
+-- CREATE DATABASE "Service_Provider";
+-- CREATE DATABASE "Super_Admin";

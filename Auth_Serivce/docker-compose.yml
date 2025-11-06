@@ -1,3 +1,5 @@
+version: "3.9"
+
 services:
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
@@ -14,17 +16,14 @@ services:
     depends_on:
       - zookeeper
     ports:
-      - "9092:9092"   # external access for Django
+      - "9092:9092"
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-
-      # two listeners — one for internal Docker, one for external localhost
       KAFKA_LISTENERS: INSIDE://0.0.0.0:29092,OUTSIDE://0.0.0.0:9092
       KAFKA_ADVERTISED_LISTENERS: INSIDE://kafka:29092,OUTSIDE://localhost:9092
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: INSIDE
-
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
@@ -53,4 +52,25 @@ services:
     ports:
       - "5540:5540"
     depends_on:
+      - redis
+
+  auth_service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: auth_service
+    restart: unless-stopped
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: Auth_Service
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    ports:
+      - "8000:8000"
+    depends_on:
+      - kafka
       - redis

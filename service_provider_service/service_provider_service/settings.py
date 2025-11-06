@@ -11,9 +11,12 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 """
 
 from pathlib import Path
-
+import os
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
 
 
 # Quick-start development settings - unsuitable for production
@@ -37,6 +40,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'service_provider',
 ]
 
 MIDDLEWARE = [
@@ -75,8 +79,13 @@ WSGI_APPLICATION = 'service_provider_service.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.environ.get('POSTGRES_DB', 'Service_Provider'),
+        'USER': os.environ.get('POSTGRES_USER', 'postgres'),
+        'PASSWORD': os.environ.get('POSTGRES_PASSWORD', 'postgres'),
+         'HOST': os.environ.get('POSTGRES_HOST', 'localhost'),
+        #  'HOST': os.environ.get('POSTGRES_HOST', 'postgres'),
+        'PORT': os.environ.get('POSTGRES_PORT', '5432'),
     }
 }
 

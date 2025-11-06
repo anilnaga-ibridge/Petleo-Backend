@@ -229,6 +229,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'users',  # your custom user app
 ]
+CORS_ALLOW_CREDENTIALS = True
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -237,6 +238,8 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.common.CommonMiddleware',
 ]
 
 ROOT_URLCONF = 'auth_service.urls'
@@ -268,7 +271,8 @@ DATABASES = {
         'NAME': os.environ.get('POSTGRES_DB', 'Auth_Service'),
         'USER': os.environ.get('POSTGRES_USER', 'postgres'),
         'PASSWORD': os.environ.get('POSTGRES_PASSWORD', 'postgres'),
-        'HOST': os.environ.get('POSTGRES_HOST', 'localhost'),
+        # 'HOST': os.environ.get('POSTGRES_HOST', 'localhost'),
+        'HOST': os.environ.get('POSTGRES_HOST', 'postgres'),
         'PORT': os.environ.get('POSTGRES_PORT', '5432'),
     }
 }
@@ -364,3 +368,10 @@ SIMPLE_JWT = {
 SERVICE_NAME = "auth_service"
 KAFKA_BROKER_URL = "localhost:9092"
 KAFKA_EVENT_TOPIC = "service_events"
+
+
+
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "http://localhost:8080",
+]
