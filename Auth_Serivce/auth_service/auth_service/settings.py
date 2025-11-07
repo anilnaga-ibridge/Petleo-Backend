@@ -278,21 +278,39 @@ DATABASES = {
 }
 
 AUTH_USER_MODEL = 'users.User'
-
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': (
+    'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
-    )
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
 }
 
 SIMPLE_JWT = {
-    "SIGNING_KEY": SECRET_KEY,  # THIS MUST BE SAME IN ALL SERVICES
-    "ALGORITHM": os.environ.get("JWT_ALGORITHM", "HS256"),
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=int(os.environ.get("ACCESS_TOKEN_LIFETIME_MINUTES", 15))),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=int(os.environ.get("REFRESH_TOKEN_LIFETIME_DAYS", 7))),
+    "SIGNING_KEY": SECRET_KEY,  # must match in all services
+    "ALGORITHM": "HS256",
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
     "USER_ID_FIELD": "id",
     "USER_ID_CLAIM": "user_id",
+    "AUTH_HEADER_TYPES": ("Bearer",),
+    "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
 }
+# REST_FRAMEWORK = {
+#     'DEFAULT_AUTHENTICATION_CLASSES': (
+#         'rest_framework_simplejwt.authentication.JWTAuthentication',
+#     )
+# }
+
+# SIMPLE_JWT = {
+#     "SIGNING_KEY": SECRET_KEY,  # THIS MUST BE SAME IN ALL SERVICES
+#     "ALGORITHM": os.environ.get("JWT_ALGORITHM", "HS256"),
+#     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=int(os.environ.get("ACCESS_TOKEN_LIFETIME_MINUTES", 15))),
+#     "REFRESH_TOKEN_LIFETIME": timedelta(days=int(os.environ.get("REFRESH_TOKEN_LIFETIME_DAYS", 7))),
+#     "USER_ID_FIELD": "id",
+#     "USER_ID_CLAIM": "user_id",
+# }
 
 # Email Configuration
 # Use console backend for testing (prints emails to console)
@@ -356,12 +374,12 @@ STATIC_SUPERADMIN_OTP = '123456'
 
 # Simple JWT settings - set reasonable lifetimes
 
-SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
-    'ROTATE_REFRESH_TOKENS': False,  # we use our own opaque refresh rotation
-    'BLACKLIST_AFTER_ROTATION': False,
-}
+# SIMPLE_JWT = {
+#     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),
+#     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+#     'ROTATE_REFRESH_TOKENS': False,  # we use our own opaque refresh rotation
+#     'BLACKLIST_AFTER_ROTATION': False,
+# }
 # -------------------
 # Kafka Configuration
 # -------------------

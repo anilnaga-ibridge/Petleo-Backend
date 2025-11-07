@@ -188,11 +188,27 @@ INSTALLED_APPS = [
     'dynamic_categories',
     'plans_coupens',
     'pets',
+    'corsheaders',
 ]
 
 AUTH_USER_MODEL = "admin_core.SuperAdmin"
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",  # Vue dev server
+    "http://127.0.0.1:5173",
+]
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_METHODS = [
+    "DELETE",
+    "GET",
+    "OPTIONS",
+    "PATCH",
+    "POST",
+    "PUT",
+]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',  # 👈 must be first or near-top
+    'django.middleware.common.CommonMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -200,10 +216,28 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'admin_core.middleware.sync_verified_user.SyncVerifiedUserMiddleware',
-
-
+    'middleware.log_auth_header.LogAuthHeaderMiddleware',
 ]
 
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'admin_core.authentication.CentralAuthJWTAuthentication',  # shared JWT
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+}
+
+SIMPLE_JWT = {
+    "SIGNING_KEY": SECRET_KEY,  # must match auth_service
+    "ALGORITHM": "HS256",
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    "USER_ID_FIELD": "id",
+    "USER_ID_CLAIM": "user_id",
+    "AUTH_HEADER_TYPES": ("Bearer",),
+    "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
+}
 ROOT_URLCONF = 'super_admin_service.urls'
 
 DATABASES = {
@@ -238,11 +272,11 @@ TEMPLATES = [
     },
 ]
 
-REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': (
-        'admin_core.authentication.CentralAuthJWTAuthentication',
-    )
-}
+# REST_FRAMEWORK = {
+#     'DEFAULT_AUTHENTICATION_CLASSES': (
+#         'admin_core.authentication.CentralAuthJWTAuthentication',
+#     )
+# }
 
 # SIMPLE_JWT = {
 #     "SIGNING_KEY": SECRET_KEY,
@@ -252,25 +286,54 @@ REST_FRAMEWORK = {
 #     "USER_ID_FIELD": "id",        # ✅ matches the User model field
 #     "USER_ID_CLAIM": "user_id",   # ✅ matches the claim in JWT payload
 # }
-SIMPLE_JWT = {
-    "SIGNING_KEY": SECRET_KEY,
-     "ALGORITHM": os.environ.get("JWT_ALGORITHM", "HS256"),
-     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=int(os.environ.get("ACCESS_TOKEN_LIFETIME_MINUTES", 15))),
-     "REFRESH_TOKEN_LIFETIME": timedelta(days=int(os.environ.get("REFRESH_TOKEN_LIFETIME_DAYS", 7))),
-    "USER_ID_FIELD": "id",          # your UUID field
-    "USER_ID_CLAIM": "user_id",     # claim in token
-    "AUTH_HEADER_TYPES": ("Bearer",),
-     "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
-}
+# SIMPLE_JWT = {
+#     "SIGNING_KEY": SECRET_KEY,
+#      "ALGORITHM": os.environ.get("JWT_ALGORITHM", "HS256"),
+#      "ACCESS_TOKEN_LIFETIME": timedelta(minutes=int(os.environ.get("ACCESS_TOKEN_LIFETIME_MINUTES", 15))),
+#      "REFRESH_TOKEN_LIFETIME": timedelta(days=int(os.environ.get("REFRESH_TOKEN_LIFETIME_DAYS", 7))),
+#     "USER_ID_FIELD": "id",          # your UUID field
+#     "USER_ID_CLAIM": "user_id",     # claim in token
+#     "AUTH_HEADER_TYPES": ("Bearer",),
+#      "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
+# }
+# SIMPLE_JWT = {
+#     "SIGNING_KEY": SECRET_KEY,  # THIS MUST BE SAME IN ALL SERVICES
+#     "ALGORITHM": os.environ.get("JWT_ALGORITHM", "HS256"),
+#     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=int(os.environ.get("ACCESS_TOKEN_LIFETIME_MINUTES", 15))),
+#     "REFRESH_TOKEN_LIFETIME": timedelta(days=int(os.environ.get("REFRESH_TOKEN_LIFETIME_DAYS", 7))),
+#     "USER_ID_FIELD": "id",
+#     "USER_ID_CLAIM": "user_id",
+# }
 
-REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'admin_core.authentication.CentralAuthJWTAuthentication',
-    ],
-    'DEFAULT_PERMISSION_CLASSES': [
-       'rest_framework.permissions.IsAuthenticated',
-    ],
-}
+# SIMPLE_JWT = {
+#     "SIGNING_KEY": SECRET_KEY,  # SAME secret for all services
+#     "ALGORITHM": os.environ.get("JWT_ALGORITHM", "HS256"),
+
+#     # Token Lifetimes
+#     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=int(os.environ.get("ACCESS_TOKEN_LIFETIME_MINUTES", 15))),
+#     "REFRESH_TOKEN_LIFETIME": timedelta(days=int(os.environ.get("REFRESH_TOKEN_LIFETIME_DAYS", 7))),
+
+#     # Identify user
+#     "USER_ID_FIELD": "id",           # your UUID field in the user model
+#     "USER_ID_CLAIM": "user_id",      # claim in token payload
+
+#     # 👇 These two are very important
+#     "AUTH_HEADER_TYPES": ("Bearer",),
+#     "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
+# }
+# REST_FRAMEWORK = {
+#     'DEFAULT_AUTHENTICATION_CLASSES': [
+#         'admin_core.authentication.CentralAuthJWTAuthentication',
+#     ],
+#     'DEFAULT_PERMISSION_CLASSES': [
+#        'rest_framework.permissions.IsAuthenticated',
+#     ],
+# }
+# REST_FRAMEWORK = {
+#     'DEFAULT_AUTHENTICATION_CLASSES': [],
+#     'DEFAULT_PERMISSION_CLASSES': [],
+# }
+
 
 KAFKA_BROKER_URL = "localhost:9092"
 KAFKA_USER_TOPIC = "user_created"

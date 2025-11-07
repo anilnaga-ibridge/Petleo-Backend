@@ -2063,13 +2063,164 @@ class SendOTPView(APIView):
 
 
 # ---------------------- VERIFY OTP ----------------------
+# class VerifyOTPView(APIView):
+#     """Verify OTP for register or login."""
+#     def post(self, request):
+#         serializer = VerifyOTPSerializer(data=request.data)
+#         serializer.is_valid(raise_exception=True)
+#         session_id = serializer.validated_data['session_id']
+#         provided_otp = serializer.validated_data['otp']
+
+#         # --- SuperAdmin OTP ---
+#         if session_id == "static-superadmin-session":
+#             if provided_otp == STATIC_SUPERADMIN_OTP:
+#                 try:
+#                     user = User.objects.get(phone_number=STATIC_SUPERADMIN_PHONE)
+#                 except User.DoesNotExist:
+#                     return Response(
+#                         {"detail": "Super Admin not found in DB. Create manually."},
+#                         status=status.HTTP_404_NOT_FOUND,
+#                     )
+#                 tokens = get_tokens_for_user(user, request=request)
+#                 return Response({
+#                     "message": "Super Admin login successful.",
+#                     "tokens": tokens,
+#                     "user": {
+#                         "user_id": str(user.id),
+#                         "phone_number": user.phone_number,
+#                         "full_name": user.full_name,
+#                         "email": user.email,
+#                         "role": user.role.name if user.role else None,
+#                         "accessTokens": tokens,
+#                     },
+#                 }, status=status.HTTP_200_OK)
+#             return Response({"detail": "Invalid OTP for super admin."}, status=status.HTTP_400_BAD_REQUEST)
+
+#         # --- Normal User OTP ---
+#         session = get_otp_session(session_id)
+#         if not session:
+#             return Response(
+#                 {"detail": "Invalid or expired session. Request new OTP."},
+#                 status=status.HTTP_400_BAD_REQUEST,
+#             )
+
+#         phone = session.get('phone_number')
+#         purpose = session.get('purpose')
+#         attempts = session.get('attempts', 0)
+
+#         if attempts >= 5:
+#             delete_otp_session(session_id)
+#             return Response(
+#                 {"detail": "Too many attempts. Request a new OTP."},
+#                 status=status.HTTP_429_TOO_MANY_REQUESTS,
+#             )
+
+#         if session.get('otp') != provided_otp:
+#             increment_session_attempts(session_id)
+#             return Response({"detail": "Invalid OTP."}, status=status.HTTP_400_BAD_REQUEST)
+
+#         # ✅ OTP valid
+#         delete_otp_session(session_id)
+
+#         # --- Registration ---
+#         if purpose == 'register':
+#             try:
+#                 user = User.objects.get(phone_number=phone)
+#                 user.is_active = True
+#                 # only update fields that exist
+#                 if hasattr(user, 'is_verified'):
+#                     user.is_verified = True
+#                     user.save(update_fields=['is_active', 'is_verified'])
+#                 else:
+#                     user.save(update_fields=['is_active'])
+
+#                 # ✅ Kafka Event — send "USER_VERIFIED"
+#                 # try:
+#                 #     user_data = {
+#                 #         "auth_user_id": str(user.id),
+#                 #         "phone_number": user.phone_number,
+#                 #         "email": user.email,
+#                 #         "full_name": user.full_name,
+#                 #         "role": user.role.name if user.role else None,
+#                 #         "permissions": [p.codename for p in user.role.permissions.all()] if user.role else [],
+#                 #     }
+#                 #     publish_event("USER_VERIFIED", user_data)
+#                 # except Exception as e:
+#                 #     logger.error(f"Kafka USER_VERIFIED publish failed: {e}")
+#                 # ✅ Kafka Event — send "USER_VERIFIED"
+#                 try:
+#                     user_data = {
+#                         "auth_user_id": str(user.id),
+#                         "phone_number": user.phone_number,
+#                         "email": user.email,
+#                         "full_name": user.full_name,
+#                         "role": user.role.name if user.role else None,
+#                         "permissions": [p.codename for p in user.role.permissions.all()] if user.role else [],
+#                         "accessTokens": tokens,
+#                     }
+#                     # ✅ Pass the role explicitly so the event goes to the correct topic
+#                     publish_event("USER_VERIFIED", user_data, role=user_data.get("role"))
+#                 except Exception as e:
+#                     logger.error(f"Kafka USER_VERIFIED publish failed: {e}")
+
+
+#                 return Response(
+#                     {"message": "Phone verified. You can now login."},
+#                     status=status.HTTP_200_OK,
+#                 )
+#             except User.DoesNotExist:
+#                 return Response({"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND)
+
+#         # --- Login ---
+#         if purpose == 'login':
+#             try:
+#                 user = User.objects.get(phone_number=phone)
+#             except User.DoesNotExist:
+#                 return Response({"detail": "Phone number not registered."}, status=status.HTTP_404_NOT_FOUND)
+
+#             tokens = get_tokens_for_user(user, request=request)
+#             return Response({
+#                 "message": "OTP verified. Login successful.",
+#                 "tokens": tokens,
+#                 "user": {
+#                     "user_id": str(user.id),
+#                     "phone_number": user.phone_number,
+#                     "full_name": user.full_name,
+#                     "role": user.role.name if user.role else None,
+#                     "permissions": [p.codename for p in user.role.permissions.all()] if user.role else [],
+#                     "accessTokens": tokens,
+#                 },
+#             }, status=status.HTTP_200_OK)
+
+#         return Response({"message": "OTP verified."}, status=status.HTTP_200_OK)
+
+
+
+
+
+
+def transform_for_frontend(tokens, user):
+    """Transform backend user and tokens into frontend-expected structure."""
+    return {
+        "userAbilityRules": [{"action": "manage", "subject": "all"}],
+        "accessToken": tokens.get("access"),
+        "userData": {
+            "id": str(user.id),
+            "fullName": user.full_name,
+            "username": user.full_name,
+            "avatar": "/images/avatars/avatar-1.png",
+            "email": user.email or f"{user.phone_number}@demo.com",
+            "role": user.role.name if user.role else None,
+        },
+    }
 class VerifyOTPView(APIView):
     """Verify OTP for register or login."""
+
     def post(self, request):
         serializer = VerifyOTPSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        session_id = serializer.validated_data['session_id']
-        provided_otp = serializer.validated_data['otp']
+        session_id = serializer.validated_data["session_id"]
+        provided_otp = serializer.validated_data["otp"]
 
         # --- SuperAdmin OTP ---
         if session_id == "static-superadmin-session":
@@ -2081,19 +2232,18 @@ class VerifyOTPView(APIView):
                         {"detail": "Super Admin not found in DB. Create manually."},
                         status=status.HTTP_404_NOT_FOUND,
                     )
+
                 tokens = get_tokens_for_user(user, request=request)
-                return Response({
-                    "message": "Super Admin login successful.",
-                    "tokens": tokens,
-                    "user": {
-                        "user_id": str(user.id),
-                        "phone_number": user.phone_number,
-                        "full_name": user.full_name,
-                        "email": user.email,
-                        "role": user.role.name if user.role else None,
-                    },
-                }, status=status.HTTP_200_OK)
-            return Response({"detail": "Invalid OTP for super admin."}, status=status.HTTP_400_BAD_REQUEST)
+
+                frontend_response = transform_for_frontend(tokens, user)
+                frontend_response["message"] = "Super Admin login successful."
+
+                return Response(frontend_response, status=status.HTTP_200_OK)
+
+            return Response(
+                {"detail": "Invalid OTP for super admin."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         # --- Normal User OTP ---
         session = get_otp_session(session_id)
@@ -2103,9 +2253,9 @@ class VerifyOTPView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        phone = session.get('phone_number')
-        purpose = session.get('purpose')
-        attempts = session.get('attempts', 0)
+        phone = session.get("phone_number")
+        purpose = session.get("purpose")
+        attempts = session.get("attempts", 0)
 
         if attempts >= 5:
             delete_otp_session(session_id)
@@ -2114,39 +2264,26 @@ class VerifyOTPView(APIView):
                 status=status.HTTP_429_TOO_MANY_REQUESTS,
             )
 
-        if session.get('otp') != provided_otp:
+        if session.get("otp") != provided_otp:
             increment_session_attempts(session_id)
-            return Response({"detail": "Invalid OTP."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"detail": "Invalid OTP."}, status=status.HTTP_400_BAD_REQUEST
+            )
 
         # ✅ OTP valid
         delete_otp_session(session_id)
 
         # --- Registration ---
-        if purpose == 'register':
+        if purpose == "register":
             try:
                 user = User.objects.get(phone_number=phone)
                 user.is_active = True
-                # only update fields that exist
-                if hasattr(user, 'is_verified'):
+                if hasattr(user, "is_verified"):
                     user.is_verified = True
-                    user.save(update_fields=['is_active', 'is_verified'])
+                    user.save(update_fields=["is_active", "is_verified"])
                 else:
-                    user.save(update_fields=['is_active'])
+                    user.save(update_fields=["is_active"])
 
-                # ✅ Kafka Event — send "USER_VERIFIED"
-                # try:
-                #     user_data = {
-                #         "auth_user_id": str(user.id),
-                #         "phone_number": user.phone_number,
-                #         "email": user.email,
-                #         "full_name": user.full_name,
-                #         "role": user.role.name if user.role else None,
-                #         "permissions": [p.codename for p in user.role.permissions.all()] if user.role else [],
-                #     }
-                #     publish_event("USER_VERIFIED", user_data)
-                # except Exception as e:
-                #     logger.error(f"Kafka USER_VERIFIED publish failed: {e}")
-                # ✅ Kafka Event — send "USER_VERIFIED"
                 try:
                     user_data = {
                         "auth_user_id": str(user.id),
@@ -2154,44 +2291,43 @@ class VerifyOTPView(APIView):
                         "email": user.email,
                         "full_name": user.full_name,
                         "role": user.role.name if user.role else None,
-                        "permissions": [p.codename for p in user.role.permissions.all()] if user.role else [],
+                        "permissions": [p.codename for p in user.role.permissions.all()]
+                        if user.role
+                        else [],
                     }
-                    # ✅ Pass the role explicitly so the event goes to the correct topic
                     publish_event("USER_VERIFIED", user_data, role=user_data.get("role"))
                 except Exception as e:
                     logger.error(f"Kafka USER_VERIFIED publish failed: {e}")
-
 
                 return Response(
                     {"message": "Phone verified. You can now login."},
                     status=status.HTTP_200_OK,
                 )
+
             except User.DoesNotExist:
-                return Response({"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND)
+                return Response(
+                    {"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND
+                )
 
         # --- Login ---
-        if purpose == 'login':
+        if purpose == "login":
             try:
                 user = User.objects.get(phone_number=phone)
             except User.DoesNotExist:
-                return Response({"detail": "Phone number not registered."}, status=status.HTTP_404_NOT_FOUND)
+                return Response(
+                    {"detail": "Phone number not registered."},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
 
             tokens = get_tokens_for_user(user, request=request)
-            return Response({
-                "message": "OTP verified. Login successful.",
-                "tokens": tokens,
-                "user": {
-                    "user_id": str(user.id),
-                    "phone_number": user.phone_number,
-                    "full_name": user.full_name,
-                    "role": user.role.name if user.role else None,
-                    "permissions": [p.codename for p in user.role.permissions.all()] if user.role else [],
-                },
-            }, status=status.HTTP_200_OK)
+
+            # ✅ Transform response for frontend (Vue expects specific structure)
+            frontend_response = transform_for_frontend(tokens, user)
+            frontend_response["message"] = "OTP verified. Login successful."
+
+            return Response(frontend_response, status=status.HTTP_200_OK)
 
         return Response({"message": "OTP verified."}, status=status.HTTP_200_OK)
-
-
 # ---------------------- REFRESH TOKEN ----------------------
 class RefreshTokenView(APIView):
     """Accept opaque refresh token, rotate and return new access + refresh."""
