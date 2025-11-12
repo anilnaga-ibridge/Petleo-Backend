@@ -214,7 +214,10 @@ load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "fallback-secret-key")
+# SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "fallback-secret-key")
+SECRET_KEY = "super-secret-shared-key"
+
+
 DEBUG = True
 ALLOWED_HOSTS = []
 
@@ -228,6 +231,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'users',  # your custom user app
+ 
 ]
 CORS_ALLOW_CREDENTIALS = True
 
@@ -271,8 +275,8 @@ DATABASES = {
         'NAME': os.environ.get('POSTGRES_DB', 'Auth_Service'),
         'USER': os.environ.get('POSTGRES_USER', 'postgres'),
         'PASSWORD': os.environ.get('POSTGRES_PASSWORD', 'postgres'),
-        # 'HOST': os.environ.get('POSTGRES_HOST', 'localhost'),
-        'HOST': os.environ.get('POSTGRES_HOST', 'postgres'),
+        'HOST': os.environ.get('POSTGRES_HOST', 'localhost'),
+        # 'HOST': os.environ.get('POSTGRES_HOST', 'postgres'),
         'PORT': os.environ.get('POSTGRES_PORT', '5432'),
     }
 }
@@ -290,7 +294,7 @@ REST_FRAMEWORK = {
 SIMPLE_JWT = {
     "SIGNING_KEY": SECRET_KEY,  # must match in all services
     "ALGORITHM": "HS256",
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
+    "ACCESS_TOKEN_LIFETIME": timedelta(days=30),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
     "USER_ID_FIELD": "id",
     "USER_ID_CLAIM": "user_id",
@@ -366,7 +370,7 @@ OTP_RATE_LIMIT_MAX_PER_WINDOW = 5
 REFRESH_TTL_DAYS = 14
 
 # Kafka
-KAFKA_BOOTSTRAP_SERVERS = ['localhost:9092']
+KAFKA_BOOTSTRAP_SERVERS = ['kafka:9092']
 
 # Static superadmin (dev only)
 STATIC_SUPERADMIN_PHONE = '9999999999'
@@ -384,12 +388,47 @@ STATIC_SUPERADMIN_OTP = '123456'
 # Kafka Configuration
 # -------------------
 SERVICE_NAME = "auth_service"
-KAFKA_BROKER_URL = "localhost:9092"
+# KAFKA_BROKER_URL = "localhost:9092"
+KAFKA_BROKER_URL = "host.docker.internal:9092"
+
 KAFKA_EVENT_TOPIC = "service_events"
 
 
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
+    "http://localhost:5174",
     "http://localhost:8080",
 ]
+# Redis Configuration
+# REDIS_HOST = env('REDIS_HOST')
+# REDIS_PORT = env('REDIS_PORT')
+# REDIS_DB = env('REDIS_DB')
+# REDIS_URL = env('REDIS_URL')
+# settings.py
+from environ import Env
+env = Env()
+
+REDIS_HOST = env("REDIS_HOST", default="host.docker.internal")
+REDIS_PORT = env.int("REDIS_PORT", default=6379)
+REDIS_DB   = env.int("REDIS_DB",   default=0)
+REDIS_URL  = env("REDIS_URL", default=f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}")
+
+
+
+
+
+# Django Cache Setup (using Redis)
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": REDIS_URL,
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        }
+    }
+}
+
+# Session Management (optional)
+SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+SESSION_CACHE_ALIAS = "default"

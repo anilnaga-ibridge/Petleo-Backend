@@ -169,7 +169,11 @@ load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "fallback-secret-key")
+
+# SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "fallback-secret-key")
+SECRET_KEY = "super-secret-shared-key"
+
+
 DEBUG = True
 ALLOWED_HOSTS = []
 INSTALLED_APPS = [
@@ -194,7 +198,7 @@ INSTALLED_APPS = [
 AUTH_USER_MODEL = "admin_core.SuperAdmin"
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",  # Vue dev server
-    "http://127.0.0.1:5173",
+    "http://127.0.0.1:5174",
 ]
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_METHODS = [
@@ -272,6 +276,9 @@ TEMPLATES = [
     },
 ]
 
+KAFKA_BROKER_URL = "localhost:9092"
+KAFKA_USER_TOPIC = "user_created"
+KAFKA_GROUP_ID = "superadmin_group"
 # REST_FRAMEWORK = {
 #     'DEFAULT_AUTHENTICATION_CLASSES': (
 #         'admin_core.authentication.CentralAuthJWTAuthentication',
@@ -335,11 +342,9 @@ TEMPLATES = [
 # }
 
 
-KAFKA_BROKER_URL = "localhost:9092"
-KAFKA_USER_TOPIC = "user_created"
-KAFKA_GROUP_ID = "superadmin_group"
 
 
 
 
-AUTH_SECRET_KEY = "fallback-secret-key"
+
+

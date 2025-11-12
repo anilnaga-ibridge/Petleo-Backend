@@ -33,33 +33,36 @@
 # ]
 # # =======================================================phno otp ============================
 # users/urls.py
-from django.urls import path
+from django.urls import path, include
 from .views import RegisterView, SendOTPView, VerifyOTPView, RefreshTokenView, LogoutView
 from . import views
+from rest_framework.routers import DefaultRouter
 from .views import (
-    PermissionListCreateView, PermissionDetailView,
-    RoleListCreateView, RoleDetailView, RolePermissionUpdateView
+   
+    UserViewSet,ResendVerificationOTPView,RoleViewSet,PermissionViewSet
 )
+router = DefaultRouter()
+router.register(r'users', UserViewSet, basename='user')
+router.register(r"roles", RoleViewSet, basename="roles")
+router.register(r"permissions", PermissionViewSet, basename="permissions")
+
 urlpatterns = [
     path('api/auth/register/', RegisterView.as_view(), name='auth-register'),
     path('api/auth/send-otp/', SendOTPView.as_view(), name='auth-send-otp'),
     path('api/auth/verify-otp/', VerifyOTPView.as_view(), name='auth-verify-otp'),
     path('api/auth/refresh-token/', RefreshTokenView.as_view(), name='auth-refresh'),
     path('api/auth/logout/', LogoutView.as_view(), name='auth-logout'),
-    
+    path("api/auth/resend-otp/", ResendVerificationOTPView.as_view(), name="resend_otp"),
     
      path("register-superadmin/", views.register_superadmin, name="register-superadmin"),
      
      
-     
-     
-     path("permissions/", PermissionListCreateView.as_view(), name="permission-list-create"),
-    path("permissions/<int:pk>/", PermissionDetailView.as_view(), name="permission-detail"),
-
-    # Roles
-    path("roles/", RoleListCreateView.as_view(), name="role-list-create"),
-    path("roles/<int:pk>/", RoleDetailView.as_view(), name="role-detail"),
-    path("roles/<int:role_id>/permissions/", RolePermissionUpdateView.as_view(), name="role-permission-update"),
+    
+   
+    
+    
+    # verifyed user CRUD via ViewSet and Router
+      path('', include(router.urls)),
 ]
 
 

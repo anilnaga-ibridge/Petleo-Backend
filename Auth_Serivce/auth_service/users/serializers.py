@@ -171,16 +171,16 @@ class RoleSerializer(serializers.ModelSerializer):
     permissions = serializers.PrimaryKeyRelatedField(
         queryset=Permission.objects.all(), many=True, required=False
     )
+    permission_details = PermissionSerializer(source="permissions", many=True, read_only=True)
 
     class Meta:
         model = Role
-        fields = ["id", "name", "description", "permissions"]
+        fields = ["id", "name", "description", "permissions", "permission_details"]
 
     def create(self, validated_data):
         permissions = validated_data.pop("permissions", [])
         role = Role.objects.create(**validated_data)
-        if permissions:
-            role.permissions.set(permissions)
+        role.permissions.set(permissions)
         return role
 
     def update(self, instance, validated_data):
@@ -188,7 +188,6 @@ class RoleSerializer(serializers.ModelSerializer):
         instance.name = validated_data.get("name", instance.name)
         instance.description = validated_data.get("description", instance.description)
         instance.save()
-
         if permissions is not None:
             instance.permissions.set(permissions)
         return instance
@@ -238,7 +237,18 @@ class RegisterSerializer(serializers.ModelSerializer):
         user.set_unusable_password()
         user.save()
         return user
-
+class UserUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = [
+            "id",
+            "username",
+            "full_name",
+            "email",
+            "phone_number",
+            "role",
+        ]
+        read_only_fields = ["id", "username"]
 
 # ============================
 # OTP Serializers

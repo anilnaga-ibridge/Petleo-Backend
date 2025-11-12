@@ -111,3 +111,13 @@ def send_sms_via_provider(phone_number: str, message: str):
     print("Unknown SMS_BACKEND, printing message:")
     print(message)
     return True
+# users/utils.py
+import redis
+
+# Direct Redis connection (no .env)
+_redis = redis.StrictRedis(
+    host="host.docker.internal",  # connects to Redis inside Docker
+    port=6379,
+    db=0,
+    decode_responses=True
+)

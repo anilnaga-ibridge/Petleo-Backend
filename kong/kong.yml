@@ -1,0 +1,24 @@
+_format_version: "3.0"
+_transform: true
+
+services:
+  - name: auth_service
+    url: http://auth_service:8000
+    routes:
+      - name: auth_route
+        paths:
+          - /auth
+
+  - name: service_provider_service
+    url: http://service_provider_service:8002
+    routes:
+      - name: service_provider_route
+        paths:
+          - /provider
+
+  - name: super_admin_service
+    url: http://super_admin_service:8003
+    routes:
+      - name: super_admin_route
+        paths:
+          - /admin

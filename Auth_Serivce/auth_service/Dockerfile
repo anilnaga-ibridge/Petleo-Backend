@@ -1,16 +1,22 @@
-FROM python:3.12-slim
+# Use lightweight Python base image
+FROM python:3.11-slim
 
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+# Set working directory
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y build-essential libpq-dev && rm -rf /var/lib/apt/lists/*
+# Install dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-COPY requirements.txt /app/requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt \
-    && pip install --no-cache-dir gunicorn psycopg2-binary kafka-python
+# Copy project files
+COPY . .
 
-COPY . /app
-
-ENV PYTHONUNBUFFERED=1
+# Expose port
 EXPOSE 8000
 
-CMD ["sh", "-c", "python manage.py migrate && gunicorn auth_service.wsgi:application --bind 0.0.0.0:8000 --workers 3"]
+# Run Django server
+CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]

@@ -1946,12 +1946,15 @@ from rest_framework.decorators import api_view
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
+from rest_framework.permissions import AllowAny
+from rest_framework import viewsets
+from .serializers import RoleSerializer, PermissionSerializer
 
 from .models import Permission, Role
 from .serializers import PermissionSerializer, RoleSerializer
 from .kafka_producer import publish_event
 from .models import User, Role, OTP, StoredRefreshToken
-from .serializers import RegisterSerializer, SendOTPSerializer, VerifyOTPSerializer
+from .serializers import RegisterSerializer, SendOTPSerializer, VerifyOTPSerializer,UserUpdateSerializer
 from .utils import (
     create_otp_session,
     get_otp_session,
@@ -1961,6 +1964,7 @@ from .utils import (
     increment_rate_limit,
 )
 from .tokens import get_tokens_for_user, verify_and_rotate_refresh_token
+from .kafka_producer import publish_event
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -1976,6 +1980,7 @@ STATIC_SUPERADMIN_OTP = getattr(settings, 'STATIC_SUPERADMIN_OTP', None)
 # ---------------------- REGISTER ----------------------
 class RegisterView(APIView):
     """Register user and create OTP session (returns session_id)."""
+    permission_classes = [AllowAny]
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -2022,6 +2027,7 @@ class RegisterView(APIView):
 # ---------------------- SEND OTP ----------------------
 class SendOTPView(APIView):
     """Request OTP for login (returns session_id)."""
+    permission_classes = [AllowAny]
     def post(self, request):
         serializer = SendOTPSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -2037,12 +2043,27 @@ class SendOTPView(APIView):
                 "otp": STATIC_SUPERADMIN_OTP
             }, status=status.HTTP_200_OK)
 
-        # Ensure user exists for login
-        if purpose == 'login' and not User.objects.filter(phone_number=phone).exists():
-            return Response(
-                {"detail": "Phone number not registered. Please register first."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        # # Ensure user exists for login
+        # if purpose == 'login' and not User.objects.filter(phone_number=phone).exists():
+        #     return Response(
+        #         {"detail": "Phone number not registered. Please register first."},
+        #         status=status.HTTP_400_BAD_REQUEST,
+        #     )
+        # 🔹 Ensure user exists for login
+        if purpose == "login":
+            try:
+                user = User.objects.get(phone_number=phone)
+                # ✅ Check if user is verified (active)
+                if not user.is_active:
+                    return Response(
+                        {"detail": "Please verify your phone number before login."},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+            except User.DoesNotExist:
+                return Response(
+                    {"detail": "Phone number not registered. Please register first."},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
 
         # Rate limit
         if not increment_rate_limit(phone, RATE_LIMIT_WINDOW, RATE_LIMIT_MAX):
@@ -2215,7 +2236,7 @@ def transform_for_frontend(tokens, user):
     }
 class VerifyOTPView(APIView):
     """Verify OTP for register or login."""
-
+    permission_classes = [AllowAny]
     def post(self, request):
         serializer = VerifyOTPSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -2331,6 +2352,8 @@ class VerifyOTPView(APIView):
 # ---------------------- REFRESH TOKEN ----------------------
 class RefreshTokenView(APIView):
     """Accept opaque refresh token, rotate and return new access + refresh."""
+    permission_classes = [AllowAny]
+
     def post(self, request):
         token = request.data.get('refresh')
         if not token:
@@ -2442,11 +2465,22 @@ def register_superadmin(request):
             )
 
         # 🔍 Prevent duplicate user
-        if User.objects.filter(email=email).exists():
-            return Response(
-                {"message": "User already exists"},
-                status=status.HTTP_200_OK
-            )
+        # if User.objects.filter(email=email).exists():
+        #     return Response(
+        #         {"message": "User already exists"},
+        #         status=status.HTTP_200_OK
+        #     )
+        existing_user = User.objects.filter(phone_number=phone).first()
+        if existing_user and not existing_user.is_active:
+            # Resend OTP automatically
+            session_id, otp = create_otp_session(phone, purpose='register')
+            message = f"Your OTP is: {otp} (valid {OTP_TTL_MINUTES} minutes)"
+            send_sms_via_provider(phone, message)
+            return Response({
+                "message": "User already exists but not verified. OTP resent.",
+                "session_id": session_id,
+                "otp": otp  # only for dev
+            }, status=status.HTTP_200_OK)
 
         # ---------------------- ADMIN REGISTRATION (BY SUPERADMIN) ----------------------
         if user_type == "admin":
@@ -2545,55 +2579,238 @@ def register_superadmin(request):
 
 
 
-# =================================================================
-class PermissionListCreateView(generics.ListCreateAPIView):
+# # =================================================================
+# class PermissionListCreateView(generics.ListCreateAPIView):
+#     """
+#     List all permissions or create a new permission.
+#     """
+#     queryset = Permission.objects.all().order_by('codename')
+#     serializer_class = PermissionSerializer
+#     permission_classes = [IsAuthenticated]
+
+
+# class PermissionDetailView(generics.RetrieveUpdateDestroyAPIView):
+#     """
+#     Retrieve, update, or delete a specific permission by ID.
+#     """
+#     queryset = Permission.objects.all()
+#     serializer_class = PermissionSerializer
+#     permission_classes = [IsAuthenticated]
+    
+    
+    
+# class RoleListCreateView(generics.ListCreateAPIView):
+#     """
+#     List all roles or create a new role with assigned permissions.
+#     """
+#     queryset = Role.objects.all().prefetch_related('permissions')
+#     serializer_class = RoleSerializer
+#     permission_classes = [IsAuthenticated]
+
+
+# class RoleDetailView(generics.RetrieveUpdateDestroyAPIView):
+#     """
+#     Retrieve, update, or delete a specific role by ID.
+#     """
+#     queryset = Role.objects.all().prefetch_related('permissions')
+#     serializer_class = RoleSerializer
+#     permission_classes = [IsAuthenticated]
+# class RolePermissionUpdateView(APIView):
+#     """
+#     Add or remove permissions for a specific role.
+#     """
+#     permission_classes = [IsAuthenticated]
+
+#     def post(self, request, role_id):
+#         role = get_object_or_404(Role, id=role_id)
+#         permission_ids = request.data.get("permissions", [])
+
+#         # Replace all existing permissions
+#         role.permissions.set(permission_ids)
+#         role.save()
+
+#         serializer = RoleSerializer(role)
+#         return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    
+    
+class PermissionViewSet(viewsets.ModelViewSet):
     """
-    List all permissions or create a new permission.
+    ✅ Full CRUD for Permission model
+    GET /permissions/        → list
+    POST /permissions/       → create
+    GET /permissions/{id}/   → retrieve
+    PUT /permissions/{id}/   → update
+    PATCH /permissions/{id}/ → partial update
+    DELETE /permissions/{id}/→ delete
     """
-    queryset = Permission.objects.all().order_by('codename')
+    queryset = Permission.objects.all().order_by("codename")
     serializer_class = PermissionSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated]
 
 
-class PermissionDetailView(generics.RetrieveUpdateDestroyAPIView):
+class RoleViewSet(viewsets.ModelViewSet):
     """
-    Retrieve, update, or delete a specific permission by ID.
+    ✅ Full CRUD for Role model (with permission assignment)
+    GET /roles/        → list all roles
+    POST /roles/       → create new role
+    GET /roles/{id}/   → get role details
+    PUT /roles/{id}/   → update all fields
+    PATCH /roles/{id}/ → partial update
+    DELETE /roles/{id}/→ delete role
     """
-    queryset = Permission.objects.all()
-    serializer_class = PermissionSerializer
-    permission_classes = [IsAuthenticated]
-    
-    
-    
-class RoleListCreateView(generics.ListCreateAPIView):
-    """
-    List all roles or create a new role with assigned permissions.
-    """
-    queryset = Role.objects.all().prefetch_related('permissions')
+    queryset = Role.objects.all().prefetch_related("permissions")
     serializer_class = RoleSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated]
 
+    def update(self, request, *args, **kwargs):
+        """
+        Overriding update to safely handle permissions and partial updates.
+        """
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        return Response(serializer.data)
 
-class RoleDetailView(generics.RetrieveUpdateDestroyAPIView):
-    """
-    Retrieve, update, or delete a specific role by ID.
-    """
-    queryset = Role.objects.all().prefetch_related('permissions')
-    serializer_class = RoleSerializer
-    permission_classes = [IsAuthenticated]
-class RolePermissionUpdateView(APIView):
-    """
-    Add or remove permissions for a specific role.
-    """
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request, role_id):
-        role = get_object_or_404(Role, id=role_id)
+    def assign_permissions(self, request, pk=None):
+        """
+        Custom endpoint: POST /roles/{id}/assign_permissions/
+        Assign or update permissions for a role.
+        """
+        role = get_object_or_404(Role, pk=pk)
         permission_ids = request.data.get("permissions", [])
-
-        # Replace all existing permissions
         role.permissions.set(permission_ids)
         role.save()
+        return Response(
+            {"message": "Permissions updated successfully."},
+            status=status.HTTP_200_OK
+        )
+    
+class UserViewSet(viewsets.ViewSet):
+    permission_classes = [IsAuthenticated]  # adjust for service-to-service calls (see notes)
 
-        serializer = RoleSerializer(role)
+    def retrieve(self, request, pk=None):
+        user = get_object_or_404(User, pk=pk)
+        serializer = UserUpdateSerializer(user)
+        return Response(serializer.data)
+
+    def list(self, request):
+        qs = User.objects.filter(is_active=True)
+        serializer = UserUpdateSerializer(qs, many=True)
+        return Response(serializer.data)
+
+    
+    def partial_update(self, request, pk=None):
+        """Handles PATCH requests and publishes USER_UPDATED to Kafka"""
+        user = get_object_or_404(User, pk=pk)
+        serializer = UserUpdateSerializer(user, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        # ✅ Refresh from DB to get latest role relation
+        user.refresh_from_db()
+
+        # Resolve dynamic role safely
+        dynamic_role = (
+            getattr(user.role, "name", None)
+            or serializer.data.get("role")
+            or request.data.get("role")
+        )
+
+        logger.info(f"🧩 Dynamic role resolved: {dynamic_role} for user {user.id}")
+
+        if dynamic_role:
+            publish_event(
+                event_type="USER_UPDATED",
+                data={
+                    "auth_user_id": str(user.id),
+                    "full_name": serializer.data.get("full_name") or user.full_name,
+                    "email": serializer.data.get("email") or user.email,
+                    "phone_number": serializer.data.get("phone_number") or user.phone_number,
+                    "role": dynamic_role,
+                },
+            )
+            logger.info(f"✅ USER_UPDATED event published for role '{dynamic_role}'")
+        else:
+            logger.warning("⚠️ Skipping USER_UPDATED event: no valid role found.")
+
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def update(self, request, pk=None):
+        """Alias PUT -> same as PATCH"""
+        return self.partial_update(request, pk)
+    def destroy(self, request, pk=None):
+        # 🔹 Get and delete the user
+        user = get_object_or_404(User, pk=pk)
+        user_id = str(user.id)
+
+        # ✅ Safely extract dynamic role name
+        dynamic_role = user.role.name if user.role else None
+
+        # 🔹 Publish USER_DELETED event BEFORE deleting
+        if dynamic_role:
+            publish_event(
+                event_type="USER_DELETED",
+                data={
+                    "auth_user_id": user_id,
+                    "role": dynamic_role,
+                },
+            )
+            logger.info(f"✅ USER_DELETED event published for role '{dynamic_role}'")
+        else:
+            logger.warning("⚠️ Skipping USER_DELETED event: no valid role found.")
+
+        user.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    
+    
+
+
+class ResendVerificationOTPView(APIView):
+    """Resend OTP for users who registered but haven't verified yet"""
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        phone = request.data.get("phone_number")
+        if not phone:
+            return Response(
+                {"detail": "Phone number is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            user = User.objects.get(phone_number=phone)
+        except User.DoesNotExist:
+            return Response(
+                {"detail": "User not found. Please register first."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        if user.is_active:
+            return Response(
+                {"detail": "User already verified. Please login."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not increment_rate_limit(phone, RATE_LIMIT_WINDOW, RATE_LIMIT_MAX):
+            return Response(
+                {"detail": "Too many OTP requests. Try again later."},
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+            )
+
+        session_id, otp = create_otp_session(phone, purpose="register")
+        message = f"Your verification OTP is: {otp} (valid {OTP_TTL_MINUTES} minutes)"
+        sms_ok = send_sms_via_provider(phone, message)
+
+        response = {
+            "message": "OTP resent successfully.",
+            "session_id": session_id,
+            "sms_sent": sms_ok,
+        }
+        if getattr(settings, "SMS_BACKEND", "console") == "console":
+            response["otp"] = otp
+
+        logger.info(f"🔁 OTP resent for {phone}")
+        return Response(response, status=status.HTTP_200_OK)

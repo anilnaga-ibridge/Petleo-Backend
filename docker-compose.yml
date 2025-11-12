@@ -1,201 +1,995 @@
+# services:
+#   # 🧠 Auth Service (uses Redis + Kafka)
+#   auth_service:
+#     build: ./Auth_Serivce
+#     container_name: auth_service
+#     ports:
+#       - "8000:8000"
+#     env_file:
+#       - ./Auth_Serivce/.env
+#     depends_on:
+#       - kafka
+#       - redis
+
+#   # 🧩 Service Provider Service
+#   service_provider_service:
+#     build: ./service_provider_service
+#     container_name: service_provider_service
+#     ports:
+#       - "8002:8002"
+#     env_file:
+#       - ./service_provider_service/.env
+#     depends_on:
+#       - kafka
+
+#   # 🧩 Super Admin Service
+#   super_admin_service:
+#     build: ./super_admin_service
+#     container_name: super_admin_service
+#     ports:
+#       - "8003:8003"
+#     env_file:
+#       - ./super_admin_service/.env
+#     depends_on:
+#       - kafka
+
+#   # ⚙️ Zookeeper (needed for Kafka coordination)
+#     zookeeper:
+#     image: bitnami/zookeeper:latest
+#     container_name: zookeeper
+#     environment:
+#       - ALLOW_ANONYMOUS_LOGIN=yes
+#     ports:
+#       - "2181:2181"
+
+#   kafka:
+#     image: bitnami/kafka:latest
+#     container_name: kafka
+#     depends_on:
+#       - zookeeper
+#     environment:
+#       KAFKA_CFG_ZOOKEEPER_CONNECT: zookeeper:2181
+#       KAFKA_CFG_LISTENERS: PLAINTEXT://:9092
+#       KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+#       ALLOW_PLAINTEXT_LISTENER: "yes"
+#       KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: "true"
+#     ports:
+#       - "9092:9092"
+#     volumes:
+#       - kafka_data:/bitnami/kafka
+
+
+#   # 🧰 Redis Cache
+#   redis:
+#     image: redis:7.0
+#     container_name: redis
+#     ports:
+#       - "6379:6379"
+#     volumes:
+#       - redis_data:/data
+
+#   # 🧭 Redis Insight (visual Redis dashboard)
+#   redis-insight:
+#     image: redislabs/redisinsight:latest
+#     container_name: redis-insight
+#     ports:
+#       - "5540:5540"
+#     depends_on:
+#       - redis
+
+#   # 🌐 Kong API Gateway
+#   kong:
+#     image: kong:3.6
+#     container_name: kong
+#     environment:
+#       KONG_DATABASE: "off"
+#       KONG_DECLARATIVE_CONFIG: /usr/local/kong/declarative/kong.yml
+#     ports:
+#       - "8001:8001"  # Admin API
+#       - "8005:8000"  # Proxy Gateway (avoid conflict with auth_service 8000)
+#     volumes:
+#       - ./kong/kong.yml:/usr/local/kong/declarative/kong.yml
+#     depends_on:
+#       - auth_service
+#       - service_provider_service
+#       - super_admin_service
+
+# # 🔒 Persistent Volumes for Kafka & Redis Data
+# volumes:
+#   kafka_data:
+#   redis_data:
+# version: "3.9"
+
+# services:
+#   # 🧭 Zookeeper (Confluent)
+#   zookeeper:
+#     image: confluentinc/cp-zookeeper:7.5.0
+#     container_name: zookeeper
+#     ports:
+#       - "2181:2181"
+#     environment:
+#       ZOOKEEPER_CLIENT_PORT: 2181
+#       ZOOKEEPER_TICK_TIME: 2000
+
+#   # ⚙️ Kafka (Confluent)
+#   kafka:
+#     image: confluentinc/cp-kafka:7.5.0
+#     container_name: kafka
+#     depends_on:
+#       - zookeeper
+#     ports:
+#       - "9092:9092"
+#     environment:
+#       KAFKA_BROKER_ID: 1
+#       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+#       KAFKA_LISTENERS: INSIDE://0.0.0.0:29092,OUTSIDE://0.0.0.0:9092
+#       KAFKA_ADVERTISED_LISTENERS: INSIDE://kafka:29092,OUTSIDE://localhost:9092
+#       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT
+#       KAFKA_INTER_BROKER_LISTENER_NAME: INSIDE
+#       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+#       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+#       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+
+#   # 📊 Kafka UI
+#   kafka-ui:
+#     image: provectuslabs/kafka-ui:latest
+#     container_name: kafka-ui
+#     depends_on:
+#       - kafka
+#     ports:
+#       - "8085:8080"
+#     environment:
+#       KAFKA_CLUSTERS_0_NAME: local
+#       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+#       KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+
+#   # 🧰 Redis Cache
+#   redis:
+#     image: redis:7.0
+#     container_name: redis
+#     ports:
+#       - "6379:6379"
+#     volumes:
+#       - redis_data:/data
+
+#   # 🧭 Redis Insight (Dashboard)
+#   redis-insight:
+#     image: redis/redisinsight:latest
+#     container_name: redis-insight
+#     ports:
+#       - "5540:5540"
+#     depends_on:
+#       - redis
+
+#   # 🧠 Auth Service
+#   auth_service:
+#     build:
+#       context: ./Auth_Serivce
+#       dockerfile: Dockerfile
+#     container_name: auth_service
+#     restart: unless-stopped
+#     ports:
+#       - "8000:8000"
+#     env_file:
+#       - ./Auth_Serivce/.env
+#     environment:
+#       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+#       REDIS_HOST: redis
+#       REDIS_PORT: 6379
+#     depends_on:
+#       - kafka
+#       - redis
+
+#   # 🧩 Service Provider Service
+#   service_provider_service:
+#     build:
+#       context: ./service_provider_service
+#       dockerfile: Dockerfile
+#     container_name: service_provider_service
+#     restart: unless-stopped
+#     ports:
+#       - "8002:8002"
+#     env_file:
+#       - ./service_provider_service/.env
+#     environment:
+#       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+#     depends_on:
+#       - kafka
+
+#   # 🧩 Super Admin Service
+#   super_admin_service:
+#     build:
+#       context: ./super_admin_service
+#       dockerfile: Dockerfile
+#     container_name: super_admin_service
+#     restart: unless-stopped
+#     ports:
+#       - "8003:8003"
+#     env_file:
+#       - ./super_admin_service/.env
+#     environment:
+#       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+#     depends_on:
+#       - kafka
+
+#   # 🌐 Kong API Gateway
+#   kong:
+#     image: kong:3.6
+#     container_name: kong
+#     environment:
+#       KONG_DATABASE: "off"
+#       KONG_DECLARATIVE_CONFIG: /usr/local/kong/declarative/kong.yml
+#     ports:
+#       - "8001:8001"  # Admin
+#       - "8005:8000"  # Proxy
+#     volumes:
+#       - ./kong/kong.yml:/usr/local/kong/declarative/kong.yml
+#     depends_on:
+#       - auth_service
+#       - service_provider_service
+#       - super_admin_service
+
+# volumes:
+#   redis_data:
+# 🐳 Microservice Architecture - Full Docker Compose
+# ✅ Updated: Fixed Auth_Service path, added volumes, corrected ports, cleaned structure
+
+# services:
+#   # 🧭 Zookeeper (Confluent)
+#   zookeeper:
+#     image: confluentinc/cp-zookeeper:7.5.0
+#     container_name: zookeeper
+#     ports:
+#       - "2181:2181"
+#     environment:
+#       ZOOKEEPER_CLIENT_PORT: 2181
+#       ZOOKEEPER_TICK_TIME: 2000
+
+#   # ⚙️ Kafka (Confluent)
+#   kafka:
+#     image: confluentinc/cp-kafka:7.5.0
+#     container_name: kafka
+#     depends_on:
+#       - zookeeper
+#     ports:
+#       - "9092:9092"
+#     environment:
+#       KAFKA_BROKER_ID: 1
+#       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+#       KAFKA_LISTENERS: INSIDE://0.0.0.0:29092,OUTSIDE://0.0.0.0:9092
+#       KAFKA_ADVERTISED_LISTENERS: INSIDE://kafka:29092,OUTSIDE://localhost:9092
+#       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT
+#       KAFKA_INTER_BROKER_LISTENER_NAME: INSIDE
+#       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+#       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+#       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+
+#   # 📊 Kafka UI
+#   kafka-ui:
+#     image: provectuslabs/kafka-ui:latest
+#     container_name: kafka-ui
+#     depends_on:
+#       - kafka
+#     ports:
+#       - "8085:8080"
+#     environment:
+#       KAFKA_CLUSTERS_0_NAME: local
+#       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+#       KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+
+#   # 🧰 Redis Cache
+#   redis:
+#     image: redis:7.0
+#     container_name: redis
+#     ports:
+#       - "6379:6379"
+#     volumes:
+#       - redis_data:/data
+
+#   # 🧭 Redis Insight (Dashboard)
+#   redis-insight:
+#     image: redis/redisinsight:latest
+#     container_name: redis-insight
+#     ports:
+#       - "5540:5540"
+#     depends_on:
+#       - redis
+
+#   # 🧠 Auth Service (Django)
+#   auth_service:
+#     build:
+#       context: ./Auth_Serivce   # ✅ matches your folder (case & spelling)
+#       dockerfile: Dockerfile
+#     container_name: auth_service
+#     command: python manage.py runserver 0.0.0.0:8000
+#     restart: unless-stopped
+#     ports:
+#       - "8000:8000"
+#     volumes:
+#       - ./Auth_Serivce:/app    # ✅ mounts correct path containing manage.py
+#     env_file:
+#       - ./Auth_Serivce/.env
+#     environment:
+#       DJANGO_SETTINGS_MODULE: auth_service.settings
+#       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+#       REDIS_HOST: redis
+#       REDIS_PORT: 6379
+#     depends_on:
+#       - kafka
+#       - redis
+
+#   # 🧩 Service Provider Service (Django)
+#   service_provider_service:
+#     build:
+#       context: ./service_provider_service
+#       dockerfile: Dockerfile
+#     container_name: service_provider_service
+#     command: python manage.py runserver 0.0.0.0:8002
+#     restart: unless-stopped
+#     ports:
+#       - "8002:8002"
+#     volumes:
+#       - ./service_provider_service:/app
+#     env_file:
+#       - ./service_provider_service/.env
+#     environment:
+#       DJANGO_SETTINGS_MODULE: service_provider_service.settings
+#       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+#     depends_on:
+#       - kafka
+
+#   # 🧩 Super Admin Service (Django)
+#   super_admin_service:
+#     build:
+#       context: ./super_admin_service
+#       dockerfile: Dockerfile
+#     container_name: super_admin_service
+#     command: python manage.py runserver 0.0.0.0:8003
+#     restart: unless-stopped
+#     ports:
+#       - "8003:8003"
+#     volumes:
+#       - ./super_admin_service:/app
+#     env_file:
+#       - ./super_admin_service/.env
+#     environment:
+#       DJANGO_SETTINGS_MODULE: super_admin_service.settings
+#       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+#     depends_on:
+#       - kafka
+
+#   # 🌐 Kong API Gateway
+#   kong:
+#     image: kong:3.6
+#     container_name: kong
+#     environment:
+#       KONG_DATABASE: "off"
+#       KONG_DECLARATIVE_CONFIG: /usr/local/kong/declarative/kong.yml
+#     ports:
+#       - "8001:8001"  # Admin
+#       - "8005:8000"  # Proxy
+#     volumes:
+#       - ./kong/kong.yml:/usr/local/kong/declarative/kong.yml
+#     depends_on:
+#       - auth_service
+#       - service_provider_service
+#       - super_admin_service
+
+# volumes:
+#   redis_data:
+# version: "3.9"
+
+# services:
+#   # 🧭 Zookeeper
+#   zookeeper:
+#     image: confluentinc/cp-zookeeper:7.5.0
+#     container_name: zookeeper
+#     ports:
+#       - "2181:2181"
+#     environment:
+#       ZOOKEEPER_CLIENT_PORT: 2181
+#       ZOOKEEPER_TICK_TIME: 2000
+
+#   # ⚙️ Kafka
+#   kafka:
+#     image: confluentinc/cp-kafka:7.5.0
+#     container_name: kafka
+#     depends_on:
+#       - zookeeper
+#     ports:
+#       - "9092:9092"
+#     environment:
+#       KAFKA_BROKER_ID: 1
+#       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+#       KAFKA_LISTENERS: INSIDE://0.0.0.0:29092,OUTSIDE://0.0.0.0:9092
+#       KAFKA_ADVERTISED_LISTENERS: INSIDE://kafka:29092,OUTSIDE://localhost:9092
+#       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT
+#       KAFKA_INTER_BROKER_LISTENER_NAME: INSIDE
+#       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+#       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+#       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+
+#   # 📊 Kafka UI
+#   kafka-ui:
+#     image: provectuslabs/kafka-ui:latest
+#     container_name: kafka-ui
+#     depends_on:
+#       - kafka
+#     ports:
+#       - "8085:8080"
+#     environment:
+#       KAFKA_CLUSTERS_0_NAME: local
+#       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+#       KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+
+#   # 🧰 Redis
+#   redis:
+#     image: redis:7.0
+#     container_name: redis
+#     ports:
+#       - "6379:6379"
+#     volumes:
+#       - redis_data:/data
+
+#   # 🧭 Redis Insight (UI)
+#   redis-insight:
+#     image: redis/redisinsight:latest
+#     container_name: redis-insight
+#     ports:
+#       - "5540:5540"
+#     depends_on:
+#       - redis
+
+#   # 🐘 PostgreSQL for Auth Service
+#   postgres_auth:
+#     image: postgres:15
+#     container_name: postgres_auth
+#     restart: unless-stopped
+#     environment:
+#       POSTGRES_DB: Auth_Service
+#       POSTGRES_USER: postgres
+#       POSTGRES_PASSWORD: postgres
+#     volumes:
+#       - postgres_auth_data:/var/lib/postgresql/data
+#     ports:
+#       - "5433:5432"
+
+#   # 🐘 PostgreSQL for Service Provider
+#   postgres_service_provider:
+#     image: postgres:15
+#     container_name: postgres_service_provider
+#     restart: unless-stopped
+#     environment:
+#       POSTGRES_DB: Service_Provider
+#       POSTGRES_USER: postgres
+#       POSTGRES_PASSWORD: postgres
+#     volumes:
+#       - postgres_sp_data:/var/lib/postgresql/data
+#     ports:
+#       - "5434:5432"
+
+#   # 🐘 PostgreSQL for Super Admin
+#   postgres_super_admin:
+#     image: postgres:15
+#     container_name: postgres_super_admin
+#     restart: unless-stopped
+#     environment:
+#       POSTGRES_DB: Super_Admin
+#       POSTGRES_USER: postgres
+#       POSTGRES_PASSWORD: postgres
+#     volumes:
+#       - postgres_sa_data:/var/lib/postgresql/data
+#     ports:
+#       - "5435:5432"
+
+#   # 🧠 Auth Service (Django)
+#   auth_service:
+#     build:
+#       context: ./Auth_Serivce
+#       dockerfile: Dockerfile
+#     container_name: auth_service
+#     command: python manage.py runserver 0.0.0.0:8000
+#     restart: unless-stopped
+#     ports:
+#       - "8000:8000"
+#     volumes:
+#       - ./Auth_Serivce:/app
+#     env_file:
+#       - ./Auth_Serivce/.env
+#     environment:
+#       DJANGO_SETTINGS_MODULE: auth_service.settings
+#       POSTGRES_DB: Auth_Service
+#       POSTGRES_USER: postgres
+#       POSTGRES_PASSWORD: postgres
+#       POSTGRES_HOST: postgres_auth
+#       POSTGRES_PORT: 5432
+#       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+#       REDIS_HOST: redis
+#       REDIS_PORT: 6379
+#     depends_on:
+#       - kafka
+#       - redis
+#       - postgres_auth
+
+#   # 🧩 Service Provider Service (Django)
+#   service_provider_service:
+#     build:
+#       context: ./service_provider_service
+#       dockerfile: Dockerfile
+#     container_name: service_provider_service
+#     command: python manage.py runserver 0.0.0.0:8002
+#     restart: unless-stopped
+#     ports:
+#       - "8002:8002"
+#     volumes:
+#       - ./service_provider_service:/app
+#     env_file:
+#       - ./service_provider_service/.env
+#     environment:
+#       DJANGO_SETTINGS_MODULE: service_provider_service.settings
+#       POSTGRES_DB: Service_Provider
+#       POSTGRES_USER: postgres
+#       POSTGRES_PASSWORD: postgres
+#       POSTGRES_HOST: postgres_service_provider
+#       POSTGRES_PORT: 5432
+#       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+#     depends_on:
+#       - kafka
+#       - postgres_service_provider
+
+#   # 🧩 Super Admin Service (Django)
+#   super_admin_service:
+#     build:
+#       context: ./super_admin_service
+#       dockerfile: Dockerfile
+#     container_name: super_admin_service
+#     command: python manage.py runserver 0.0.0.0:8003
+#     restart: unless-stopped
+#     ports:
+#       - "8003:8003"
+#     volumes:
+#       - ./super_admin_service:/app
+#     env_file:
+#       - ./super_admin_service/.env
+#     environment:
+#       DJANGO_SETTINGS_MODULE: super_admin_service.settings
+#       POSTGRES_DB: Super_Admin
+#       POSTGRES_USER: postgres
+#       POSTGRES_PASSWORD: postgres
+#       POSTGRES_HOST: postgres_super_admin
+#       POSTGRES_PORT: 5432
+#       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+#     depends_on:
+#       - kafka
+#       - postgres_super_admin
+
+#   # 🌐 Kong API Gateway
+#   kong:
+#     image: kong:3.6
+#     container_name: kong
+#     environment:
+#       KONG_DATABASE: "off"
+#       KONG_DECLARATIVE_CONFIG: /usr/local/kong/declarative/kong.yml
+#     ports:
+#       - "8001:8001"  # Admin
+#       - "8005:8000"  # Proxy
+#     volumes:
+#       - ./kong/kong.yml:/usr/local/kong/declarative/kong.yml
+#     depends_on:
+#       - auth_service
+#       - service_provider_service
+#       - super_admin_service
+
+# # Persistent Volumes
+# volumes:
+#   redis_data:
+#   postgres_auth_data:
+#   postgres_sp_data:
+#   postgres_sa_data:
+# version: "3.9"
+
+# services:
+#   # 🧭 Zookeeper
+#   zookeeper:
+#     image: confluentinc/cp-zookeeper:7.5.0
+#     container_name: zookeeper
+#     ports:
+#       - "2181:2181"
+#     environment:
+#       ZOOKEEPER_CLIENT_PORT: 2181
+#       ZOOKEEPER_TICK_TIME: 2000
+
+#   # ⚙️ Kafka
+#   kafka:
+#     image: confluentinc/cp-kafka:7.5.0
+#     container_name: kafka
+#     depends_on:
+#       - zookeeper
+#     ports:
+#       - "9092:9092"
+#     environment:
+#       KAFKA_BROKER_ID: 1
+#       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+#       KAFKA_LISTENERS: INSIDE://0.0.0.0:29092,OUTSIDE://0.0.0.0:9092
+#       KAFKA_ADVERTISED_LISTENERS: INSIDE://kafka:29092,OUTSIDE://localhost:9092
+#       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT
+#       KAFKA_INTER_BROKER_LISTENER_NAME: INSIDE
+#       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+#       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+#       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+
+#   # 📊 Kafka UI
+#   kafka-ui:
+#     image: provectuslabs/kafka-ui:latest
+#     container_name: kafka-ui
+#     depends_on:
+#       - kafka
+#     ports:
+#       - "8085:8080"
+#     environment:
+#       KAFKA_CLUSTERS_0_NAME: local
+#       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+#       KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+
+#   # 🧰 Redis
+#   redis:
+#     image: redis:7.0
+#     container_name: redis
+#     ports:
+#       - "6379:6379"
+#     volumes:
+#       - redis_data:/data
+
+#   # 🧭 Redis Insight (UI)
+#   redis-insight:
+#     image: redis/redisinsight:latest
+#     container_name: redis-insight
+#     ports:
+#       - "5540:5540"
+#     depends_on:
+#       - redis
+
+#   # 🐘 PostgreSQL for Auth Service
+#   postgres_auth:
+#     image: postgres:15
+#     container_name: postgres_auth
+#     restart: unless-stopped
+#     environment:
+#       POSTGRES_DB: Auth_Service
+#       POSTGRES_USER: postgres
+#       POSTGRES_PASSWORD: postgres
+#     volumes:
+#       - postgres_auth_data:/var/lib/postgresql/data
+#     ports:
+#       - "5433:5432"
+
+#   # 🐘 PostgreSQL for Service Provider
+#   postgres_service_provider:
+#     image: postgres:15
+#     container_name: postgres_service_provider
+#     restart: unless-stopped
+#     environment:
+#       POSTGRES_DB: Service_Provider
+#       POSTGRES_USER: postgres
+#       POSTGRES_PASSWORD: postgres
+#     volumes:
+#       - postgres_sp_data:/var/lib/postgresql/data
+#     ports:
+#       - "5434:5432"
+
+#   # 🐘 PostgreSQL for Super Admin
+#   postgres_super_admin:
+#     image: postgres:15
+#     container_name: postgres_super_admin
+#     restart: unless-stopped
+#     environment:
+#       POSTGRES_DB: Super_Admin
+#       POSTGRES_USER: postgres
+#       POSTGRES_PASSWORD: postgres
+#     volumes:
+#       - postgres_sa_data:/var/lib/postgresql/data
+#     ports:
+#       - "5435:5432"
+
+#   # 🧠 Auth Service (Django)
+#   auth_service:
+#     build:
+#       context: ./Auth_Serivce
+#       dockerfile: Dockerfile
+#     container_name: auth_service
+#     command: python manage.py runserver 0.0.0.0:8000
+#     restart: unless-stopped
+#     ports:
+#       - "8000:8000"
+#     volumes:
+#       - ./Auth_Serivce:/app
+#     environment:
+#       DJANGO_SETTINGS_MODULE: auth_service.settings
+#       POSTGRES_HOST: postgres_auth
+#       POSTGRES_PORT: 5432
+#       POSTGRES_USER: postgres
+#       POSTGRES_PASSWORD: postgres
+#       POSTGRES_DB: Auth_Service
+#       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+#       REDIS_HOST: redis
+#       REDIS_PORT: 6379
+#     depends_on:
+#       - kafka
+#       - redis
+#       - postgres_auth
+
+#   # 🧩 Service Provider Service (Django)
+#   service_provider_service:
+#     build:
+#       context: ./service_provider_service
+#       dockerfile: Dockerfile
+#     container_name: service_provider_service
+#     command: python manage.py runserver 0.0.0.0:8002
+#     restart: unless-stopped
+#     ports:
+#       - "8002:8002"
+#     volumes:
+#       - ./service_provider_service:/app
+#     environment:
+#       DJANGO_SETTINGS_MODULE: service_provider_service.settings
+#       POSTGRES_HOST: postgres_service_provider
+#       POSTGRES_PORT: 5432
+#       POSTGRES_USER: postgres
+#       POSTGRES_PASSWORD: postgres
+#       POSTGRES_DB: Service_Provider
+#       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+#     depends_on:
+#       - kafka
+#       - postgres_service_provider
+
+#   # 🧩 Super Admin Service (Django)
+#   super_admin_service:
+#     build:
+#       context: ./super_admin_service
+#       dockerfile: Dockerfile
+#     container_name: super_admin_service
+#     command: python manage.py runserver 0.0.0.0:8003
+#     restart: unless-stopped
+#     ports:
+#       - "8003:8003"
+#     volumes:
+#       - ./super_admin_service:/app
+#     environment:
+#       DJANGO_SETTINGS_MODULE: super_admin_service.settings
+#       POSTGRES_HOST: postgres_super_admin
+#       POSTGRES_PORT: 5432
+#       POSTGRES_USER: postgres
+#       POSTGRES_PASSWORD: postgres
+#       POSTGRES_DB: Super_Admin
+#       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+#     depends_on:
+#       - kafka
+#       - postgres_super_admin
+
+#   # 🌐 Kong API Gateway
+#   kong:
+#     image: kong:3.6
+#     container_name: kong
+#     environment:
+#       KONG_DATABASE: "off"
+#       KONG_DECLARATIVE_CONFIG: /usr/local/kong/declarative/kong.yml
+#     ports:
+#       - "8001:8001"  # Admin API
+#       - "8005:8000"  # Proxy
+#     volumes:
+#       - ./kong/kong.yml:/usr/local/kong/declarative/kong.yml
+#     depends_on:
+#       - auth_service
+#       - service_provider_service
+#       - super_admin_service
+
+# # 🗄️ Persistent Volumes
+# volumes:
+#   redis_data:
+#   postgres_auth_data:
+#   postgres_sp_data:
+#   postgres_sa_data:
 version: "3.9"
 
-x-django-env: &django-common-env
-  POSTGRES_HOST: postgres
-  POSTGRES_PORT: "5432"
-  POSTGRES_USER: postgres
-  POSTGRES_PASSWORD: postgres
-  DJANGO_SETTINGS_MODULE: ""     # optional, set per service if you use non-default
-  PYTHONDONTWRITEBYTECODE: "1"
-  PYTHONUNBUFFERED: "1"
-  # For Kafka inside containers use kafka:9092 (don't use localhost:9092)
-  KAFKA_BOOTSTRAP_SERVERS: kafka:9092
-
 services:
-  # ---------- DATA LAYER ----------
-  postgres:
+  # 🧭 Zookeeper
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+
+  # ⚙️ Kafka (Single listener using 9092)
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+
+  # 📊 Kafka UI
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    depends_on:
+      - kafka
+    ports:
+      - "8085:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+      KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+
+  # 🧰 Redis
+  redis:
+    image: redis:7.0
+    container_name: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  # 🧭 Redis Insight (UI)
+  redis-insight:
+    image: redis/redisinsight:latest
+    container_name: redis-insight
+    ports:
+      - "5540:5540"
+    depends_on:
+      - redis
+
+  # 🐘 PostgreSQL for Auth Service
+  postgres_auth:
     image: postgres:15
-    container_name: pg-main
+    container_name: postgres_auth
     restart: unless-stopped
     environment:
+      POSTGRES_DB: Auth_Service
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     volumes:
-      - pgdata:/var/lib/postgresql/data
-      - ./postgres/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+      - postgres_auth_data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
+      - "5433:5432"
 
-  # Single-node Kafka (KRaft mode) suitable for local/dev & small setups
-  kafka:
-    image: bitnami/kafka:3.7
-    container_name: kafka-broker
-    restart: unless-stopped
-    environment:
-      KAFKA_ENABLE_KRAFT: "yes"
-      KAFKA_CFG_NODE_ID: "1"
-      KAFKA_CFG_PROCESS_ROLES: "broker"
-      KAFKA_CFG_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
-      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
-      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
-      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
-      KAFKA_CFG_INTER_BROKER_LISTENER_NAME: PLAINTEXT
-      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: "1@kafka:9093"
-    ports:
-      - "9092:9092"  # lets your host tools connect if needed
-    healthcheck:
-      test: ["CMD-SHELL", "kafka-topics.sh --bootstrap-server kafka:9092 --list >/dev/null 2>&1"]
-      interval: 10s
-      timeout: 5s
-      retries: 20
-
-  # ---------- KONG API GATEWAY ----------
-  kong-db:
+  # 🐘 PostgreSQL for Service Provider
+  postgres_service_provider:
     image: postgres:15
-    container_name: kong-db
+    container_name: postgres_service_provider
     restart: unless-stopped
     environment:
-      POSTGRES_USER: kong
-      POSTGRES_PASSWORD: kong
-      POSTGRES_DB: kong
-    volumes:
-      - kongdb:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U kong"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-
-  kong-migrations:
-    image: kong/kong-gateway:3.8
-    restart: on-failure
-    environment:
-      KONG_DATABASE: postgres
-      KONG_PG_HOST: kong-db
-      KONG_PG_USER: kong
-      KONG_PG_PASSWORD: kong
-    depends_on:
-      kong-db:
-        condition: service_healthy
-    command: ["/bin/sh", "-lc", "kong migrations bootstrap || kong migrations up"]
-
-  kong:
-    image: kong/kong-gateway:3.8
-    container_name: kong
-    restart: unless-stopped
-    environment:
-      KONG_DATABASE: postgres
-      KONG_PG_HOST: kong-db
-      KONG_PG_USER: kong
-      KONG_PG_PASSWORD: kong
-      KONG_PROXY_LISTEN: "0.0.0.0:8000"
-      KONG_ADMIN_LISTEN: "0.0.0.0:8001"
-      KONG_LOG_LEVEL: notice
-    ports:
-      - "8000:8000"   # Public API
-      - "8001:8001"   # Admin API
-    depends_on:
-      kong-migrations:
-        condition: service_completed_successfully
-
-  konga:
-    image: pantsel/konga:latest
-    container_name: konga
-    restart: unless-stopped
-    environment:
-      DB_ADAPTER: postgres
-      DB_HOST: kong-db
-      DB_PORT: 5432
-      DB_USER: kong
-      DB_PASSWORD: kong
-      DB_DATABASE: kong
-      NODE_ENV: production
-    ports:
-      - "1337:1337"
-    depends_on:
-      - kong
-      - kong-db
-
-  # One-shot bootstrap to register services/routes/plugins in Kong automatically
-  kong-init:
-    image: curlimages/curl:8.9.1
-    depends_on:
-      kong:
-        condition: service_started
-      auth_service:
-        condition: service_started
-      service_provider_service:
-        condition: service_started
-      super_admin_service:
-        condition: service_started
-    entrypoint: ["/bin/sh", "/init/kong-init.sh"]
-    volumes:
-      - ./kong/kong-init.sh:/init/kong-init.sh:ro
-
-  # ---------- DJANGO SERVICES (Gunicorn) ----------
-  auth_service:
-    build: ./Auth_Serivce  # (keep your folder name)
-    container_name: auth_service
-    restart: unless-stopped
-    environment:
-      <<: *django-common-env
-      POSTGRES_DB: Auth_Service
-      DJANGO_SETTINGS_MODULE: auth_service.settings
-      # Anything else your settings read from env
-    command: >
-      sh -c "python manage.py migrate &&
-             gunicorn auth_service.wsgi:application --bind 0.0.0.0:8000 --workers 3"
-    ports:
-      - "8000:8000"   # optional: expose if you want to hit it directly
-    depends_on:
-      postgres:
-        condition: service_healthy
-      kafka:
-        condition: service_started
-
-  service_provider_service:
-    build: ./service_provider_service
-    container_name: service_provider_service
-    restart: unless-stopped
-    environment:
-      <<: *django-common-env
       POSTGRES_DB: Service_Provider
-      DJANGO_SETTINGS_MODULE: service_provider_service.settings
-    command: >
-      sh -c "python manage.py migrate &&
-             gunicorn service_provider_service.wsgi:application --bind 0.0.0.0:8002 --workers 3"
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres_sp_data:/var/lib/postgresql/data
+    ports:
+      - "5434:5432"
+
+  # 🐘 PostgreSQL for Super Admin
+  postgres_super_admin:
+    image: postgres:15
+    container_name: postgres_super_admin
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: Super_Admin
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres_sa_data:/var/lib/postgresql/data
+    ports:
+      - "5435:5432"
+
+  # 🧠 Auth Service (Django)
+  auth_service:
+    build:
+      context: ./Auth_Serivce
+      dockerfile: Dockerfile
+    container_name: auth_service
+    command: python manage.py runserver 0.0.0.0:8000
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./Auth_Serivce:/app
+    environment:
+      DJANGO_SETTINGS_MODULE: auth_service.settings
+      POSTGRES_HOST: postgres_auth
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: Auth_Service
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    depends_on:
+      - kafka
+      - redis
+      - postgres_auth
+
+  # 🧩 Service Provider Service (Django)
+  service_provider_service:
+    build:
+      context: ./service_provider_service
+      dockerfile: Dockerfile
+    container_name: service_provider_service
+    command: python manage.py runserver 0.0.0.0:8002
+    restart: unless-stopped
     ports:
       - "8002:8002"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      kafka:
-        condition: service_started
-
-  super_admin_service:
-    build: ./super_admin_service
-    container_name: super_admin_service
-    restart: unless-stopped
+    volumes:
+      - ./service_provider_service:/app
     environment:
-      <<: *django-common-env
-      POSTGRES_DB: Super_Admin
-      DJANGO_SETTINGS_MODULE: super_admin_service.settings
-    command: >
-      sh -c "python manage.py migrate &&
-             gunicorn super_admin_service.wsgi:application --bind 0.0.0.0:8003 --workers 3"
+      DJANGO_SETTINGS_MODULE: service_provider_service.settings
+      POSTGRES_HOST: postgres_service_provider
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: Service_Provider
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    depends_on:
+      - kafka
+      - postgres_service_provider
+
+  # 🧩 Super Admin Service (Django)
+  super_admin_service:
+    build:
+      context: ./super_admin_service
+      dockerfile: Dockerfile
+    container_name: super_admin_service
+    command: python manage.py runserver 0.0.0.0:8003
+    restart: unless-stopped
     ports:
       - "8003:8003"
+    volumes:
+      - ./super_admin_service:/app
+    environment:
+      DJANGO_SETTINGS_MODULE: super_admin_service.settings
+      POSTGRES_HOST: postgres_super_admin
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: Super_Admin
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
     depends_on:
-      postgres:
-        condition: service_healthy
-      kafka:
-        condition: service_started
+      - kafka
+      - postgres_super_admin
 
+  # 🌐 Kong API Gateway
+  kong:
+    image: kong:3.6
+    container_name: kong
+    environment:
+      KONG_DATABASE: "off"
+      KONG_DECLARATIVE_CONFIG: /usr/local/kong/declarative/kong.yml
+    ports:
+      - "8001:8001"  # Kong Admin API
+      - "8005:8000"  # Kong Proxy API
+    volumes:
+      - ./kong/kong.yml:/usr/local/kong/declarative/kong.yml
+    depends_on:
+      - auth_service
+      - service_provider_service
+      - super_admin_service
+
+
+# 🗄️ Persistent Volumes
 volumes:
-  pgdata:
-  kongdb:
+  redis_data:
+  postgres_auth_data:
+  postgres_sp_data:
+  postgres_sa_data:
