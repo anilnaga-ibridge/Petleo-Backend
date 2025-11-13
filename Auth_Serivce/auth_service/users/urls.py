@@ -57,7 +57,7 @@ urlpatterns = [
      path("register-superadmin/", views.register_superadmin, name="register-superadmin"),
      
      
-    
+     path("roles/public/", views.public_roles, name="public_roles"),
    
     
     
