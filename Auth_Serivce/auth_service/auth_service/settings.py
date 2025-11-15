@@ -234,6 +234,7 @@ INSTALLED_APPS = [
  
 ]
 CORS_ALLOW_CREDENTIALS = True
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", "host.docker.internal"]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -276,7 +277,6 @@ DATABASES = {
         'USER': os.environ.get('POSTGRES_USER', 'postgres'),
         'PASSWORD': os.environ.get('POSTGRES_PASSWORD', 'postgres'),
         'HOST': os.environ.get('POSTGRES_HOST', 'localhost'),
-        # 'HOST': os.environ.get('POSTGRES_HOST', 'postgres'),
         'PORT': os.environ.get('POSTGRES_PORT', '5432'),
     }
 }
@@ -352,8 +352,8 @@ LOGGING = {
         },
     },
 }
-# Redis
-REDIS_URL = env('REDIS_URL', default='redis://localhost:6379/0')  # use django-environ or os.getenv
+# # Redis
+# REDIS_URL = env('REDIS_URL', default='redis://localhost:6379/0')  # use django-environ or os.getenv
 
 # SMS
 SMS_BACKEND = 'console'  # 'console' for dev; change to 'twilio' or other for prod
@@ -389,7 +389,8 @@ STATIC_SUPERADMIN_OTP = '123456'
 # -------------------
 SERVICE_NAME = "auth_service"
 # KAFKA_BROKER_URL = "localhost:9092"
-KAFKA_BROKER_URL = "host.docker.internal:9092"
+# KAFKA_BROKER_URL = "host.docker.internal:9092"
+KAFKA_BROKER = "localhost:9092"
 
 KAFKA_EVENT_TOPIC = "service_events"
 
@@ -406,29 +407,24 @@ CORS_ALLOWED_ORIGINS = [
 # REDIS_DB = env('REDIS_DB')
 # REDIS_URL = env('REDIS_URL')
 # settings.py
-from environ import Env
-env = Env()
+# ============================
+# Redis Configuration (Correct)
+# ============================
+REDIS_HOST = "127.0.0.1"
+REDIS_PORT = 6379
+REDIS_DB = 0
+REDIS_URL = "redis://127.0.0.1:6379/0"
 
-REDIS_HOST = env("REDIS_HOST", default="host.docker.internal")
-REDIS_PORT = env.int("REDIS_PORT", default=6379)
-REDIS_DB   = env.int("REDIS_DB",   default=0)
-REDIS_URL  = env("REDIS_URL", default=f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}")
-
-
-
-
-
-# Django Cache Setup (using Redis)
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
         "LOCATION": REDIS_URL,
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            "IGNORE_EXCEPTIONS": True,  # Prevents downtime if Redis disconnects
         }
     }
 }
 
-# Session Management (optional)
 SESSION_ENGINE = "django.contrib.sessions.backends.cache"
 SESSION_CACHE_ALIAS = "default"

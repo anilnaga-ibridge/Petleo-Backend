@@ -2,23 +2,23 @@ _format_version: "3.0"
 _transform: true
 
 services:
-  - name: auth_service
+  - name: auth-service
     url: http://auth_service:8000
     routes:
-      - name: auth_route
+      - name: auth-route
         paths:
           - /auth
 
-  - name: service_provider_service
-    url: http://service_provider_service:8002
+  - name: provider-service
+    url: http://service_provider_service:8000
     routes:
-      - name: service_provider_route
+      - name: provider-route
         paths:
           - /provider
 
-  - name: super_admin_service
-    url: http://super_admin_service:8003
+  - name: superadmin-service
+    url: http://super_admin_service:8000
     routes:
-      - name: super_admin_route
+      - name: superadmin-route
         paths:
-          - /admin
+          - /superadmin

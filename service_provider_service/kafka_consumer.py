@@ -493,7 +493,7 @@ logger.info("🚀 Starting Service Provider Kafka Consumer...")
 consumer = KafkaConsumer(
     "individual_events",
     "organization_events",
-    bootstrap_servers="host.docker.internal:9092",
+    bootstrap_servers="localhost:9092",
     group_id="service-provider-group",
     auto_offset_reset="earliest",
     enable_auto_commit=True,

@@ -271,7 +271,7 @@ def get_tokens_for_user(user, request=None, remember_me=False):
     refresh["phone_number"] = user.phone_number
     refresh["full_name"] = user.full_name
     refresh["is_superuser"] = user.is_superuser
-
+    refresh["iss"] = "django_issuer"
     # Add permissions if user has a role
     if user.role:
         permissions = list(user.role.permissions.values_list("codename", flat=True))
@@ -284,7 +284,7 @@ def get_tokens_for_user(user, request=None, remember_me=False):
     access_token = refresh.access_token
     access_token["role"] = refresh["role"]
     access_token["permissions"] = permissions
-
+    access_token["iss"] = "django_issuer"
     # Optional: shorter access lifetime
     access_token.set_exp(lifetime=timedelta(minutes=15))
 

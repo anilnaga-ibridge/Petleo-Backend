@@ -201,6 +201,8 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:5174",
 ]
 CORS_ALLOW_ALL_ORIGINS = True
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", "host.docker.internal"]
+
 CORS_ALLOW_METHODS = [
     "DELETE",
     "GET",
@@ -250,8 +252,8 @@ DATABASES = {
         'NAME': os.environ.get('POSTGRES_DB', 'Super_Admin'),
         'USER': os.environ.get('POSTGRES_USER', 'postgres'),
         'PASSWORD': os.environ.get('POSTGRES_PASSWORD', 'postgres'),
-        # 'HOST': os.environ.get('POSTGRES_HOST', 'localhost'),
-        'HOST': os.environ.get('POSTGRES_HOST', 'postgres'),
+        'HOST': os.environ.get('POSTGRES_HOST', 'localhost'),
+        
         'PORT': os.environ.get('POSTGRES_PORT', '5432'),
     }
 }
@@ -276,7 +278,7 @@ TEMPLATES = [
     },
 ]
 
-KAFKA_BROKER_URL = "localhost:9092"
+KAFKA_BROKER_URL = "kafka:9092"
 KAFKA_USER_TOPIC = "user_created"
 KAFKA_GROUP_ID = "superadmin_group"
 # REST_FRAMEWORK = {

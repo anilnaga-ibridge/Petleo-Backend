@@ -477,20 +477,147 @@
 #         logger.error(f"❌ Kafka error while sending event: {e}")
 #     except Exception as e:
 #         logger.exception(f"⚠️ Unexpected error while sending event: {e}")
+
+
+
+# import json
+# import logging
+# import time
+# from kafka import KafkaProducer
+# from kafka.errors import KafkaError, NoBrokersAvailable
+# from django.conf import settings
+# from django.apps import apps  # ✅ To dynamically load models
+
+# logger = logging.getLogger(__name__)
+
+# # ==============================
+# # Kafka Configuration
+# # ==============================
+# # KAFKA_BROKER_URL = "host.docker.internal:9092"
+# KAFKA_BROKER_URL = "localhost:9092"
+# TOPIC_MAP = {
+#     "individual": "individual_events",
+#     "organization": "organization_events",
+#     "admin": "admin_events",
+#     "super_admin": "admin_events",
+#     "pet_owner": "pet_owner_events",
+# }
+
+# SERVICE_NAME = getattr(settings, "SERVICE_NAME", "auth_service")
+
+# # ==============================
+# # Kafka Producer Initialization
+# # ==============================
+# producer = None
+# for attempt in range(5):
+#     try:
+#         producer = KafkaProducer(
+#             bootstrap_servers=[KAFKA_BROKER_URL],
+#             value_serializer=lambda v: json.dumps(v).encode("utf-8"),
+#             acks="all",
+#             retries=5,
+#         )
+#         logger.info("✅ Connected to Kafka broker successfully!")
+#         break
+#     except NoBrokersAvailable:
+#         logger.warning(
+#             f"⚠️ Attempt {attempt + 1}/5 — Kafka broker not available at {KAFKA_BROKER_URL}. Retrying in 5s..."
+#         )
+#         time.sleep(5)
+#     except Exception as e:
+#         logger.error(f"❌ Error initializing Kafka Producer: {e}")
+#         break
+
+# if not producer:
+#     logger.error("❌ Kafka Producer failed to connect after multiple retries.")
+
+
+# # ==============================
+# # Utility: Get Role Name by ID
+# # ==============================
+# def get_role_name(role_value):
+#     if not role_value:
+#         return None
+
+#     # If name is already provided (like "individual")
+#     if isinstance(role_value, str) and not role_value.isdigit():
+#         return role_value.lower()
+
+#     try:
+#         Role = apps.get_model("users", "Role")
+
+#         # Convert string "6" → int 6
+#         role_id = int(role_value)
+
+#         role_obj = Role.objects.filter(id=role_id).first()
+
+#         if role_obj:
+#             return role_obj.name.lower()
+
+#         logger.warning(f"⚠️ Role with ID '{role_value}' not found in DB.")
+#         return None
+#     except Exception as e:
+#         logger.error(f"⚠️ Error fetching role name for ID '{role_value}': {e}")
+#         return None
+
+# # ==============================
+# # Core Event Publisher
+# # ==============================
+# def publish_event(event_type: str, data: dict):
+#     """
+#     Publish a structured event to the correct Kafka topic based on user role.
+#     Handles both role IDs and role names automatically.
+#     """
+#     try:
+#         if not event_type or not isinstance(data, dict):
+#             logger.warning("⚠️ Invalid event_type or data in publish_event.")
+#             return
+
+#         # ✅ Resolve role name even if ID is provided
+#         raw_role = data.get("role")
+#         role_name = get_role_name(raw_role)
+
+#         if not role_name:
+#             logger.warning(f"⚠️ Invalid or missing role '{raw_role}'. Event '{event_type}' not published.")
+#             return
+
+#         topic = TOPIC_MAP.get(role_name)
+#         if not topic:
+#             logger.warning(f"⚠️ Unknown role '{role_name}'. Event '{event_type}' not published.")
+#             return
+
+#         event = {
+#             "service": SERVICE_NAME,
+#             "event_type": event_type.upper(),
+#             "data": data,
+#             "role": role_name,
+#             "timestamp": int(time.time()),
+#         }
+
+#         logger.info(f"📦 Sending event '{event_type}' → topic '{topic}' with role='{role_name}' and data={data}")
+#         future = producer.send(topic, value=event)
+#         future.get(timeout=10)
+#         logger.info(f"✅ Event '{event_type}' successfully sent to '{topic}'")
+
+#     except KafkaError as e:
+#         logger.error(f"❌ Kafka error while sending event: {e}")
+#     except Exception as e:
+#         logger.exception(f"⚠️ Unexpected error while sending event: {e}")
+
 import json
 import logging
 import time
 from kafka import KafkaProducer
 from kafka.errors import KafkaError, NoBrokersAvailable
 from django.conf import settings
-from django.apps import apps  # ✅ To dynamically load models
+from django.apps import apps
 
 logger = logging.getLogger(__name__)
 
 # ==============================
-# Kafka Configuration
+# Kafka Config
 # ==============================
-KAFKA_BROKER_URL = "host.docker.internal:9092"
+KAFKA_BROKER_URL = "localhost:9092"
 
 TOPIC_MAP = {
     "individual": "individual_events",
@@ -503,7 +630,7 @@ TOPIC_MAP = {
 SERVICE_NAME = getattr(settings, "SERVICE_NAME", "auth_service")
 
 # ==============================
-# Kafka Producer Initialization
+# Producer Init
 # ==============================
 producer = None
 for attempt in range(5):
@@ -514,87 +641,68 @@ for attempt in range(5):
             acks="all",
             retries=5,
         )
-        logger.info("✅ Connected to Kafka broker successfully!")
+        logger.info("✅ Connected to Kafka broker.")
         break
     except NoBrokersAvailable:
-        logger.warning(
-            f"⚠️ Attempt {attempt + 1}/5 — Kafka broker not available at {KAFKA_BROKER_URL}. Retrying in 5s..."
-        )
+        logger.warning(f"⚠️ Attempt {attempt+1}/5: Kafka not available. Retrying...")
         time.sleep(5)
     except Exception as e:
-        logger.error(f"❌ Error initializing Kafka Producer: {e}")
+        logger.error(f"❌ Kafka error: {e}")
         break
 
-if not producer:
-    logger.error("❌ Kafka Producer failed to connect after multiple retries.")
-
-
 # ==============================
-# Utility: Get Role Name by ID
+# Convert role ID → role name
 # ==============================
 def get_role_name(role_value):
-    """
-    Accepts either role name (string) or role ID (int/UUID) and returns the role name.
-    """
-    if not role_value:
+    if role_value is None:
         return None
 
-    # If already a string, assume it's the role name
+    # Already a name
     if isinstance(role_value, str) and not role_value.isdigit():
         return role_value.lower()
 
     try:
-        Role = apps.get_model("users", "Role")  # ✅ app_label, model_name
-        role_obj = Role.objects.filter(id=role_value).first()
+        role_id = int(role_value)
+        Role = apps.get_model("users", "Role")
+        role_obj = Role.objects.filter(id=role_id).first()
         if role_obj:
             return role_obj.name.lower()
-        logger.warning(f"⚠️ Role with ID '{role_value}' not found in DB.")
+
+        logger.warning(f"⚠️ No role found with ID {role_value}")
         return None
     except Exception as e:
-        logger.error(f"⚠️ Error fetching role name for ID '{role_value}': {e}")
+        logger.error(f"⚠️ Role conversion error: {e}")
         return None
 
-
 # ==============================
-# Core Event Publisher
+# Publish Event
 # ==============================
-def publish_event(event_type: str, data: dict):
-    """
-    Publish a structured event to the correct Kafka topic based on user role.
-    Handles both role IDs and role names automatically.
-    """
+def publish_event(event_type, data: dict):
     try:
-        if not event_type or not isinstance(data, dict):
-            logger.warning("⚠️ Invalid event_type or data in publish_event.")
-            return
-
-        # ✅ Resolve role name even if ID is provided
         raw_role = data.get("role")
         role_name = get_role_name(raw_role)
 
         if not role_name:
-            logger.warning(f"⚠️ Invalid or missing role '{raw_role}'. Event '{event_type}' not published.")
+            logger.warning(f"⚠️ Invalid role '{raw_role}'. Event not published.")
             return
 
         topic = TOPIC_MAP.get(role_name)
         if not topic:
-            logger.warning(f"⚠️ Unknown role '{role_name}'. Event '{event_type}' not published.")
+            logger.warning(f"⚠️ No Kafka topic for role '{role_name}'")
             return
 
         event = {
             "service": SERVICE_NAME,
             "event_type": event_type.upper(),
-            "data": data,
             "role": role_name,
+            "data": data,
             "timestamp": int(time.time()),
         }
 
-        logger.info(f"📦 Sending event '{event_type}' → topic '{topic}' with role='{role_name}' and data={data}")
-        future = producer.send(topic, value=event)
-        future.get(timeout=10)
-        logger.info(f"✅ Event '{event_type}' successfully sent to '{topic}'")
+        logger.info(f"📦 Sending event '{event_type}' to '{topic}' (role={role_name})")
+        producer.send(topic, value=event)
+        producer.flush()
+        logger.info("✅ Event sent.")
 
-    except KafkaError as e:
-        logger.error(f"❌ Kafka error while sending event: {e}")
     except Exception as e:
-        logger.exception(f"⚠️ Unexpected error while sending event: {e}")
+        logger.exception(f"❌ publish_event error: {e}")

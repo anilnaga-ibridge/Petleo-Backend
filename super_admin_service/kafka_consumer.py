@@ -286,7 +286,7 @@ logger.info(f"📁 Using DB: {settings.DATABASES['default']['NAME']}")
 consumer = KafkaConsumer(
     "admin_events",       # ✅ Topic for admin/superadmin events
     "service_events",     # ✅ Optional fallback topic
-    bootstrap_servers="host.docker.internal:9092",
+    bootstrap_servers="localhost:9092",
     group_id="superadmin-service-group",
     auto_offset_reset="earliest",
     enable_auto_commit=True,

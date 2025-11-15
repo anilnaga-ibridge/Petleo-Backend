@@ -1,0 +1,198 @@
+# version: "3.8"
+# services:
+#   kong:
+#     image: kong:3.6
+#     container_name: kong
+#     environment:
+#       KONG_DATABASE: "off"
+#       KONG_DECLARATIVE_CONFIG: /usr/local/kong/declarative/kong.yml
+#       KONG_PROXY_LISTEN: "0.0.0.0:8000, 0.0.0.0:8443 ssl"
+#       KONG_ADMIN_LISTEN: "0.0.0.0:8001"
+#       KONG_ADMIN_ACCESS_LOG: /dev/stdout
+#       KONG_ADMIN_ERROR_LOG: /dev/stderr
+#       KONG_PROXY_ACCESS_LOG: /dev/stdout
+#       KONG_PROXY_ERROR_LOG: /dev/stderr
+#     volumes:
+#       - ./kong.yml:/usr/local/kong/declarative/kong.yml:ro
+#     ports:
+#       - "8000:8000"   # proxy HTTP (frontend -> Kong)
+#       - "8443:8443"   # proxy HTTPS (optional)
+#       - "8001:8001"   # admin API (local use only)
+#     restart: unless-stopped
+
+#   konga:
+#     image: pantsel/konga:next
+#     container_name: konga
+#     environment:
+#       - NODE_ENV=production
+#       - TOKEN_SECRET=changeme123
+#       - DB_ADAPTER=postgres
+#     ports:
+#       - "1337:1337"
+#     depends_on:
+#       - kong
+#     restart: unless-stopped
+# version: "3.8"
+
+# services:
+
+#   postgres_auth:
+#     image: postgres:15
+#     container_name: postgres_auth
+#     environment:
+#       POSTGRES_DB: auth_db
+#       POSTGRES_USER: postgres
+#       POSTGRES_PASSWORD: postgres
+#     ports:
+#       - "5433:5432"
+#     volumes:
+#       - postgres_auth_data:/var/lib/postgresql/data
+#     restart: unless-stopped
+
+#   postgres_service_provider:
+#     image: postgres:15
+#     container_name: postgres_service_provider
+#     environment:
+#       POSTGRES_DB: provider_db
+#       POSTGRES_USER: postgres
+#       POSTGRES_PASSWORD: postgres
+#     ports:
+#       - "5434:5432"
+#     volumes:
+#       - postgres_sp_data:/var/lib/postgresql/data
+#     restart: unless-stopped
+
+#   postgres_super_admin:
+#     image: postgres:15
+#     container_name: postgres_super_admin
+#     environment:
+#       POSTGRES_DB: superadmin_db
+#       POSTGRES_USER: postgres
+#       POSTGRES_PASSWORD: postgres
+#     ports:
+#       - "5435:5432"
+#     volumes:
+#       - postgres_sa_data:/var/lib/postgresql/data
+#     restart: unless-stopped
+
+#   redis:
+#     image: redis:7
+#     container_name: redis
+#     ports:
+#       - "6379:6379"
+#     volumes:
+#       - redis_data:/data
+#     restart: unless-stopped
+
+#   redis-insight:
+#     image: redis/redisinsight:latest
+#     container_name: redis-insight
+#     ports:
+#       - "5540:5540"
+#     restart: unless-stopped
+#     depends_on:
+#       - redis
+
+#   zookeeper:
+#     image: confluentinc/cp-zookeeper:7.3.0
+#     container_name: zookeeper
+#     environment:
+#       ZOOKEEPER_CLIENT_PORT: 2181
+#     ports:
+#       - "2181:2181"
+#     restart: unless-stopped
+
+#   kafka:
+#     image: confluentinc/cp-kafka:7.3.0
+#     container_name: kafka
+#     depends_on:
+#       - zookeeper
+#     environment:
+#       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+#       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:9093
+#       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+#       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+#       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+#     ports:
+#       - "9093:9093"
+#     restart: unless-stopped
+
+#   kafka-ui:
+#     image: provectuslabs/kafka-ui:latest
+#     container_name: kafka-ui
+#     ports:
+#       - "8080:8080"
+#     environment:
+#       KAFKA_CLUSTERS_0_NAME: local
+#       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+#     depends_on:
+#       - kafka
+#     restart: unless-stopped
+
+#   auth_service:
+#     build:
+#       context: ./auth_service
+#     container_name: auth_service
+#     ports:
+#       - "8001:8000"
+#     depends_on:
+#       - postgres_auth
+#       - redis
+#       - kafka
+#     restart: unless-stopped
+
+#   service_provider_service:
+#     build:
+#       context: ./service_provider_service
+#     container_name: service_provider_service
+#     ports:
+#       - "8002:8000"
+#     depends_on:
+#       - postgres_service_provider
+#       - kafka
+#     restart: unless-stopped
+
+#   super_admin_service:
+#     build:
+#       context: ./super_admin_service
+#     container_name: super_admin_service
+#     ports:
+#       - "8003:8000"
+#     depends_on:
+#       - postgres_super_admin
+#       - kafka
+#     restart: unless-stopped
+
+
+# volumes:
+#   postgres_auth_data:
+#   postgres_sp_data:
+#   postgres_sa_data:
+#   redis_data:
+version: "3.9"
+
+services:
+  kong:
+    image: kong:3.6
+    container_name: kong
+    environment:
+      KONG_DATABASE: "off"
+      KONG_DECLARATIVE_CONFIG: /usr/local/kong/declarative/kong.yml
+    ports:
+      - "8001:8001"
+      - "8005:8000"
+    volumes:
+      - ./kong.yml:/usr/local/kong/declarative/kong.yml
+    restart: unless-stopped
+
+  konga:
+    image: pantsel/konga:next
+    container_name: konga
+    environment:
+      NODE_ENV: production
+      TOKEN_SECRET: mysecret
+    ports:
+      - "1337:1337"
+    depends_on:
+      - kong
+    restart: unless-stopped
