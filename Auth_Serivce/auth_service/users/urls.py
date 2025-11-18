@@ -39,7 +39,9 @@ from . import views
 from rest_framework.routers import DefaultRouter
 from .views import (
    
-    UserViewSet,ResendVerificationOTPView,RoleViewSet,PermissionViewSet
+    UserViewSet,ResendOTPView,RoleViewSet,PermissionViewSet, SetPinView,
+    LoginWithPinView,
+    ResetPinView,ChangePinView,
 )
 router = DefaultRouter()
 router.register(r'users', UserViewSet, basename='user')
@@ -52,7 +54,7 @@ urlpatterns = [
     path('api/auth/verify-otp/', VerifyOTPView.as_view(), name='auth-verify-otp'),
     path('api/auth/refresh-token/', RefreshTokenView.as_view(), name='auth-refresh'),
     path('api/auth/logout/', LogoutView.as_view(), name='auth-logout'),
-    path("api/auth/resend-otp/", ResendVerificationOTPView.as_view(), name="resend_otp"),
+    path("api/auth/resend-otp/", ResendOTPView.as_view(), name="resend_otp"),
     
      path("register-superadmin/", views.register_superadmin, name="register-superadmin"),
      
@@ -63,6 +65,20 @@ urlpatterns = [
     
     # verifyed user CRUD via ViewSet and Router
       path('', include(router.urls)),
+      
+      
+       # --- 🔐 PIN Authentication Routes ---
+    path("set-pin/", SetPinView.as_view(), name="set-pin"),  
+    # Authenticated user sets a PIN after OTP login
+
+    path("login-with-pin/", LoginWithPinView.as_view(), name="login-with-pin"),
+    # Login using PIN (only valid same calendar day)
+
+    path("reset-pin/", ResetPinView.as_view(), name="reset-pin"),
+    # Triggers OTP for PIN reset (verify OTP → set new PIN)
+
+    path("change-pin/", ChangePinView.as_view(), name="change-pin"),
+    # Authenticated user changes PIN (old PIN + new PIN)
 ]
 
 

@@ -214,12 +214,18 @@ load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "fallback-secret-key")
+
 SECRET_KEY = "super-secret-shared-key"
 
 
 DEBUG = True
 ALLOWED_HOSTS = []
+CORS_ALLOW_ALL_HEADERS = True
+from corsheaders.defaults import default_headers
+
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    "x-reset-token",    
+]
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -237,23 +243,21 @@ CORS_ALLOW_CREDENTIALS = True
 ALLOWED_HOSTS = ["localhost", "127.0.0.1", "host.docker.internal"]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
+    
     'django.middleware.common.CommonMiddleware',
 ]
 
 ROOT_URLCONF = 'auth_service.urls'
- # CORS_ALLOW_ALL_ORIGINS = True
-# Static files (CSS, JS, images)
 STATIC_URL = '/static/'  # Required
-STATICFILES_DIRS = [BASE_DIR / "static"]  # Optional for project-level static files
-STATIC_ROOT = BASE_DIR / "staticfiles"    # Optional for collectstatic in production
-
+STATICFILES_DIRS = [BASE_DIR / "static"]  
+STATIC_ROOT = BASE_DIR / "staticfiles"    
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -301,24 +305,7 @@ SIMPLE_JWT = {
     "AUTH_HEADER_TYPES": ("Bearer",),
     "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
 }
-# REST_FRAMEWORK = {
-#     'DEFAULT_AUTHENTICATION_CLASSES': (
-#         'rest_framework_simplejwt.authentication.JWTAuthentication',
-#     )
-# }
 
-# SIMPLE_JWT = {
-#     "SIGNING_KEY": SECRET_KEY,  # THIS MUST BE SAME IN ALL SERVICES
-#     "ALGORITHM": os.environ.get("JWT_ALGORITHM", "HS256"),
-#     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=int(os.environ.get("ACCESS_TOKEN_LIFETIME_MINUTES", 15))),
-#     "REFRESH_TOKEN_LIFETIME": timedelta(days=int(os.environ.get("REFRESH_TOKEN_LIFETIME_DAYS", 7))),
-#     "USER_ID_FIELD": "id",
-#     "USER_ID_CLAIM": "user_id",
-# }
-
-# Email Configuration
-# Use console backend for testing (prints emails to console)
-# EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 # Use SMTP backend for sending actual emails
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
@@ -352,14 +339,11 @@ LOGGING = {
         },
     },
 }
-# # Redis
-# REDIS_URL = env('REDIS_URL', default='redis://localhost:6379/0')  # use django-environ or os.getenv
+
 
 # SMS
-SMS_BACKEND = 'console'  # 'console' for dev; change to 'twilio' or other for prod
-# TWILIO_ACCOUNT_SID = ...
-# TWILIO_AUTH_TOKEN = ...
-# TWILIO_FROM_NUMBER = ...
+SMS_BACKEND = 'console'  
+
 
 # OTP and rate limit settings
 OTP_TTL_SECONDS = 600
@@ -376,20 +360,9 @@ KAFKA_BOOTSTRAP_SERVERS = ['kafka:9092']
 STATIC_SUPERADMIN_PHONE = '9999999999'
 STATIC_SUPERADMIN_OTP = '123456'
 
-# Simple JWT settings - set reasonable lifetimes
 
-# SIMPLE_JWT = {
-#     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),
-#     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
-#     'ROTATE_REFRESH_TOKENS': False,  # we use our own opaque refresh rotation
-#     'BLACKLIST_AFTER_ROTATION': False,
-# }
-# -------------------
-# Kafka Configuration
-# -------------------
 SERVICE_NAME = "auth_service"
-# KAFKA_BROKER_URL = "localhost:9092"
-# KAFKA_BROKER_URL = "host.docker.internal:9092"
+
 KAFKA_BROKER = "localhost:9092"
 
 KAFKA_EVENT_TOPIC = "service_events"
@@ -401,12 +374,6 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:5174",
     "http://localhost:8080",
 ]
-# Redis Configuration
-# REDIS_HOST = env('REDIS_HOST')
-# REDIS_PORT = env('REDIS_PORT')
-# REDIS_DB = env('REDIS_DB')
-# REDIS_URL = env('REDIS_URL')
-# settings.py
 # ============================
 # Redis Configuration (Correct)
 # ============================

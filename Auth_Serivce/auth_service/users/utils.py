@@ -280,3 +280,44 @@ def send_sms_via_provider(phone_number: str, message: str):
     print("Unknown SMS_BACKEND, printing message:")
     print(message)
     return True
+
+
+from django.utils import timezone
+
+from django.utils import timezone
+
+def is_pin_valid_today(user):
+    today = timezone.localdate()
+    tz = timezone.get_current_timezone()
+
+    if user.pin_set_at:
+        if user.pin_set_at.astimezone(tz).date() == today:
+            return True
+
+    if user.last_pin_login:
+        if user.last_pin_login.astimezone(tz).date() == today:
+            return True
+
+    return False
+
+
+import jwt
+from django.conf import settings
+from datetime import datetime, timedelta
+
+def generate_reset_pin_token(phone_number):
+    payload = {
+        "phone_number": phone_number,
+        "exp": datetime.utcnow() + timedelta(minutes=10),  # valid 10 minutes
+        "purpose": "reset_pin"
+    }
+    return jwt.encode(payload, settings.SECRET_KEY, algorithm="HS256")
+
+def verify_reset_pin_token(token):
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+        if payload.get("purpose") != "reset_pin":
+            return None
+        return payload
+    except Exception:
+        return None
