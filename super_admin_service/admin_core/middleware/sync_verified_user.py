@@ -2,6 +2,9 @@ import jwt
 from django.conf import settings
 from django.utils.deprecation import MiddlewareMixin
 from admin_core.models import VerifiedUser
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class SyncVerifiedUserMiddleware(MiddlewareMixin):
@@ -9,10 +12,15 @@ class SyncVerifiedUserMiddleware(MiddlewareMixin):
     Middleware that ensures the VerifiedUser from Auth Service exists locally
     for every authenticated request.
     """
-
+    PUBLIC_KEYWORD = "/definitions/public"
     def process_request(self, request):
         auth_header = request.META.get("HTTP_AUTHORIZATION")
-
+        if request.path.startswith("/api/superadmin/definitions/public"):
+            return
+        logger.warning(f"🟦 SyncMiddleware HIT — PATH: {request.path}")
+        if self.PUBLIC_KEYWORD in request.path:
+            logger.warning(f"⏭ MIDDLEWARE SKIP PUBLIC: {request.path}")
+            return
         if not auth_header or not auth_header.startswith("Bearer "):
             return
 
@@ -40,3 +48,6 @@ class SyncVerifiedUserMiddleware(MiddlewareMixin):
         )
 
         request.verified_user = VerifiedUser.objects.get(auth_user_id=user_id)
+def process_request(self, request):
+    import logging
+    logging.warning("🟦 MIDDLEWARE HIT: " + request.path)

@@ -19,7 +19,7 @@ from django.urls import path,include
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('superadmin/', include('admin_core.urls')),
+    path('api/superadmin/', include('admin_core.urls')),
     
     
     
@@ -31,8 +31,19 @@ urlpatterns = [
    
 
     # plans and copens
-    path("api/superadmin/plans_coupens/", include("plans_coupens.urls")),
+    path("api/superadmin/", include("plans_coupens.urls")),
     
     # pets
-      path('api/pets/', include('pets.urls')),
+    path('api/superadmin/', include('pets.urls')),
+      
+      
+      
+      
+    path("api/superadmin/provider-home/", include("provider_home.urls")),
+      
+    path("api/superadmin/", include("dynamic_fields.urls")),   # protected CRUD
+    path("api/public/provider/", include("dynamic_fields.urls")), 
+      
+      
+
 ]

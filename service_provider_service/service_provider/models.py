@@ -5,9 +5,6 @@ from django.utils import timezone
 import re
 from django.core.exceptions import ValidationError
 class VerifiedUser(models.Model):
-    """
-    Data replicated from Auth Service via Kafka.
-    """
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     auth_user_id = models.UUIDField(unique=True)
     full_name = models.CharField(max_length=100, blank=True, null=True)
@@ -23,6 +20,11 @@ class VerifiedUser(models.Model):
 
     def __str__(self):
         return f"{self.full_name or 'Unknown'} ({self.role})"
+
+    @property
+    def is_authenticated(self):
+        """Required for Django/DRF authentication."""
+        return True
 
 
 # service_provider/models.py

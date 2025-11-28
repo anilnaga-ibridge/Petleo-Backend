@@ -1,71 +1,15 @@
-# from rest_framework import serializers
-# from .models import BillingCycle, Plan, PlanPrice, PlanItem, Coupon
 
 
-# class BillingCycleSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = BillingCycle
-#         fields = "__all__"
-#         ordering = ["duration_value"]
 
 
-# class PlanItemSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = PlanItem
-#         exclude = ["plan"]
 
 
-# class PlanPriceSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = PlanPrice
-#         exclude = ["plan"]
-
-
-# class PlanSerializer(serializers.ModelSerializer):
-#     prices = PlanPriceSerializer(many=True)
-#     items = PlanItemSerializer(many=True)
-
-#     class Meta:
-#         model = Plan
-#         fields = "__all__"
-
-#     def create(self, validated_data):
-#         prices_data = validated_data.pop("prices", [])
-#         items_data = validated_data.pop("items", [])
-#         plan = Plan.objects.create(**validated_data)
-
-#         for price in prices_data:
-#             PlanPrice.objects.create(plan=plan, **price)
-#         for item in items_data:
-#             PlanItem.objects.create(plan=plan, **item)
-#         return plan
-
-#     def update(self, instance, validated_data):
-#         prices_data = validated_data.pop("prices", [])
-#         items_data = validated_data.pop("items", [])
-#         for attr, value in validated_data.items():
-#             setattr(instance, attr, value)
-#         instance.save()
-
-#         instance.prices.all().delete()
-#         instance.items.all().delete()
-
-#         for price in prices_data:
-#             PlanPrice.objects.create(plan=instance, **price)
-#         for item in items_data:
-#             PlanItem.objects.create(plan=instance, **item)
-
-#         return instance
-
-
-# class CouponSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = Coupon
-#         fields = "__all__"
 from rest_framework import serializers
-from .models import BillingCycle, Plan, PlanPrice, PlanItem, Coupon
+from .models import BillingCycle, Plan, PlanPrice, PlanItem, Coupon,PurchasedPlan,ProviderPlanPermission
 from dynamic_services.models import Service
 from dynamic_categories.models import Category
+from dynamic_facilities.serializers import FacilitySerializer
+from dynamic_facilities.models import Facility
 
 
 class BillingCycleSerializer(serializers.ModelSerializer):
@@ -75,123 +19,288 @@ class BillingCycleSerializer(serializers.ModelSerializer):
 
 
 class PlanPriceSerializer(serializers.ModelSerializer):
+
+    plan = serializers.SerializerMethodField()
+    billing_cycle = BillingCycleSerializer(read_only=True)
+
+    billing_cycle_id = serializers.PrimaryKeyRelatedField(
+        queryset=BillingCycle.objects.all(),
+        source="billing_cycle",
+        write_only=True
+    )
+
+    plan_id = serializers.PrimaryKeyRelatedField(
+        queryset=Plan.objects.all(),
+        source="plan",
+        write_only=True
+    )
+
     class Meta:
         model = PlanPrice
-        exclude = ("plan",)
+        fields = [
+            "id",
+            "plan",          # nested
+            "plan_id",       # write-only
+            "billing_cycle",
+            "billing_cycle_id",
+            "amount",
+            "currency",
+            "is_active",
+        ]
+
+    def get_plan(self, obj):
+        return {
+            "id": obj.plan.id,
+            "title": obj.plan.title,
+            "slug": obj.plan.slug,
+            "role": obj.plan.role,
+        }
+
+
+
+
+
+
+class SimplePlanSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Plan
+        fields = ["id", "title"]
+
+
+class SimpleServiceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Service
+        fields = ["id", "display_name"]
+
+
+class SimpleCategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Category
+        fields = ["id", "name"]
+
+
+class SimpleFacilitySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Facility
+        fields = ["id", "name"]
 
 
 class PlanItemSerializer(serializers.ModelSerializer):
-    """
-    Serializer for individual PlanItem (matches the actual model)
-    """
+    # WRITE FIELDS
+    plan_id = serializers.PrimaryKeyRelatedField(
+        queryset=Plan.objects.all(),
+        source="plan",
+        write_only=True
+    )
+    service_id = serializers.PrimaryKeyRelatedField(
+        queryset=Service.objects.all(),
+        source="service",
+        write_only=True,
+        allow_null=True,
+        required=False
+    )
+    category_id = serializers.PrimaryKeyRelatedField(
+        queryset=Category.objects.all(),
+        source="category",
+        write_only=True,
+        allow_null=True,
+        required=False
+    )
+
+    facilities = serializers.PrimaryKeyRelatedField(
+        many=True,
+        queryset=Facility.objects.all(),
+        write_only=True
+    )
+
+    # READ FIELDS
+    plan = SimplePlanSerializer(read_only=True)
+    service = SimpleServiceSerializer(read_only=True)
+    category = SimpleCategorySerializer(read_only=True)
+    facilities_detail = SimpleFacilitySerializer(
+        many=True,
+        read_only=True,
+        source="facilities"
+    )
+
     class Meta:
         model = PlanItem
-        exclude = ("plan",)
+        fields = [
+            "id",
 
+            "plan", "plan_id",
+            "service", "service_id",
+            "category", "category_id",
 
-class PlanItemGroupSerializer(serializers.Serializer):
-    """
-    Input format: One service → multiple categories
-    Example:
-    {
-        "service": "uuid-of-grooming-service",
-        "categories": ["uuid-of-bathing-category", "uuid-of-nail-cutting-category"],
-        "can_view": true,
-        "can_create": true
-    }
-    """
-    service = serializers.PrimaryKeyRelatedField(queryset=Service.objects.all())
-    categories = serializers.PrimaryKeyRelatedField(queryset=Category.objects.all(), many=True)
-    can_view = serializers.BooleanField(default=False)
-    can_create = serializers.BooleanField(default=False)
-    can_edit = serializers.BooleanField(default=False)
-    can_delete = serializers.BooleanField(default=False)
+            "facilities",
+            "facilities_detail",
+
+            "can_view",
+            "can_create",
+            "can_edit",
+            "can_delete",
+        ]
 
     def validate(self, data):
-        service = data["service"]
-        for category in data["categories"]:
-            if category.service_id != service.id:
-                raise serializers.ValidationError(
-                    f"Category '{category.name}' does not belong to Service '{service.display_name}'."
-                )
+        # Must have service OR category
+        if not data.get("service") and not data.get("category"):
+            raise serializers.ValidationError(
+                "Either service_id or category_id is required."
+            )
+
+        # Extra safety: if both provided, OK (some systems use both)
+        plan = data.get("plan") or (self.instance.plan if self.instance else None)
+        service = data.get("service") or (self.instance.service if self.instance else None)
+        category = data.get("category") or (self.instance.category if self.instance else None)
+
+        # Prevent duplicate combinations
+        qs = PlanItem.objects.filter(plan=plan, service=service, category=category)
+
+        if self.instance:
+            qs = qs.exclude(id=self.instance.id)
+
+        if qs.exists():
+            raise serializers.ValidationError(
+                "This combination of plan, service, and category already exists."
+            )
+
         return data
 
-
-# class PlanSerializer(serializers.ModelSerializer):
-#     prices = PlanPriceSerializer(many=True, required=False)
-#     items = PlanItemSerializer(many=True, required=False, read_only=True)
-#     item_groups = PlanItemGroupSerializer(many=True, required=False, write_only=True)
-
-#     class Meta:
-#         model = Plan
-#         fields = [
-#             "id", "title", "slug", "role_name", "role",
-#             "subtitle", "description", "features", "is_active",
-#             "default_billing_cycle", "prices", "items", "item_groups"
-#         ]
-
-#     def create(self, validated_data):
-#         prices_data = validated_data.pop("prices", [])
-#         items_grouped_data = validated_data.pop("item_groups", [])
-#         plan = Plan.objects.create(**validated_data)
-
-#         # Create related PlanPrice objects
-#         for price_data in prices_data:
-#             PlanPrice.objects.create(plan=plan, **price_data)
-
-#         # Create related PlanItem objects
-#         for group in items_grouped_data:
-#             service = group["service"]
-#             categories = group["categories"]
-#             permissions = {
-#                 "can_view": group.get("can_view", False),
-#                 "can_create": group.get("can_create", False),
-#                 "can_edit": group.get("can_edit", False),
-#                 "can_delete": group.get("can_delete", False),
-#             }
-#             for category in categories:
-#                 PlanItem.objects.create(
-#                     plan=plan,
-#                     service=service,
-#                     category=category,
-#                     **permissions
-#                 )
-
-#         return plan
-class PlanSerializer(serializers.ModelSerializer):
-    prices = PlanPriceSerializer(many=True, required=False)
-    items = PlanItemSerializer(many=True, required=False)
-
-    class Meta:
-        model = Plan
-        fields = "__all__"
+    def create(self, validated_data):
+        facilities = validated_data.pop("facilities", [])
+        item = PlanItem.objects.create(**validated_data)
+        item.facilities.set(facilities)
+        return item
 
     def update(self, instance, validated_data):
-        # Extract nested data
-        prices_data = validated_data.pop('prices', None)
-        items_data = validated_data.pop('items', None)
+        facilities = validated_data.pop("facilities", None)
 
-        # --- Update the Plan fields ---
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
+        for attr, val in validated_data.items():
+            setattr(instance, attr, val)
+
         instance.save()
 
-        # --- Update PlanPrice ---
-        if prices_data is not None:
-            instance.prices.all().delete()
-            for price_data in prices_data:
-                PlanPrice.objects.create(plan=instance, **price_data)
-
-        # --- Update PlanItem ---
-        if items_data is not None:
-            instance.items.all().delete()
-            for item_data in items_data:
-                PlanItem.objects.create(plan=instance, **item_data)
+        if facilities is not None:
+            instance.facilities.set(facilities)
 
         return instance
 
 
+
+
+class PlanSerializer(serializers.ModelSerializer):
+    default_billing_cycle = BillingCycleSerializer(read_only=True)
+    default_billing_cycle_id = serializers.PrimaryKeyRelatedField(
+        queryset=BillingCycle.objects.all(),
+        source="default_billing_cycle",
+        write_only=True,
+        required=False,
+        allow_null=True
+    )
+
+    prices = PlanPriceSerializer(many=True, required=False)
+    items = PlanItemSerializer(many=True, required=False)
+    features = serializers.ListField(child=serializers.CharField(), required=False)
+
+    class Meta:
+        model = Plan
+        fields = [
+            "id", "title", "slug", "role", "subtitle", "description",
+            "features", "default_billing_cycle", "default_billing_cycle_id",
+            "is_active", "created_at", "updated_at",
+            "prices", "items",
+        ]
+        read_only_fields = ("slug", "created_at", "updated_at")
+
+    def create(self, validated_data):
+        prices = validated_data.pop("prices", [])
+        items = validated_data.pop("items", [])
+
+        if "features" not in validated_data:
+            validated_data["features"] = []
+
+        plan = Plan.objects.create(**validated_data)
+
+        # create nested prices
+        for p in prices:
+            PlanPrice.objects.create(plan=plan, **p)
+
+        # create nested items
+        for it in items:
+            facilities = it.pop("facilities", [])
+            item = PlanItem.objects.create(plan=plan, **it)
+            if facilities:
+                item.facilities.set(facilities)
+
+        return plan
+
+    def update(self, instance, validated_data):
+        prices = validated_data.pop("prices", None)
+        items = validated_data.pop("items", None)
+
+        # simple field update
+        for k, v in validated_data.items():
+            setattr(instance, k, v)
+        instance.save()
+
+        # replace prices on update
+        if prices is not None:
+            instance.prices.all().delete()
+            for p in prices:
+                PlanPrice.objects.create(plan=instance, **p)
+
+        # replace items on update
+        if items is not None:
+            instance.items.all().delete()
+            for it in items:
+                facilities = it.pop("facilities", [])
+                item = PlanItem.objects.create(plan=instance, **it)
+                if facilities:
+                    item.facilities.set(facilities)
+
+        return instance
+
 class CouponSerializer(serializers.ModelSerializer):
+    applies_to_plans = serializers.PrimaryKeyRelatedField(
+        queryset=Plan.objects.all(), many=True, required=False
+    )
+
     class Meta:
         model = Coupon
+        fields = [
+            "id",
+            "code",
+            "discount_type",
+            "discount_value",
+            "max_uses",
+            "used_count",
+            "start_date",
+            "end_date",
+            "applicable_roles",
+            "applies_to_plans",
+            "min_amount",
+            "max_amount",
+            "is_active",
+            "created_at",
+        ]
+
+    def validate(self, data):
+        # Percentage cannot exceed 100
+        if data.get("discount_type") == "percent" and data.get("discount_value") > 100:
+            raise serializers.ValidationError("Percent discount cannot exceed 100.")
+        return data
+
+
+
+class PurchasedPlanSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PurchasedPlan
+        fields = "__all__"
+
+
+class ProviderPlanPermissionSerializer(serializers.ModelSerializer):
+    facilities = FacilitySerializer(many=True, read_only=True)
+
+    class Meta:
+        model = ProviderPlanPermission
         fields = "__all__"
