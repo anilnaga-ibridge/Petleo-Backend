@@ -46,8 +46,9 @@ INSTALLED_APPS = [
     'org_employees',
     'rest_framework',
     'corsheaders',
-    'dynamic_fields',
-    'documents',
+    'django_extensions',
+    'provider_dynamic_fields',
+    
 ]
 
 MIDDLEWARE = [

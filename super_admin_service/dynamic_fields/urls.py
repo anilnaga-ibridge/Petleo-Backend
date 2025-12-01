@@ -9,16 +9,75 @@
 # router.register("values", ProviderFieldValueViewSet, basename="values")
 
 # urlpatterns = router.urls
+
+# from django.urls import path, include
+# from rest_framework.routers import DefaultRouter
+# from .views import ProviderFieldDefinitionViewSet, PublicProviderFieldDefinitionView
+
+# router = DefaultRouter()
+# router.register("definitions", ProviderFieldDefinitionViewSet, basename="definitions")
+
+# urlpatterns = [
+#     # 🔥 PUBLIC MUST COME BEFORE ROUTER
+#     path("definitions/public/", PublicProviderFieldDefinitionView.as_view(), name="public-provider-definitions"),
+
+#     path("", include(router.urls)),
+# ]
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import ProviderFieldDefinitionViewSet, PublicProviderFieldDefinitionView
+
+from .views import (
+    ProviderFieldDefinitionViewSet,
+    PublicProviderFieldDefinitionView,
+    ProviderDocumentDefinitionViewSet,
+    PublicProviderDocumentDefinitionView
+)
 
 router = DefaultRouter()
+
+# -----------------------------
+# ✔ DO NOT TOUCH PROFILE ROUTES
+# -----------------------------
 router.register("definitions", ProviderFieldDefinitionViewSet, basename="definitions")
 
 urlpatterns = [
-    # 🔥 PUBLIC MUST COME BEFORE ROUTER
-    path("definitions/public/", PublicProviderFieldDefinitionView.as_view(), name="public-provider-definitions"),
 
+    # -----------------------------
+    # PUBLIC ENDPOINTS
+    # -----------------------------
+    path("definitions/public/",
+         PublicProviderFieldDefinitionView.as_view(),
+         name="public-provider-definitions"),
+
+    path("definitions/documents/public/",
+         PublicProviderDocumentDefinitionView.as_view(),
+         name="public-document-definitions"),
+
+    # -----------------------------
+    # DOCUMENTS CRUD (MANUAL ROUTES)
+    # -----------------------------
+    path(
+        "definitions/documents/",
+        ProviderDocumentDefinitionViewSet.as_view({
+            "get": "list",
+            "post": "create",
+        }),
+        name="document-definition-list",
+    ),
+
+    path(
+        "definitions/documents/<uuid:pk>/",
+        ProviderDocumentDefinitionViewSet.as_view({
+            "get": "retrieve",
+            "put": "update",
+            "patch": "partial_update",
+            "delete": "destroy",
+        }),
+        name="document-definition-detail",
+    ),
+
+    # -----------------------------
+    # PROFILE ROUTER
+    # -----------------------------
     path("", include(router.urls)),
 ]

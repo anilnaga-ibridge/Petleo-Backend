@@ -9,7 +9,7 @@ import logging
 import os
 
 
-logging.warning("🔥 SETTINGS LOADED — FILE PATH: " + os.path.abspath(__file__))
+# logging.warning("🔥 SETTINGS LOADED — FILE PATH: " + os.path.abspath(__file__))
 
 load_dotenv()
 
@@ -40,7 +40,6 @@ INSTALLED_APPS = [
     'pets',
     'corsheaders',
     'provider_home',
-    'documents',
     'dynamic_fields',
 ]
 
@@ -73,10 +72,10 @@ MIDDLEWARE = [
     'admin_core.middleware.sync_verified_user.SyncVerifiedUserMiddleware',
     'middleware.log_auth_header.LogAuthHeaderMiddleware',
 ]
-import logging
-logging.warning("🔥 ACTIVE MIDDLEWARE ORDER:")
-for m in MIDDLEWARE:
-    logging.warning(" - " + m)
+# import logging
+# logging.warning("🔥 ACTIVE MIDDLEWARE ORDER:")
+# for m in MIDDLEWARE:
+#     logging.warning(" - " + m)
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'admin_core.authentication.CentralAuthJWTAuthentication',  # shared JWT
