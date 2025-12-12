@@ -119,6 +119,7 @@ def send_automatic_registration_email_for_user(user) -> bool:
             "full_name": getattr(user, "full_name", "") or 
                          f"{getattr(user, 'first_name', '')} {getattr(user, 'last_name', '')}".strip(),
             "email": user.email,
+            "phone_number": getattr(user, "phone_number", ""),
             "role": role_key or "user",
             "user_id": str(user.id),
             "subject": f"Welcome, {getattr(user, 'full_name', 'User')}!",
@@ -127,21 +128,51 @@ def send_automatic_registration_email_for_user(user) -> bool:
         # --- 1) Exact DB template for role ---
         template = None
         if role_key:
+            logger.info(f"🔍 Searching for DB template: role={role_key}, type=automatic")
+            # Try default first
             template = EmailTemplate.objects.filter(
                 role=role_key,
                 type="automatic",
                 is_default=True,
                 is_active=True,
             ).first()
+            
+            if template:
+                 logger.info(f"✅ Found DEFAULT template for role={role_key}: {template.id}")
+
+            # Fallback to latest active if no default
+            if not template:
+                template = EmailTemplate.objects.filter(
+                    role=role_key,
+                    type="automatic",
+                    is_active=True,
+                ).order_by('-updated_at').first()
+                if template:
+                     logger.info(f"✅ Found LATEST template for role={role_key}: {template.id}")
 
         # --- 2) DB fallback: role='all' ---
         if not template:
+            logger.info(f"🔍 Searching for DB template: role=all, type=automatic")
+            # Try default first
             template = EmailTemplate.objects.filter(
                 role="all",
                 type="automatic",
                 is_default=True,
                 is_active=True,
             ).first()
+            
+            if template:
+                 logger.info(f"✅ Found DEFAULT template for role=all: {template.id}")
+
+            # Fallback to latest active if no default
+            if not template:
+                template = EmailTemplate.objects.filter(
+                    role="all",
+                    type="automatic",
+                    is_active=True,
+                ).order_by('-updated_at').first()
+                if template:
+                     logger.info(f"✅ Found LATEST template for role=all: {template.id}")
 
         # Use DB template if found
         if template:

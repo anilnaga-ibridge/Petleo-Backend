@@ -97,15 +97,26 @@ SIMPLE_JWT = {
 }
 ROOT_URLCONF = 'super_admin_service.urls'
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': os.environ.get('POSTGRES_DB', 'Super_Admin'),
+#         'USER': os.environ.get('POSTGRES_USER', 'postgres'),
+#         'PASSWORD': os.environ.get('POSTGRES_PASSWORD', 'postgres'),
+#         'HOST': os.environ.get('POSTGRES_HOST', 'localhost'),
+        
+#         'PORT': os.environ.get('POSTGRES_PORT', '5432'),
+#     }
+# }
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.environ.get('POSTGRES_DB', 'Super_Admin'),
-        'USER': os.environ.get('POSTGRES_USER', 'postgres'),
-        'PASSWORD': os.environ.get('POSTGRES_PASSWORD', 'postgres'),
-        'HOST': os.environ.get('POSTGRES_HOST', 'localhost'),
-        
-        'PORT': os.environ.get('POSTGRES_PORT', '5432'),
+        'NAME': 'Super_Admin',
+        'USER': 'petleo',
+        'PASSWORD': 'petleo',
+        'HOST': 'localhost',
+        'PORT': '5432',
     }
 }
 # Static files (CSS, JavaScript, Images)
@@ -129,6 +140,29 @@ TEMPLATES = [
     },
 ]
 
-KAFKA_BROKER_URL = "kafka:9092"
+KAFKA_BROKER_URL = os.environ.get("KAFKA_BROKER_URL", "localhost:9093")
+KAFKA_BOOTSTRAP_SERVERS = os.environ.get("KAFKA_BOOTSTRAP_SERVERS", "localhost:9093")
 KAFKA_USER_TOPIC = "user_created"
 KAFKA_GROUP_ID = "superadmin_group"
+SERVICE_NAME = "super_admin_service"
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        'kafka': {
+            'handlers': ['console'],
+            'level': 'CRITICAL',
+            'propagate': False,
+        },
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',
+        },
+    },
+}

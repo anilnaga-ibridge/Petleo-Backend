@@ -125,6 +125,8 @@ class CentralAuthJWTAuthentication(JWTAuthentication):
     PUBLIC_PATHS = [
     "/api/superadmin/definitions/public",
     "/api/superadmin/definitions/public/",
+    "/api/superadmin/provider/plans/",
+    "/api/superadmin/services/",
     ]
 
 

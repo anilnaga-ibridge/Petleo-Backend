@@ -77,3 +77,30 @@ class ProviderDocumentDefinition(models.Model):
 
     def __str__(self):
         return f"{self.target} — {self.label} ({self.key})"
+
+
+class ProviderDocumentVerification(models.Model):
+    STATUS_CHOICES = [
+        ("pending", "Pending"),
+        ("approved", "Approved"),
+        ("rejected", "Rejected"),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    auth_user_id = models.UUIDField()  # auth_user_id from Service Provider
+    document_id = models.UUIDField()  # ID of the document in Service Provider DB
+    
+    file_url = models.URLField(max_length=1024, blank=True, null=True)
+    filename = models.CharField(max_length=512, blank=True, null=True)
+    
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
+    rejection_reason = models.TextField(blank=True, null=True)
+    
+    created_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"Doc {self.document_id} ({self.status})"

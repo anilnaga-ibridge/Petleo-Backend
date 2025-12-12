@@ -9,7 +9,12 @@ class UpdateLastActivityMiddleware:
 
         user = request.user
         if user.is_authenticated:
-            user.last_active_at = timezone.now()
-            user.save(update_fields=["last_active_at"])
+            # If the user was deleted during the request (e.g. DELETE /users/id/),
+            # saving will fail. We catch this to avoid 500 errors.
+            try:
+                user.last_active_at = timezone.now()
+                user.save(update_fields=["last_active_at"])
+            except Exception:
+                pass
 
         return response

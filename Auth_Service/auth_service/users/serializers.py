@@ -47,15 +47,96 @@ class RoleSerializer(serializers.ModelSerializer):
 # ============================
 # User Registration Serializer
 # ============================
+# class RegisterSerializer(serializers.ModelSerializer):
+#     phone_number = serializers.CharField(required=True)
+#     full_name = serializers.CharField(required=True)
+#     email = serializers.EmailField(required=False, allow_blank=True)
+#     role = serializers.CharField(required=True)  # frontend sends role_id as string or number
+
+#     class Meta:
+#         model = User
+#         fields = ['phone_number', 'full_name', 'email', 'role']
+
+#     def validate_phone_number(self, value):
+#         if User.objects.filter(phone_number=value).exists():
+#             raise serializers.ValidationError("Phone number already registered")
+#         return value
+
+#     def validate_email(self, value):
+#         if value and User.objects.filter(email=value).exists():
+#             raise serializers.ValidationError("Email already registered")
+#         return value
+
+#     # ------------------------------------------------------------------
+#     # FIXED CREATE METHOD (THIS IS THE IMPORTANT PART)
+#     # ------------------------------------------------------------------
+#     def create(self, validated_data):
+#         # Extract role_id coming from frontend (often a string)
+#         role_id = validated_data.pop("role", None)
+
+#         if not role_id:
+#             raise serializers.ValidationError({"role": "Role ID is required"})
+
+#         try:
+#             # Convert to int safely
+#             role_id = int(role_id)
+#         except ValueError:
+#             raise serializers.ValidationError({"role": "Role ID must be a number"})
+
+#         # Fetch the correct Role object (DO NOT CREATE NEW)
+#         try:
+#             role_obj = Role.objects.get(id=role_id)
+#         except Role.DoesNotExist:
+#             raise serializers.ValidationError({"role": f"Invalid role ID: {role_id}"})
+
+#         # Generate unique username
+#         username = f"user_{uuid4().hex[:10]}"
+
+#         # Create user
+#         user = User(
+#             id=uuid4(),
+#             username=username,
+#             phone_number=validated_data.get('phone_number'),
+#             full_name=validated_data.get('full_name'),
+#             email=validated_data.get('email') or None,
+#             role=role_obj,             # ✔ Correct role assignment
+#             is_active=False            # Activate after OTP
+#         )
+
+#         user.set_unusable_password()
+#         user.save()
+
+#         return user
 class RegisterSerializer(serializers.ModelSerializer):
     phone_number = serializers.CharField(required=True)
     full_name = serializers.CharField(required=True)
     email = serializers.EmailField(required=False, allow_blank=True)
-    role = serializers.CharField(required=True)  # frontend sends role_id as string or number
+    role = serializers.CharField(required=True)  # we will auto-convert
 
     class Meta:
         model = User
         fields = ['phone_number', 'full_name', 'email', 'role']
+
+    def validate_role(self, value):
+        """
+        Accepts:
+        - role id (1, "1")
+        - role name ("organization", "individual", "admin", etc.)
+        Returns: valid role_id
+        """
+
+        # 1️⃣ Try converting to integer role_id
+        try:
+            return int(value)
+        except:
+            pass  # not a number → continue
+
+        # 2️⃣ Try matching by role name (case-insensitive)
+        try:
+            role_obj = Role.objects.get(name__iexact=value)
+            return role_obj.id
+        except Role.DoesNotExist:
+            raise serializers.ValidationError("Invalid role. Use role ID or valid role name.")
 
     def validate_phone_number(self, value):
         if User.objects.filter(phone_number=value).exists():
@@ -67,29 +148,17 @@ class RegisterSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Email already registered")
         return value
 
-    # ------------------------------------------------------------------
-    # FIXED CREATE METHOD (THIS IS THE IMPORTANT PART)
-    # ------------------------------------------------------------------
     def create(self, validated_data):
-        # Extract role_id coming from frontend (often a string)
-        role_id = validated_data.pop("role", None)
+        # Get normalized role_id from validated_data
+        role_id = validated_data.pop("role")
 
-        if not role_id:
-            raise serializers.ValidationError({"role": "Role ID is required"})
-
-        try:
-            # Convert to int safely
-            role_id = int(role_id)
-        except ValueError:
-            raise serializers.ValidationError({"role": "Role ID must be a number"})
-
-        # Fetch the correct Role object (DO NOT CREATE NEW)
+        # Fetch Role object
         try:
             role_obj = Role.objects.get(id=role_id)
         except Role.DoesNotExist:
-            raise serializers.ValidationError({"role": f"Invalid role ID: {role_id}"})
+            raise serializers.ValidationError({"role": "Invalid role ID"})
 
-        # Generate unique username
+        # Generate random username
         username = f"user_{uuid4().hex[:10]}"
 
         # Create user
@@ -99,15 +168,18 @@ class RegisterSerializer(serializers.ModelSerializer):
             phone_number=validated_data.get('phone_number'),
             full_name=validated_data.get('full_name'),
             email=validated_data.get('email') or None,
-            role=role_obj,             # ✔ Correct role assignment
-            is_active=False            # Activate after OTP
+            role=role_obj,
+            is_active=False,
         )
 
         user.set_unusable_password()
         user.save()
 
         return user
+
 class UserUpdateSerializer(serializers.ModelSerializer):
+    role_name = serializers.CharField(source='role.name', read_only=True)
+
     class Meta:
         model = User
         fields = [
@@ -117,6 +189,7 @@ class UserUpdateSerializer(serializers.ModelSerializer):
             "email",
             "phone_number",
             "role",
+            "role_name",
         ]
         read_only_fields = ["id", "username"]
 
@@ -139,10 +212,15 @@ class VerifyOTPSerializer(serializers.Serializer):
 # ============================
 class UserSerializer(serializers.ModelSerializer):
     role_name = serializers.CharField(source='role.name', read_only=True)
+    is_verified = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ['id', 'full_name', 'phone_number', 'email', 'role', 'role_name']
+        fields = ['id', 'full_name', 'phone_number', 'email', 'role', 'role_name', 'is_active', 'last_otp_login', 'pin_set_at', 'is_verified']
+
+    def get_is_verified(self, obj):
+        # Consider verified if they have OTP login history, PIN set, OR are currently active
+        return bool(obj.last_otp_login or obj.pin_set_at or obj.is_active)
 
 
 class StoredRefreshTokenSerializer(serializers.ModelSerializer):

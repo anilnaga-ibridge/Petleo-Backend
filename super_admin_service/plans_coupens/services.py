@@ -1,6 +1,26 @@
 # plans_coupens/services.py
 from django.db import transaction
 from .models import ProviderPlanPermission
+import calendar
+from datetime import timedelta
+
+def add_months(source_date, months):
+    month = source_date.month - 1 + months
+    year = source_date.year + month // 12
+    month = month % 12 + 1
+    day = min(source_date.day, calendar.monthrange(year, month)[1])
+    return source_date.replace(year=year, month=month, day=day)
+
+def calculate_end_date(start_date, value, unit):
+    if unit == "days":
+        return start_date + timedelta(days=value)
+    elif unit == "weeks":
+        return start_date + timedelta(weeks=value)
+    elif unit == "months":
+        return add_months(start_date, value)
+    elif unit == "years":
+        return add_months(start_date, value * 12)
+    return None
 
 def assign_plan_permissions_to_user(user, plan):
     """

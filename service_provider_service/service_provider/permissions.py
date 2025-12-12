@@ -1,40 +1,17 @@
-# service_provider/permissions.py
+from .models import ProviderPermission
 
-from rest_framework.permissions import BasePermission
-from service_provider.models import LocalProviderPermission
-
-
-def user_has_local_permission(auth_user_id, service_id, category_id, action):
-    try:
-        perm = LocalProviderPermission.objects.get(
-            auth_user_id=auth_user_id,
-            service_id=service_id,
-            category_id=category_id,
-        )
-        return getattr(perm, f"can_{action}", False)
-    except LocalProviderPermission.DoesNotExist:
+def user_has_permission(user, permission_code):
+    """
+    Check if the verified user has the specific permission.
+    """
+    if not user or not user.is_authenticated:
         return False
-
-
-class HasServicePermission(BasePermission):
-    """
-    DRF Permission Class
-    """
-
-    def has_permission(self, request, view):
-        auth_user_id = request.user.id
-
-        service_id = view.kwargs.get("service_id")
-        category_id = view.kwargs.get("category_id")
-
-        action_map = {
-            "GET": "view",
-            "POST": "create",
-            "PUT": "edit",
-            "PATCH": "edit",
-            "DELETE": "delete",
-        }
-
-        action = action_map.get(request.method)
-
-        return user_has_local_permission(auth_user_id, service_id, category_id, action)
+        
+    # If user is superuser (Django admin), allow all? 
+    # Maybe not, as this is for Provider context.
+    
+    # Check if user has the permission
+    return ProviderPermission.objects.filter(
+        verified_user=user, 
+        permission_code=permission_code
+    ).exists()

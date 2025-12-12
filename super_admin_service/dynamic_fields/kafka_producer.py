@@ -25,16 +25,20 @@
 #         if cls._instance is None:
 #             with cls._lock:
 #                 if cls._instance is None:
-#                     logger.info("🚀 Initializing Kafka Producer for Dynamic Fields...")
+#                     try:
+#                         logger.info("🚀 Initializing Kafka Producer for Dynamic Fields...")
 
-#                     cls._instance = KafkaProducer(
-#                         bootstrap_servers=KAFKA_BOOTSTRAP_SERVERS,
-#                         value_serializer=lambda v: json.dumps(v).encode("utf-8"),
-#                         retries=5,
-#                         acks="all",
-#                         max_in_flight_requests_per_connection=1,
-#                         linger_ms=5,
-#                     )
+#                         cls._instance = KafkaProducer(
+#                             bootstrap_servers=KAFKA_BOOTSTRAP_SERVERS,
+#                             value_serializer=lambda v: json.dumps(v).encode("utf-8"),
+#                             retries=5,
+#                             acks="all",
+#                             max_in_flight_requests_per_connection=1,
+#                             linger_ms=5,
+#                         )
+#                     except Exception as e:
+#                         logger.warning(f"⚠️ Kafka unavailable: {e}")
+#                         return None
 #         return cls._instance
 
 
@@ -56,6 +60,10 @@
 
 #     try:
 #         producer = KafkaProducerSingleton.get_producer()
+        
+#         if not producer:
+#             logger.warning(f"⚠️ Kafka not connected. Event '{action}' skipped.")
+#             return
 
 #         producer.send(KAFKA_TOPIC_DYNAMIC_FIELDS, message)
 #         producer.flush()

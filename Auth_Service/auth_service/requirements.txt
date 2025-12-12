@@ -9,3 +9,13 @@ requests==2.31.0
 django-extensions==3.2.3
 django-redis
 
+
+django>=4.2
+djangorestframework>=3.14
+kafka-python>=2.2.15
+python-dotenv>=1.0
+django-environ>=0.12
+django-cors-headers>=4.9
+djangorestframework-simplejwt>=5.3
+psycopg>=3.1
+

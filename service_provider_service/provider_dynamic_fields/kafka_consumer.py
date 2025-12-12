@@ -1,27 +1,43 @@
 # import json
 # import logging
+import logging
 # import time
 # from kafka import KafkaConsumer
 # from django.conf import settings
 # import django
 # import os
 
-# # If you want to run this standalone: set DJANGO_SETTINGS_MODULE env var before importing models
-# logger = logging.getLogger(__name__)
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(message)s',
+    handlers=[logging.StreamHandler()]
+)
+logging.getLogger("kafka").setLevel(logging.CRITICAL)
 
-# # Minimal consumer loop — idempotent upsert for definitions
+# If you want to run this standalone: set DJANGO_SETTINGS_MODULE env var before importing models
+logger = logging.getLogger(__name__)
+
+# Minimal consumer loop — idempotent upsert for definitions
 # def run_consumer():
 #     from .kafka_config import KAFKA_BOOTSTRAP_SERVERS, KAFKA_TOPIC_DYNAMIC_FIELDS, KAFKA_CONSUMER_GROUP
 #     from .models import LocalFieldDefinition
 
-#     consumer = KafkaConsumer(
-#         KAFKA_TOPIC_DYNAMIC_FIELDS,
-#         bootstrap_servers=getattr(settings, "KAFKA_BOOTSTRAP_SERVERS", KAFKA_BOOTSTRAP_SERVERS),
-#         auto_offset_reset='earliest',
-#         enable_auto_commit=True,
-#         group_id=getattr(settings, "KAFKA_CONSUMER_GROUP", KAFKA_CONSUMER_GROUP),
-#         value_deserializer=lambda m: json.loads(m.decode("utf-8")),
-#     )
+    consumer = None
+    while not consumer:
+        try:
+            consumer = KafkaConsumer(
+                KAFKA_TOPIC_DYNAMIC_FIELDS,
+                bootstrap_servers=getattr(settings, "KAFKA_BOOTSTRAP_SERVERS", KAFKA_BOOTSTRAP_SERVERS),
+                auto_offset_reset='earliest',
+                enable_auto_commit=True,
+                group_id=getattr(settings, "KAFKA_CONSUMER_GROUP", KAFKA_CONSUMER_GROUP),
+                value_deserializer=lambda m: json.loads(m.decode("utf-8")),
+            )
+        except Exception as e:
+            logger.warning(f"⚠️ Kafka unavailable: {e}")
+            logger.info("🔁 Retrying in 5 seconds...")
+            time.sleep(5)
 
 #     logger.info("DynamicFields consumer started, listening for events...")
 #     for msg in consumer:

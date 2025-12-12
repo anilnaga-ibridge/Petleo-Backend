@@ -2,6 +2,7 @@
 
 import json
 import logging
+import threading
 from kafka import KafkaProducer
 from django.utils import timezone
 
@@ -16,13 +17,29 @@ logger = logging.getLogger(__name__)
 # -------------------------------------------
 #  Create a reusable Kafka Producer instance
 # -------------------------------------------
+class GlobalKafkaProducer:
+    _instance = None
+    _lock = threading.Lock()
+
+    @classmethod
+    def instance(cls):
+        if cls._instance is None:
+            with cls._lock:
+                if cls._instance is None:
+                    try:
+                        cls._instance = KafkaProducer(
+                            bootstrap_servers=KAFKA_BOOTSTRAP_SERVERS,
+                            value_serializer=lambda v: json.dumps(v).encode("utf-8"),
+                            retries=5,
+                            linger_ms=5,
+                        )
+                    except Exception as e:
+                        logger.warning(f"⚠️ Kafka unavailable: {e}")
+                        return None
+        return cls._instance
+
 def get_kafka_producer():
-    return KafkaProducer(
-        bootstrap_servers=KAFKA_BOOTSTRAP_SERVERS,
-        value_serializer=lambda v: json.dumps(v).encode("utf-8"),
-        retries=5,
-        linger_ms=5,
-    )
+    return GlobalKafkaProducer.instance()
 
 
 # -------------------------------------------
@@ -30,6 +47,10 @@ def get_kafka_producer():
 # -------------------------------------------
 def publish_permissions_event(event_name: str, payload: dict):
     producer = get_kafka_producer()
+    
+    if not producer:
+        logger.warning(f"⚠️ Kafka not connected. Event '{event_name}' skipped.")
+        return
 
     try:
         producer.send(KAFKA_TOPIC_PERMISSIONS, payload)

@@ -304,3 +304,77 @@ class ProviderPlanPermissionSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProviderPlanPermission
         fields = "__all__"
+
+
+
+class ProviderPlanViewSerializer(serializers.ModelSerializer):
+    price = serializers.SerializerMethodField()
+    billing_cycle = BillingCycleSerializer(
+        read_only=True, source="default_billing_cycle"
+    )
+    access = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Plan
+        fields = [
+            "id",
+            "title",
+            "subtitle",
+            "description",
+            "features",
+            "price",
+            "billing_cycle",
+            "access",
+            "is_active",
+        ]
+
+    def get_price(self, obj):
+        price = obj.prices.filter(is_active=True).first()
+        if not price:
+            return None
+        return {
+            "amount": str(price.amount),
+            "currency": price.currency
+        }
+
+    def get_access(self, obj):
+        items = obj.items.select_related(
+            "service"
+        ).prefetch_related("facilities")
+
+        data = []
+        for item in items:
+            if not item.service:
+                continue
+
+            # Fetch all categories belonging to this service
+            service_categories = item.service.categories.all()
+
+            cats_data = []
+            for cat in service_categories:
+                cats_data.append({
+                    "id": str(cat.id),
+                    "name": cat.name,
+                    "permissions": {
+                        "can_view": item.can_view,
+                        "can_create": item.can_create,
+                        "can_edit": item.can_edit,
+                        "can_delete": item.can_delete,
+                    },
+                    "facilities": [
+                        {
+                            "id": str(f.id),
+                            "name": f.name
+                        }
+                        for f in item.facilities.all()
+                    ]
+                })
+
+            data.append({
+                "service": {
+                    "id": str(item.service.id),
+                    "name": item.service.display_name,
+                },
+                "categories": cats_data
+            })
+        return data

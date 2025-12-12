@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'django_extensions',
     'provider_dynamic_fields',
+    'provider_cart',
     
 ]
 
@@ -96,18 +97,27 @@ WSGI_APPLICATION = 'service_provider_service.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': os.environ.get('POSTGRES_DB', 'Service_Provider'),
+#         'USER': os.environ.get('POSTGRES_USER', 'postgres'),
+#         'PASSWORD': os.environ.get('POSTGRES_PASSWORD', 'postgres'),
+#          'HOST': os.environ.get('POSTGRES_HOST', 'localhost'),
+#         'PORT': os.environ.get('POSTGRES_PORT', '5432'),
+#     }
+# }
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.environ.get('POSTGRES_DB', 'Service_Provider'),
-        'USER': os.environ.get('POSTGRES_USER', 'postgres'),
-        'PASSWORD': os.environ.get('POSTGRES_PASSWORD', 'postgres'),
-         'HOST': os.environ.get('POSTGRES_HOST', 'localhost'),
-        'PORT': os.environ.get('POSTGRES_PORT', '5432'),
+        'NAME': 'provider_db',
+        'USER': 'petleo',
+        'PASSWORD': 'petleo',
+        'HOST': '127.0.0.1',
+        'PORT': '5432',
     }
 }
-
-
 # Password validation
 # https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators
 
@@ -175,4 +185,25 @@ SIMPLE_JWT = {
 
     "AUTH_HEADER_TYPES": ("Bearer",),
     "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
+}
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        'kafka': {
+            'handlers': ['console'],
+            'level': 'CRITICAL',
+            'propagate': False,
+        },
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',
+        },
+    },
 }

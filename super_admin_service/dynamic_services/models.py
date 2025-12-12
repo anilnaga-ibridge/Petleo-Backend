@@ -4,6 +4,7 @@ class Service(models.Model):
     name = models.CharField(max_length=255, unique=True)
     display_name = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
+    icon = models.CharField(max_length=255, blank=True, null=True)
     is_active = models.BooleanField(default=True)
     blocked = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)

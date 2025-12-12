@@ -1,330 +1,20 @@
-# version: "3.9"
 
-# services:
-#   zookeeper:
-#     image: confluentinc/cp-zookeeper:7.5.0
-#     container_name: zookeeper
-#     ports:
-#       - "2181:2181"
-#     environment:
-#       ZOOKEEPER_CLIENT_PORT: 2181
-#       ZOOKEEPER_TICK_TIME: 2000
-
-#   kafka:
-#     image: confluentinc/cp-kafka:7.5.0
-#     container_name: kafka
-#     depends_on:
-#       - zookeeper
-#     ports:
-#       - "9092:9092"
-#     environment:
-#       KAFKA_BROKER_ID: 1
-#       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-#       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
-#       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
-#       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
-#       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
-#       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-#       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-#       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-
-#   kafka-ui:
-#     image: provectuslabs/kafka-ui:latest
-#     container_name: kafka-ui
-#     depends_on:
-#       - kafka
-#     ports:
-#       - "8085:8080"
-#     environment:
-#       KAFKA_CLUSTERS_0_NAME: local
-#       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
-#       KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
-
-#   redis:
-#     image: redis:7.0
-#     container_name: redis
-#     ports:
-#       - "6379:6379"
-#     volumes:
-#       - redis_data:/data
-
-#   redis-insight:
-#     image: redis/redisinsight:latest
-#     container_name: redis-insight
-#     ports:
-#       - "5540:5540"
-#     depends_on:
-#       - redis
-
-#   postgres_auth:
-#     image: postgres:15
-#     container_name: postgres_auth
-#     restart: unless-stopped
-#     environment:
-#       POSTGRES_DB: Auth_Service
-#       POSTGRES_USER: postgres
-#       POSTGRES_PASSWORD: postgres
-#     volumes:
-#       - postgres_auth_data:/var/lib/postgresql/data
-#     ports:
-#       - "5433:5432"
-
-#   postgres_service_provider:
-#     image: postgres:15
-#     container_name: postgres_service_provider
-#     restart: unless-stopped
-#     environment:
-#       POSTGRES_DB: Service_Provider
-#       POSTGRES_USER: postgres
-#       POSTGRES_PASSWORD: postgres
-#     volumes:
-#       - postgres_sp_data:/var/lib/postgresql/data
-#     ports:
-#       - "5434:5432"
-
-#   postgres_super_admin:
-#     image: postgres:15
-#     container_name: postgres_super_admin
-#     restart: unless-stopped
-#     environment:
-#       POSTGRES_DB: Super_Admin
-#       POSTGRES_USER: postgres
-#       POSTGRES_PASSWORD: postgres
-#     volumes:
-#       - postgres_sa_data:/var/lib/postgresql/data
-#     ports:
-#       - "5435:5432"
-
-#   auth_service:
-#     build:
-#       context: ./Auth_Serivce
-#       dockerfile: Dockerfile
-#     container_name: auth_service
-#     command: python manage.py runserver 0.0.0.0:8000
-#     restart: unless-stopped
-#     ports:
-#       - "8000:8000"
-#     volumes:
-#       - ./Auth_Serivce:/app
-#     environment:
-#       DJANGO_SETTINGS_MODULE: auth_service.settings
-#       POSTGRES_HOST: postgres_auth
-#       POSTGRES_PORT: 5432
-#       POSTGRES_USER: postgres
-#       POSTGRES_PASSWORD: postgres
-#       POSTGRES_DB: Auth_Service
-#       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
-#       REDIS_HOST: redis
-#       REDIS_PORT: 6379
-#     depends_on:
-#       - kafka
-#       - redis
-#       - postgres_auth
-
-#   service_provider_service:
-#     build:
-#       context: ./service_provider_service
-#       dockerfile: Dockerfile
-#     container_name: service_provider_service
-#     command: python manage.py runserver 0.0.0.0:8002
-#     restart: unless-stopped
-#     ports:
-#       - "8002:8002"
-#     volumes:
-#       - ./service_provider_service:/app
-#     environment:
-#       DJANGO_SETTINGS_MODULE: service_provider_service.settings
-#       POSTGRES_HOST: postgres_service_provider
-#       POSTGRES_PORT: 5432
-#       POSTGRES_USER: postgres
-#       POSTGRES_PASSWORD: postgres
-#       POSTGRES_DB: Service_Provider
-#       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
-#     depends_on:
-#       - kafka
-#       - postgres_service_provider
-
-#   super_admin_service:
-#     build:
-#       context: ./super_admin_service
-#       dockerfile: Dockerfile
-#     container_name: super_admin_service
-#     command: python manage.py runserver 0.0.0.0:8003
-#     restart: unless-stopped
-#     ports:
-#       - "8003:8003"
-#     volumes:
-#       - ./super_admin_service:/app
-#     environment:
-#       DJANGO_SETTINGS_MODULE: super_admin_service.settings
-#       POSTGRES_HOST: postgres_super_admin
-#       POSTGRES_PORT: 5432
-#       POSTGRES_USER: postgres
-#       POSTGRES_PASSWORD: postgres
-#       POSTGRES_DB: Super_Admin
-#       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
-#     depends_on:
-#       - kafka
-#       - postgres_super_admin
-
-# volumes:
-#   redis_data:
-#   postgres_auth_data:
-#   postgres_sp_data:
-#   postgres_sa_data:
-# version: "3.9"
-
-# services:
-#   # 🧭 Zookeeper
-#   zookeeper:
-#     image: confluentinc/cp-zookeeper:7.5.0
-#     container_name: zookeeper
-#     ports:
-#       - "2181:2181"
-#     environment:
-#       ZOOKEEPER_CLIENT_PORT: 2181
-#       ZOOKEEPER_TICK_TIME: 2000
-
-#   # ⚙️ Kafka
-#   kafka:
-#     image: confluentinc/cp-kafka:7.5.0
-#     container_name: kafka
-#     depends_on:
-#       - zookeeper
-#     ports:
-#       - "9092:9092"
-#     environment:
-#       KAFKA_BROKER_ID: 1
-#       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-#       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
-#       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
-#       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
-#       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
-#       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-
-#   # 📊 Kafka UI
-#   kafka-ui:
-#     image: provectuslabs/kafka-ui:latest
-#     container_name: kafka-ui
-#     ports:
-#       - "8085:8080"
-#     environment:
-#       KAFKA_CLUSTERS_0_NAME: local
-#       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
-#     depends_on:
-#       - kafka
-
-#   # 🧰 Redis
-#   redis:
-#     image: redis:7.0
-#     container_name: redis
-#     ports:
-#       - "6379:6379"
-#     volumes:
-#       - redis_data:/data
-
-#   redis-insight:
-#     image: redis/redisinsight:latest
-#     container_name: redis-insight
-#     ports:
-#       - "5540:5540"
-#     depends_on:
-#       - redis
-
-#   # 🗄 PostgreSQL for Authentication Service
-#   postgres_auth:
-#     image: postgres:15
-#     container_name: postgres_auth
-#     environment:
-#       POSTGRES_DB: auth_db
-#       POSTGRES_USER: postgres
-#       POSTGRES_PASSWORD: postgres
-#     ports:
-#       - "5433:5432"
-#     volumes:
-#       - postgres_auth_data:/var/lib/postgresql/data
-
-#   # 🗄 PostgreSQL for Provider Service
-#   postgres_service_provider:
-#     image: postgres:15
-#     container_name: postgres_service_provider
-#     environment:
-#       POSTGRES_DB: provider_db
-#       POSTGRES_USER: postgres
-#       POSTGRES_PASSWORD: postgres
-#     ports:
-#       - "5434:5432"
-#     volumes:
-#       - postgres_sp_data:/var/lib/postgresql/data
-
-#   # 🗄 PostgreSQL for Super Admin
-#   postgres_super_admin:
-#     image: postgres:15
-#     container_name: postgres_super_admin
-#     environment:
-#       POSTGRES_DB: superadmin_db
-#       POSTGRES_USER: postgres
-#       POSTGRES_PASSWORD: postgres
-#     ports:
-#       - "5435:5432"
-#     volumes:
-#       - postgres_sa_data:/var/lib/postgresql/data
-
-#   # 🔐 Django Auth Service
-#   auth_service:
-#     build:
-#       context: ./Auth_Serivce
-#     container_name: auth_service
-#     command: python manage.py runserver 0.0.0.0:8000
-#     ports:
-#       - "8000:8000"
-#     volumes:
-#       - ./Auth_Serivce:/app
-#     depends_on:
-#       - postgres_auth
-#       - redis
-#       - kafka
-
-#   # 🧾 Django Provider Service
-#   service_provider_service:
-#     build:
-#       context: ./service_provider_service
-#     container_name: service_provider_service
-#     command: python manage.py runserver 0.0.0.0:8000
-#     ports:
-#       - "8002:8000"
-#     depends_on:
-#       - postgres_service_provider
-#       - kafka
-
-#   # 👑 Django Super Admin Service
-#   super_admin_service:
-#     build:
-#       context: ./super_admin_service
-#     container_name: super_admin_service
-#     command: python manage.py runserver 0.0.0.0:8000
-#     ports:
-#       - "8003:8000"
-#     depends_on:
-#       - postgres_super_admin
-#       - kafka
-
-# volumes:
-#   postgres_auth_data:
-#   postgres_sp_data:
-#   postgres_sa_data:
-#   redis_data:
 services:
 
   # 🧭 Zookeeper
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
     container_name: zookeeper
+    hostname: zookeeper
     ports:
       - "2181:2181"
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
+    healthcheck:
+      test: echo srvr | nc localhost 2181 || exit 1
+      interval: 5s
+      retries: 20
     networks:
       - micro_net
 
@@ -333,23 +23,32 @@ services:
     image: confluentinc/cp-kafka:7.5.0
     container_name: kafka
     depends_on:
-      - zookeeper
+      zookeeper:
+        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
-      - "9092:9092"
+      - "9093:9092"
       - "29092:29092"
     environment:
       KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
+      KAFKA_ZOOKEEPER_CONNECT: "host.docker.internal:2181"
 
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,PLAINTEXT_HOST://0.0.0.0:9092
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://192.168.29.41:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9093
 
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
 
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_OPTS: "-Djava.net.preferIPv4Stack=true"
+    healthcheck:
+      test: nc -z localhost 9092 || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # 📊 Kafka UI
   kafka-ui:
@@ -449,13 +148,13 @@ services:
   # 🔐 Django Auth Service
   auth_service:
     build:
-      context: ./Auth_Serivce
+      context: ./Auth_Service
     container_name: auth_service
     command: python manage.py runserver 0.0.0.0:8000 --noreload
     ports:
       - "8001:8000"
     volumes:
-      - ./Auth_Serivce:/app
+      - ./Auth_Service:/app
     depends_on:
       postgres_auth:
         condition: service_healthy
