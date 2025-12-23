@@ -1,25 +1,24 @@
 
-
 from rest_framework import viewsets, status, permissions, generics
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework.decorators import action, api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from admin_core.authentication import CentralAuthJWTAuthentication as AuthServiceJWTAuthentication
 
 from admin_core.permissions import IsSuperAdmin
-from .models import BillingCycle, Plan, Coupon, PlanPrice, PlanItem,PurchasedPlan, ProviderPlanPermission
+from .models import BillingCycle, Plan, Coupon, PlanPrice, PlanCapability, PurchasedPlan, ProviderPlanCapability
 # from .serializers import BillingCycleSerializer, PlanSerializer, CouponSerializer
 from .kafka_producer import publish_permissions_updated
-from .models import ProviderPlanPermission
 from .serializers import (
     BillingCycleSerializer,
     PlanSerializer,
     PlanPriceSerializer,
-    PlanItemSerializer,
+    PlanCapabilitySerializer,
     CouponSerializer,
-     PurchasedPlanSerializer, ProviderPlanPermissionSerializer,
+    PurchasedPlanSerializer, ProviderPlanCapabilitySerializer,
     ProviderPlanViewSerializer,
 )
 from django.db.models import Q
@@ -46,43 +45,77 @@ class PlanViewSet(viewsets.ModelViewSet):
 
         return qs
 
-    @action(detail=True, methods=["get"])
+    @action(detail=True, methods=["get"], permission_classes=[IsAuthenticated])
     def permissions(self, request, pk=None):
         """
         GET /api/superadmin/plans/{pk}/permissions/
-        Returns list of permissions (PlanItems) for this plan.
+        Returns hierarchical list of permissions for this plan.
         """
         plan = self.get_object()
-        items = plan.items.all()
+        capabilities = plan.capabilities.select_related('service', 'category', 'facility').all()
         
-        # Transform to simple permission codes or return full items
-        # User requested: ["create_service", "view_bookings"]
-        # We will map PlanItems to codes.
+        # Group by Service -> Category
+        grouped = {}
         
-        permissions_list = []
-        services_map = {}
-
-        for item in items:
-            svc = item.service.name.lower().replace(" ", "_") if item.service else "global"
-            cat = item.category.name.lower().replace(" ", "_") if item.category else "all"
+        for cap in capabilities:
+            if not cap.service: continue
             
-            if item.can_view: permissions_list.append(f"view_{svc}")
-            if item.can_create: permissions_list.append(f"create_{svc}")
-            if item.can_edit: permissions_list.append(f"edit_{svc}")
-            if item.can_delete: permissions_list.append(f"delete_{svc}")
-            
-            # Collect Service Details
-            if item.service and item.service.id not in services_map:
-                services_map[item.service.id] = {
-                    "id": str(item.service.id),
-                    "name": item.service.display_name,
-                    "icon": item.service.icon or "tabler-box", # Default icon
+            s_id = str(cap.service.id)
+            if s_id not in grouped:
+                grouped[s_id] = {
+                    "service_id": s_id,
+                    "service_name": cap.service.display_name,
+                    "service_icon": cap.service.icon,
+                    "categories": {}
                 }
             
+            if cap.category:
+                c_id = str(cap.category.id)
+                if c_id not in grouped[s_id]["categories"]:
+                    grouped[s_id]["categories"][c_id] = {
+                        "category_id": c_id,
+                        "category_name": cap.category.name,
+                        "permissions": {
+                            "can_view": False, "can_create": False, "can_edit": False, "can_delete": False
+                        },
+                        "facilities": []
+                    }
+                
+                if not cap.facility:
+                    # Category-level permissions
+                    grouped[s_id]["categories"][c_id]["permissions"] = {
+                        "can_view": cap.can_view,
+                        "can_create": cap.can_create,
+                        "can_edit": cap.can_edit,
+                        "can_delete": cap.can_delete,
+                    }
+                else:
+                    # Facility
+                    grouped[s_id]["categories"][c_id]["facilities"].append({
+                        "id": str(cap.facility.id),
+                        "name": cap.facility.name,
+                        "permissions": {
+                            "can_view": cap.can_view,
+                            "can_create": cap.can_create,
+                            "can_edit": cap.can_edit,
+                            "can_delete": cap.can_delete,
+                        }
+                    })
+
+        # Flatten for response
+        permissions_list = []
+        for s_val in grouped.values():
+            cats = list(s_val["categories"].values())
+            permissions_list.append({
+                "service_id": s_val["service_id"],
+                "service_name": s_val["service_name"],
+                "service_icon": s_val["service_icon"],
+                "categories": cats
+            })
+
         return Response({
             "plan_id": str(plan.id),
-            "permissions": permissions_list,
-            "services": list(services_map.values())
+            "permissions": permissions_list
         })
 
 
@@ -91,23 +124,20 @@ class PlanPriceViewSet(viewsets.ModelViewSet):
     queryset = PlanPrice.objects.all()
     serializer_class = PlanPriceSerializer
     permission_classes = [IsSuperAdmin]
-# -------------------- PLAN ITEM --------------------
-class PlanItemViewSet(viewsets.ModelViewSet):
+# -------------------- PLAN CAPABILITY --------------------
+class PlanCapabilityViewSet(viewsets.ModelViewSet):
     """
-    CRUD operations for PlanItem
+    CRUD operations for PlanCapability
     - SuperAdmin only
-    - Prevents duplicate plan+service+category
-    - Supports search
     """
 
-    serializer_class = PlanItemSerializer
+    serializer_class = PlanCapabilitySerializer
     permission_classes = [IsSuperAdmin]
 
     # Preload related objects → huge performance improvement
     queryset = (
-        PlanItem.objects
-        .select_related("plan", "service", "category")
-        .prefetch_related("facilities")
+        PlanCapability.objects
+        .select_related("plan", "service", "category", "facility")
         .order_by("-id")
     )
 
@@ -125,28 +155,28 @@ class PlanItemViewSet(viewsets.ModelViewSet):
         return qs
 
     def create(self, request, *args, **kwargs):
-        serializer = PlanItemSerializer(data=request.data)
+        serializer = PlanCapabilitySerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         item = serializer.save()
-        return Response(PlanItemSerializer(item).data, status=status.HTTP_201_CREATED)
+        return Response(PlanCapabilitySerializer(item).data, status=status.HTTP_201_CREATED)
 
     def update(self, request, *args, **kwargs):
         partial = kwargs.pop('partial', False)
         instance = self.get_object()
 
-        serializer = PlanItemSerializer(instance, data=request.data, partial=partial)
+        serializer = PlanCapabilitySerializer(instance, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
         item = serializer.save()
 
-        return Response(PlanItemSerializer(item).data, status=status.HTTP_200_OK)
+        return Response(PlanCapabilitySerializer(item).data, status=status.HTTP_200_OK)
 
     def destroy(self, request, *args, **kwargs):
         """
-        DELETE /plan-items/<uuid>/
+        DELETE /plan-capabilities/<uuid>/
         """
         instance = self.get_object()
         instance.delete()
-        return Response({"detail": "Plan item deleted"}, status=status.HTTP_204_NO_CONTENT)
+        return Response({"detail": "Plan capability deleted"}, status=status.HTTP_204_NO_CONTENT)
 # -------------------- COUPON --------------------
 class CouponViewSet(viewsets.ModelViewSet):
     queryset = Coupon.objects.all().order_by("-created_at")
@@ -182,7 +212,7 @@ class PurchasedPlanViewSet(viewsets.ReadOnlyModelViewSet):
                     plan.save(update_fields=["is_active"])
 
                     # 2. Remove Permissions
-                    deleted_count, _ = ProviderPlanPermission.objects.filter(
+                    deleted_count, _ = ProviderPlanCapability.objects.filter(
                         user=plan.user, 
                         plan=plan.plan
                     ).delete()
@@ -200,14 +230,14 @@ class PurchasedPlanViewSet(viewsets.ReadOnlyModelViewSet):
         return Response({"message": f"Expired {count} plans."}, status=status.HTTP_200_OK)
 
 # -------------------- PROVIDER PLAN PERMISSIONS --------------------
-class ProviderPlanPermissionViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = ProviderPlanPermission.objects.all()
-    serializer_class = ProviderPlanPermissionSerializer
+class ProviderPlanCapabilityViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = ProviderPlanCapability.objects.all()
+    serializer_class = ProviderPlanCapabilitySerializer
     permission_classes = [IsSuperAdmin]
 
 
 # Purchase endpoint (any authenticated user can purchase)
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
@@ -222,6 +252,9 @@ def purchase_plan(request):
     user = request.user
     plan_id = request.data.get("plan_id")
     billing_cycle_id = request.data.get("billing_cycle_id")
+
+    with open("purchase_debug.log", "a") as f:
+        f.write(f"Purchase Request: User={user}, Plan={plan_id}\n")
 
     if not plan_id:
         return Response({"detail": "plan_id is required"}, status=status.HTTP_400_BAD_REQUEST)
@@ -248,34 +281,136 @@ def purchase_plan(request):
                 billing_cycle.duration_type
             )
 
-        # Create purchase record
-        purchased = PurchasedPlan.objects.create(
+        # Create or Update purchase record
+        purchased, created = PurchasedPlan.objects.update_or_create(
             user=user,
             plan=plan,
             billing_cycle=billing_cycle,
-            start_date=start_date,
-            end_date=end_date,
-            is_active=True
+            defaults={
+                "start_date": start_date,
+                "end_date": end_date,
+                "is_active": True
+            }
         )
 
         # Assign permissions inside SuperAdmin DB
         assign_plan_permissions_to_user(user, plan)
 
         # Build permissions payload
-        perms = ProviderPlanPermission.objects.filter(user=user, plan=plan)
+        perms = ProviderPlanCapability.objects.filter(user=user, plan=plan)
 
         permissions_list = [
             {
                 "service_id": str(p.service_id) if p.service_id else None,
                 "category_id": str(p.category_id) if p.category_id else None,
+                "facility_id": str(p.facility_id) if p.facility_id else None,
                 "can_view": p.can_view,
                 "can_create": p.can_create,
                 "can_edit": p.can_edit,
                 "can_delete": p.can_delete,
-                "facilities": [str(f.id) for f in p.facilities.all()],
             }
             for p in perms
         ]
+
+        # -------------------------------------------------------------------
+        # FETCH TEMPLATES FOR SYNC
+        # -------------------------------------------------------------------
+        # 1. Get all services allowed in the plan
+        allowed_service_ids = set()
+        for p in perms:
+            if p.service_id:
+                allowed_service_ids.add(p.service_id)
+
+        # 2. Fetch full objects
+        from dynamic_services.models import Service
+        from dynamic_categories.models import Category
+        from dynamic_facilities.models import Facility
+        from dynamic_pricing.models import Pricing
+
+        services = Service.objects.filter(id__in=allowed_service_ids)
+        
+        # 3. Construct Payload
+        print(f"DEBUG: Constructing templates payload for {len(allowed_service_ids)} services")
+        
+        templates_payload = {
+            "services": [
+                {
+                    "id": str(s.id),
+                    "name": s.name,
+                    "display_name": s.display_name,
+                    "icon": s.icon
+                } for s in services
+            ],
+            "categories": [], # Will fill below
+            "facilities": [], # Will fill below
+            "pricing": []     # Will fill below
+        }
+
+        # ---------------------------------------------------------
+        # REFINED FETCHING FROM PERMISSIONS
+        # ---------------------------------------------------------
+        seen_categories = set()
+        seen_facilities = set()
+        allowed_category_ids = set()
+        allowed_facility_ids = set()
+
+        # 1. Categories & Facilities from Permissions
+        for p in perms:
+            # Categories
+            if p.category:
+                if p.category.id not in seen_categories:
+                    templates_payload["categories"].append({
+                        "id": str(p.category.id),
+                        "service_id": str(p.category.service.id),
+                        "name": p.category.name,
+                        "is_template": True
+                    })
+                    seen_categories.add(p.category.id)
+                    allowed_category_ids.add(p.category.id)
+
+            # Facilities (if this capability is for a specific facility)
+            if p.facility:
+                if p.facility.id not in seen_facilities:
+                    templates_payload["facilities"].append({
+                        "id": str(p.facility.id),
+                        "category_id": str(p.category.id) if p.category else None, # Facility might not strictly need category here if global, but usually does
+                        "name": p.facility.name,
+                        "description": p.facility.description
+                    })
+                    seen_facilities.add(p.facility.id)
+                    allowed_facility_ids.add(p.facility.id)
+
+        # 2. Pricing Rules
+        # Filter pricing to only include rules relevant to allowed services, categories, and facilities
+        all_pricing = Pricing.objects.filter(service__id__in=allowed_service_ids)
+        
+        for p in all_pricing:
+            # Rule 1: Must match service (already filtered)
+            
+            # Rule 2: If category is set, it must be in allowed_category_ids
+            if p.category and p.category.id not in allowed_category_ids:
+                continue
+                
+            # Rule 3: If facility is set, it must be in allowed_facility_ids
+            if p.facility and p.facility.id not in allowed_facility_ids:
+                continue
+                
+            templates_payload["pricing"].append({
+                "id": str(p.id),
+                "service_id": str(p.service.id),
+                "category_id": str(p.category.id) if p.category else None,
+                "facility_id": str(p.facility.id) if p.facility else None,
+                "price": float(p.price),
+                "duration": p.duration,
+                "description": "",
+                "is_template": True
+            })
+        
+        stats_msg = f"DEBUG: Payload Stats - Services: {len(templates_payload['services'])}, Categories: {len(templates_payload['categories'])}, Facilities: {len(templates_payload['facilities'])}, Pricing: {len(templates_payload['pricing'])}\n"
+        print(stats_msg)
+        with open("purchase_debug.log", "a") as f:
+            f.write(stats_msg)
+            f.write(f"Templates: {templates_payload}\n")
 
         purchased_plan_data = {
             "plan_id": str(plan.id),
@@ -284,11 +419,13 @@ def purchase_plan(request):
         }
 
         # Publish Kafka Event
+        print("DEBUG: Kafka Producer sending templates...")
         publish_permissions_updated(
-            auth_user_id=str(user.id),
+            auth_user_id=str(user.auth_user_id),
             purchase_id=str(purchased.id),
             permissions_list=permissions_list,
-            purchased_plan=purchased_plan_data
+            purchased_plan=purchased_plan_data,
+            templates=templates_payload
         )
 
     return Response(
@@ -306,9 +443,13 @@ def user_has_permission(user, service, category, action: str) -> bool:
     action = "view"|"create"|"edit"|"delete"
     """
     try:
-        perm = ProviderPlanPermission.objects.get(user=user, service=service, category=category)
-        return getattr(perm, f"can_{action}", False)
-    except ProviderPlanPermission.DoesNotExist:
+        # This helper might need refinement if we check facility-level permissions
+        # For now, checking category level
+        perm = ProviderPlanCapability.objects.filter(user=user, service=service, category=category, facility__isnull=True).first()
+        if perm:
+             return getattr(perm, f"can_{action}", False)
+        return False
+    except Exception:
         return False
 
 
@@ -317,5 +458,8 @@ class ProviderPlanView(generics.ListAPIView):
     permission_classes = [permissions.AllowAny]
 
     def get_queryset(self):
-        return Plan.objects.filter(is_active=True).order_by("created_at")
-
+        qs = Plan.objects.filter(is_active=True).order_by("created_at")
+        role = self.request.query_params.get("role")
+        if role:
+            qs = qs.filter(role=role)
+        return qs

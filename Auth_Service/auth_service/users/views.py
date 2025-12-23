@@ -6,7 +6,7 @@
 
 import logging
 import uuid
-from datetime import timedelta
+from datetime import timedelta, datetime
 
 from django.conf import settings
 from django.core.cache import cache
@@ -73,85 +73,15 @@ RESET_TOKEN_CACHE_PREFIX = "reset_token:"
 # ---------------------
 def is_pin_valid_today(user):
     """
-    Return True if the user's PIN is valid today in the server local timezone.
-
-    Rules:
-      - PIN valid if it was set today (pin_set_at)
-      - OR if PIN was used (last_pin_login) today
-      - Uses timezone.get_current_timezone() for safe conversion
+    Return True if the user's PIN is valid (not expired).
     """
-    today = timezone.localdate()
-    tz = timezone.get_current_timezone()
-
-    if user.pin_set_at:
-        try:
-            if user.pin_set_at.astimezone(tz).date() == today:
-                return True
-        except Exception:
-            # In case pin_set_at is naive, fallback to localtime
-            if timezone.localtime(user.pin_set_at).date() == today:
-                return True
-
-    if user.last_pin_login:
-        try:
-            if user.last_pin_login.astimezone(tz).date() == today:
-                return True
-        except Exception:
-            if timezone.localtime(user.last_pin_login).date() == today:
-                return True
-
-    return False
+    if not user.pin_expires_at:
+        return False
+    
+    return timezone.now() < user.pin_expires_at
 
 
 # ---------------------- REGISTER ----------------------
-# class RegisterView(APIView):
-#     """Register user and create OTP session (returns session_id)."""
-#     permission_classes = [AllowAny]
-
-#     def post(self, request):
-#         print("🔵 REGISTER REQUEST DATA:", request.data)
-#         print("🔵 REGISTER HEADERS:", request.headers)
-
-#         serializer = RegisterSerializer(data=request.data)
-#         serializer.is_valid(raise_exception=True)
-#         user = serializer.save()
-
-#         phone = user.phone_number
-
-#         # Rate limit
-#         if not increment_rate_limit(phone, RATE_LIMIT_WINDOW, RATE_LIMIT_MAX):
-#             return Response(
-#                 {"detail": "Too many OTP requests for this phone. Try again later."},
-#                 status=status.HTTP_429_TOO_MANY_REQUESTS,
-#             )
-
-#         # Create OTP session
-#         session_id, otp = create_otp_session(phone, purpose="register")
-#         message = f"Your registration OTP is: {otp} (valid {OTP_TTL_MINUTES} minutes)"
-#         sms_ok = send_sms_via_provider(phone, message)
-
-#         # Kafka Event — send user role name
-#         try:
-#             payload = {
-#                 "auth_user_id": str(user.id),
-#                 "phone_number": phone,
-#                 "email": user.email,
-#                 "full_name": user.full_name,
-#                 "role": user.role.name.lower() if user.role else None,
-#             }
-#             publish_event("USER_CREATED", payload)
-#         except Exception as e:
-#             logger.error(f"Kafka USER_CREATED publish failed: {e}")
-
-#         response = {
-#             "message": "User registered. OTP sent for verification.",
-#             "session_id": session_id,
-#             "sms_sent": sms_ok,
-#         }
-
-#         if getattr(settings, "SMS_BACKEND", "console") == "console":
-#             response["otp"] = otp
-
 #         return Response(response, status=status.HTTP_201_CREATED)
 class RegisterView(APIView):
     permission_classes = [AllowAny]
@@ -489,9 +419,16 @@ class SetPinView(APIView):
         # Save new PIN
         # =======================================
         user.pin_hash = make_password(pin)
-        user.pin_set_at = timezone.now().astimezone(tz)
+        now = timezone.now().astimezone(tz)
+        user.pin_set_at = now
+        
+        # Set expiry to midnight of the current day
+        tomorrow = now.date() + timedelta(days=1)
+        midnight = timezone.make_aware(datetime.combine(tomorrow, datetime.min.time()))
+        user.pin_expires_at = midnight
+
         user.last_pin_login = None
-        user.save(update_fields=["pin_hash", "pin_set_at", "last_pin_login"])
+        user.save(update_fields=["pin_hash", "pin_set_at", "pin_expires_at", "last_pin_login"])
 
         return Response({"message": "PIN set successfully."}, status=status.HTTP_200_OK)
 
@@ -587,6 +524,13 @@ class LoginWithPinView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+        # Check Expiry
+        if not is_pin_valid_today(user):
+             return Response(
+                {"detail": "PIN expired. Please login via OTP.", "code": "PIN_EXPIRED"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         # Validate PIN
         if not check_password(pin, user.pin_hash):
             return Response({"detail": "Invalid PIN."}, status=status.HTTP_400_BAD_REQUEST)
@@ -655,9 +599,17 @@ class ChangePinView(APIView):
 
         # Save new PIN
         user.pin_hash = make_password(new_pin)
-        user.pin_set_at = timezone.now().astimezone(timezone.get_current_timezone())
+        tz = timezone.get_current_timezone()
+        now = timezone.now().astimezone(tz)
+        user.pin_set_at = now
+        
+        # Set expiry to midnight
+        tomorrow = now.date() + timedelta(days=1)
+        midnight = timezone.make_aware(datetime.combine(tomorrow, datetime.min.time()))
+        user.pin_expires_at = midnight
+
         user.last_pin_login = None
-        user.save(update_fields=["pin_hash", "pin_set_at", "last_pin_login"])
+        user.save(update_fields=["pin_hash", "pin_set_at", "pin_expires_at", "last_pin_login"])
 
         return Response(
             {"message": "PIN changed successfully."},
@@ -1056,18 +1008,31 @@ class ResendOTPView(APIView):
 
     def post(self, request):
         session_id = request.data.get("session_id")
-        if not session_id:
-            return Response({"detail": "session_id is required."},
+        phone_number = request.data.get("phone_number")
+        purpose = request.data.get("purpose", "login")
+
+        if not session_id and not phone_number:
+            return Response({"detail": "session_id or phone_number is required."},
                             status=status.HTTP_400_BAD_REQUEST)
 
-        # Get OTP session
-        session = get_otp_session(session_id)
-        if not session:
+        # 1. Try to get existing session
+        session = None
+        if session_id:
+            session = get_otp_session(session_id)
+
+        # 2. If session exists, use its data
+        if session:
+            phone = session["phone_number"]
+            purpose = session["purpose"]
+        
+        # 3. If no session, but we have phone_number (Expired session case)
+        elif phone_number:
+            phone = phone_number
+            # purpose is already set from request or default
+        
+        else:
             return Response({"detail": "Invalid or expired session."},
                             status=status.HTTP_400_BAD_REQUEST)
-
-        phone = session["phone_number"]
-        purpose = session["purpose"]
 
         # Rate limit protection
         if not increment_rate_limit(phone, RATE_LIMIT_WINDOW, RATE_LIMIT_MAX):

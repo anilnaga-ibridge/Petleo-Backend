@@ -5,12 +5,11 @@ from .views import (
     BillingCycleViewSet,
     PlanViewSet,
     PlanPriceViewSet,
-    PlanItemViewSet,
+    PlanCapabilityViewSet,
     CouponViewSet,
     PurchasedPlanViewSet,
-    ProviderPlanPermissionViewSet,
+    ProviderPlanCapabilityViewSet,
     ProviderPlanView,
-    purchase_plan,
     purchase_plan
 )
 router = DefaultRouter()
@@ -18,9 +17,9 @@ router.register(r'billing-cycles', BillingCycleViewSet)
 router.register(r'plans', PlanViewSet)
 router.register(r'coupons', CouponViewSet)
 router.register(r'plan-prices', PlanPriceViewSet)
-router.register(r'plan-items', PlanItemViewSet)
+router.register(r'plan-capabilities', PlanCapabilityViewSet)
 router.register(r'purchased-plans', PurchasedPlanViewSet)
-router.register(r'provider-permissions', ProviderPlanPermissionViewSet)
+router.register(r'provider-capabilities', ProviderPlanCapabilityViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),

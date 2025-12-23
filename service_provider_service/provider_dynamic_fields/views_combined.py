@@ -45,6 +45,9 @@ class ProviderProfileView(generics.GenericAPIView):
     # -------------------------------------------------------
     # GET PROFILE
     # -------------------------------------------------------
+    # -------------------------------------------------------
+    # GET PROFILE
+    # -------------------------------------------------------
     def get(self, request):
         user_id = request.GET.get("user")
         verified, error = self.get_verified_user(user_id)
@@ -53,16 +56,49 @@ class ProviderProfileView(generics.GenericAPIView):
 
         target = normalize_target(request) or getattr(verified, "provider_type", "individual")
 
-        fields_qs = LocalFieldDefinition.objects.filter(target=target).order_by("order")
-        requested_docs_qs = LocalDocumentDefinition.objects.filter(target=target).order_by("order")
-        uploaded_docs_qs = ProviderDocument.objects.filter(verified_user=verified)
+        # 1. Fetch Field Definitions from Local DB (Synced)
+        from .models import LocalFieldDefinition, LocalDocumentDefinition
+        
+        field_definitions_qs = LocalFieldDefinition.objects.filter(target=target).order_by('order')
+        field_definitions = []
+        for fd in field_definitions_qs:
+            field_definitions.append({
+                "id": str(fd.id),
+                "name": fd.name,
+                "label": fd.label,
+                "field_type": fd.field_type,
+                "is_required": fd.is_required,
+                "options": fd.options,
+                "order": fd.order,
+                "help_text": fd.help_text
+            })
 
+        # 2. Fetch Document Definitions from Local DB (Synced)
+        doc_definitions_qs = LocalDocumentDefinition.objects.filter(target=target).order_by('order')
+        doc_definitions = []
+        for dd in doc_definitions_qs:
+            doc_definitions.append({
+                "id": str(dd.id),
+                "key": dd.key,
+                "label": dd.label,
+                "is_required": dd.is_required,
+                "allow_multiple": dd.allow_multiple,
+                "allowed_types": dd.allowed_types,
+                "order": dd.order,
+                "help_text": dd.help_text
+            })
+
+        # 3. Fetch Uploaded Documents
+        uploaded_docs_qs = ProviderDocument.objects.filter(verified_user=verified)
         uploaded_documents = ProviderDocumentSerializer(uploaded_docs_qs, many=True, context={"request": request}).data
 
+        # 4. Merge Fields with Values
         fields_data = []
-        for field in fields_qs:
+        for field in field_definitions:
+            field_id = field.get('id')
+            
             try:
-                saved_value = ProviderFieldValue.objects.get(verified_user=verified, field_id=field.id)
+                saved_value = ProviderFieldValue.objects.get(verified_user=verified, field_id=field_id)
             except ProviderFieldValue.DoesNotExist:
                 saved_value = None
 
@@ -79,28 +115,13 @@ class ProviderProfileView(generics.GenericAPIView):
                 value = saved_value.value if saved_value else None
 
             fields_data.append({
-                "id": str(field.id),
-                "name": field.name,
-                "label": field.label,
-                "field_type": field.field_type,
-                "is_required": field.is_required,
-                "options": field.options,
-                "help_text": field.help_text,
+                **field,
                 "value": value,
                 "metadata": metadata,
             })
 
-        requested_documents = [
-            {
-                "id": str(doc.id),
-                "key": doc.key,
-                "label": doc.label,
-                "allow_multiple": doc.allow_multiple,
-                "allowed_types": doc.allowed_types,
-                "help_text": doc.help_text,
-            }
-            for doc in requested_docs_qs
-        ]
+        # 5. Format Document Definitions for Response
+        requested_documents = doc_definitions # Already formatted above
 
         # Fetch Avatar from ServiceProvider
         avatar_url = None

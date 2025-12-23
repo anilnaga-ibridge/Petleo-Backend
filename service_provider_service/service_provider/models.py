@@ -77,14 +77,31 @@ class ProviderPermission(models.Model):
         on_delete=models.CASCADE,
         related_name="provider_permissions"
     )
-    permission_code = models.CharField(max_length=100)
+    
+    # Rich permission data synced from Super Admin
+    service_id = models.CharField(max_length=100, null=True, blank=True)
+    service_name = models.CharField(max_length=255, null=True, blank=True)
+    service_icon = models.CharField(max_length=100, default="tabler-box")
+    
+    category_id = models.CharField(max_length=100, null=True, blank=True)
+    category_name = models.CharField(max_length=255, null=True, blank=True)
+    
+    # Boolean flags
+    can_view = models.BooleanField(default=False)
+    can_create = models.BooleanField(default=False)
+    can_edit = models.BooleanField(default=False)
+    can_delete = models.BooleanField(default=False)
+    
+    # Facilities (stored as JSON since we don't have a Facility model here yet)
+    facilities = models.JSONField(default=list, blank=True)
+    
     created_at = models.DateTimeField(default=timezone.now)
 
     class Meta:
-        unique_together = ("verified_user", "permission_code")
+        unique_together = ("verified_user", "service_id", "category_id")
 
     def __str__(self):
-        return f"{self.verified_user.email} - {self.permission_code}"
+        return f"{self.verified_user.email} - {self.service_name} / {self.category_name}"
 
 
 class AllowedService(models.Model):

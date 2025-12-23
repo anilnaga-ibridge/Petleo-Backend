@@ -52,9 +52,9 @@ router.register(r'email-templates', EmailTemplateViewSet, basename='email-templa
 urlpatterns = [
     path('api/auth/register/', RegisterView.as_view(), name='auth-register'),
     path('api/auth/send-otp/', SendOTPView.as_view(), name='auth-send-otp'),
-    path('api/auth/verify-otp/', VerifyOTPView.as_view(), name='auth-verify-otp'),
     path('api/auth/refresh-token/', RefreshTokenView.as_view(), name='auth-refresh'),
     path('api/auth/logout/', LogoutView.as_view(), name='auth-logout'),
+    path('api/auth/verify-otp/', VerifyOTPView.as_view(), name='auth-verify-otp'),
     path("api/auth/resend-otp/", ResendOTPView.as_view(), name="resend_otp"),
     
      path("register-superadmin/", views.register_superadmin, name="register-superadmin"),

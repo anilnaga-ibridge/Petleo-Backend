@@ -60,31 +60,34 @@ def get_my_cart(request):
 @permission_classes([IsAuthenticated])
 def add_to_cart(request):
     verified_user = get_verified_user(request)
+    data = request.data
+    plan_id = data["plan_id"]
+
+    # 1. Check if Plan is already Active (Purchased)
+    from .models import PurchasedPlan
+    if PurchasedPlan.objects.filter(verified_user=verified_user, plan_id=plan_id, is_active=True).exists():
+        return Response({"error": "You already have an active subscription for this plan."}, status=400)
 
     cart, _ = ProviderCart.objects.get_or_create(
         verified_user=verified_user,
         status="active"
     )
 
-    data = request.data
+    # 2. Check if Plan is already in Cart
+    if ProviderCartItem.objects.filter(cart=cart, plan_id=plan_id).exists():
+        return Response({"error": "This plan is already in your cart."}, status=400)
 
-    item, created = ProviderCartItem.objects.get_or_create(
+    item = ProviderCartItem.objects.create(
         cart=cart,
-        plan_id=data["plan_id"],
+        plan_id=plan_id,
         billing_cycle_id=data["billing_cycle_id"],
-        defaults={
-            "plan_title": data["plan_title"],
-            "plan_role": data["plan_role"],
-            "billing_cycle_name": data["billing_cycle_name"],
-            "price_amount": data["price_amount"],
-            "price_currency": data.get("price_currency", "INR"),
-            "quantity": 1,
-        }
+        plan_title=data["plan_title"],
+        plan_role=data["plan_role"],
+        billing_cycle_name=data["billing_cycle_name"],
+        price_amount=data["price_amount"],
+        price_currency=data.get("price_currency", "INR"),
+        quantity=1,
     )
-
-    if not created:
-        item.quantity += 1
-        item.save()
 
     return Response({"detail": "Plan added to cart"})
 
@@ -111,15 +114,41 @@ def remove_from_cart(request, item_id):
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def checkout_cart(request):
+    print("DEBUG: checkout_cart called")
     from .models import PurchasedPlan  # Import local model
 
     verified_user = get_verified_user(request)
 
-    cart = get_object_or_404(
-        ProviderCart,
+    # Handle multiple active carts (legacy data issue)
+    all_active_carts = ProviderCart.objects.filter(
         verified_user=verified_user,
         status="active"
-    )
+    ).order_by("-created_at")
+
+    if not all_active_carts.exists():
+        return Response({"error": "Cart is empty"}, status=400)
+
+    # Find the first cart that has items
+    cart_to_use = None
+    for c in all_active_carts:
+        if c.items.exists():
+            cart_to_use = c
+            break
+    
+    # If no cart has items, just use the latest one (it will fail validation below)
+    if not cart_to_use:
+        cart_to_use = all_active_carts.first()
+
+    # Mark all OTHER active carts as abandoned
+    for c in all_active_carts:
+        if c.id != cart_to_use.id:
+            c.status = "abandoned"
+            c.save()
+    
+    cart = cart_to_use
+
+    if not cart.items.exists():
+        return Response({"error": "Cart is empty"}, status=400)
 
     with transaction.atomic():
 
@@ -140,38 +169,39 @@ def checkout_cart(request):
             # ✅ Sync Permissions from Super Admin
             try:
                 import requests
-                from service_provider.models import ProviderPermission, AllowedService
-                
                 # Assuming Super Admin is on port 8003
                 SUPER_ADMIN_URL = "http://127.0.0.1:8003"
-                response = requests.get(f"{SUPER_ADMIN_URL}/api/superadmin/plans/{item.plan_id}/permissions/")
+                headers = {}
+                if "Authorization" in request.headers:
+                    headers["Authorization"] = request.headers["Authorization"]
                 
-                if response.status_code == 200:
-                    data = response.json()
-                    perms = data.get("permissions", [])
-                    services = data.get("services", [])
-                    
-                    # Sync Permissions
-                    for code in perms:
-                        ProviderPermission.objects.get_or_create(
-                            verified_user=verified_user,
-                            permission_code=code
-                        )
-                        
-                    # Sync Allowed Services
-                    for svc in services:
-                        AllowedService.objects.update_or_create(
-                            verified_user=verified_user,
-                            service_id=svc["id"],
-                            defaults={
-                                "name": svc["name"],
-                                "icon": svc["icon"]
-                            }
-                        )
-                else:
-                    print(f"Failed to fetch permissions for plan {item.plan_id}: {response.status_code}")
+                # 1. Notify Super Admin of Purchase (Creates Permissions in Super Admin DB)
+                purchase_payload = {
+                    "plan_id": str(item.plan_id),
+                    "billing_cycle_id": item.billing_cycle_id
+                }
+                
+                with open("checkout_debug.log", "a") as f:
+                    f.write(f"Sending purchase request to SA: {purchase_payload}\n")
+                    f.write(f"Headers: {headers}\n")
+
+                purchase_response = requests.post(
+                    f"{SUPER_ADMIN_URL}/api/superadmin/purchase/",
+                    json=purchase_payload,
+                    headers=headers
+                )
+                
+                with open("checkout_debug.log", "a") as f:
+                    f.write(f"SA Response: {purchase_response.status_code} - {purchase_response.text}\n")
+
+                if purchase_response.status_code != 201:
+                    print(f"Super Admin Purchase Failed: {purchase_response.text}")
+                
+                # We rely on Kafka to sync permissions to ProviderCapabilityAccess
+                print("Purchase successful. Waiting for Kafka sync...")
+
             except Exception as e:
-                print(f"Error syncing permissions: {e}")
+                print(f"Error during checkout sync: {e}")
 
         cart.status = "checked_out"
         cart.save()

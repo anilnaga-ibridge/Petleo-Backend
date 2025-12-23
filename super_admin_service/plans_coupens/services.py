@@ -1,6 +1,6 @@
 # plans_coupens/services.py
 from django.db import transaction
-from .models import ProviderPlanPermission
+from .models import ProviderPlanCapability
 import calendar
 from datetime import timedelta
 
@@ -24,32 +24,30 @@ def calculate_end_date(start_date, value, unit):
 
 def assign_plan_permissions_to_user(user, plan):
     """
-    Copy all PlanItem templates into ProviderPlanPermission for `user`.
+    Copy all PlanCapability templates into ProviderPlanCapability for `user`.
     """
     with transaction.atomic():
         # Optionally you might want to delete existing permissions for the same plan/user
-        ProviderPlanPermission.objects.filter(user=user, plan=plan).delete()
+        ProviderPlanCapability.objects.filter(user=user, plan=plan).delete()
 
-        for item in plan.items.all():
-            perm = ProviderPlanPermission.objects.create(
+        for cap in plan.capabilities.all():
+            ProviderPlanCapability.objects.create(
                 user=user,
                 plan=plan,
-                service=item.service,
-                category=item.category,
-                can_view=item.can_view,
-                can_create=item.can_create,
-                can_edit=item.can_edit,
-                can_delete=item.can_delete,
+                service=cap.service,
+                category=cap.category,
+                facility=cap.facility,
+                can_view=cap.can_view,
+                can_create=cap.can_create,
+                can_edit=cap.can_edit,
+                can_delete=cap.can_delete,
             )
-            # copy many-to-many facilities
-            perm.facilities.set(item.facilities.all())
-
 
 
 # superadmin/purchase_publish_wrapper.py
 from django.utils import timezone
 from django.db import transaction
-from .models import PurchasedPlan, ProviderPlanPermission
+from .models import PurchasedPlan, ProviderPlanCapability
 from .kafka_producer import publish_permissions_updated
 # make sure assign_plan_permissions_to_user is imported where available
 
@@ -63,8 +61,8 @@ def purchase_plan_and_publish(user, plan, billing_cycle=None):
         # assign permissions in DB (your existing function)
         assign_plan_permissions_to_user(user, plan)
 
-        # build permissions payload from ProviderPlanPermission rows we've just created
-        perms = ProviderPlanPermission.objects.filter(user=user, plan=plan).prefetch_related("facilities")
+        # build permissions payload from ProviderPlanCapability rows we've just created
+        perms = ProviderPlanCapability.objects.filter(user=user, plan=plan)
         perms_payload = []
         for p in perms:
             perms_payload.append({
@@ -73,11 +71,12 @@ def purchase_plan_and_publish(user, plan, billing_cycle=None):
                 "service_name": getattr(p.service, "display_name", None),
                 "category_id": str(p.category.id) if p.category else None,
                 "category_name": getattr(p.category, "name", None),
+                "facility_id": str(p.facility.id) if p.facility else None,
+                "facility_name": getattr(p.facility, "name", None),
                 "can_view": bool(p.can_view),
                 "can_create": bool(p.can_create),
                 "can_edit": bool(p.can_edit),
                 "can_delete": bool(p.can_delete),
-                "facilities": [f.name for f in p.facilities.all()],
             })
 
         purchased_plan_info = {

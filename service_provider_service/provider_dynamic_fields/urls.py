@@ -34,3 +34,20 @@ urlpatterns = [
     #combined profile
     path("profile/", ProviderProfileView.as_view(), name="provider-profile"),
 ]
+
+# ==========================================================
+# PROVIDER CRUD ROUTER
+# ==========================================================
+from rest_framework.routers import DefaultRouter
+from provider_dynamic_fields.views import (
+    ProviderCategoryViewSet,
+    ProviderFacilityViewSet,
+    ProviderPricingViewSet
+)
+
+router = DefaultRouter()
+router.register("categories", ProviderCategoryViewSet, basename="provider-categories")
+router.register("facilities", ProviderFacilityViewSet, basename="provider-facilities")
+router.register("pricing", ProviderPricingViewSet, basename="provider-pricing")
+
+urlpatterns += router.urls

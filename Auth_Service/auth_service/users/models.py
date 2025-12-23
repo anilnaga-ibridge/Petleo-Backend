@@ -65,6 +65,7 @@ class User(AbstractUser):
     # PIN fields
     pin_hash = models.CharField(max_length=255, null=True, blank=True)
     pin_set_at = models.DateTimeField(null=True, blank=True)
+    pin_expires_at = models.DateTimeField(null=True, blank=True)  # New field
     last_pin_login = models.DateTimeField(null=True, blank=True)
 
     # OTP login optional

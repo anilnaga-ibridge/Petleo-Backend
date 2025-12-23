@@ -2,12 +2,16 @@ from rest_framework import viewsets, filters
 from .models import Facility
 from .serializers import FacilitySerializer
 
+from rest_framework.permissions import IsAuthenticated
+from admin_core.permissions import HasServicePermission
+
 class FacilityViewSet(viewsets.ModelViewSet):
     """
     Handles CRUD for Facilities dynamically linked to each Service.
     """
     queryset = Facility.objects.all().order_by("id")
     serializer_class = FacilitySerializer
+    permission_classes = [IsAuthenticated, HasServicePermission]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ["name", "service__display_name"]
     ordering_fields = ["created_at", "updated_at"]

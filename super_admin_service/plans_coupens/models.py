@@ -88,14 +88,17 @@ class PlanPrice(models.Model):
         return f"{self.plan.title} - {self.billing_cycle.name} ({self.amount} {self.currency})"
 
 
-class PlanItem(models.Model):
+class PlanCapability(models.Model):
+    """
+    Defines what a Plan allows a user to do.
+    Stored as normalized rows: Plan + Service + Category + (Optional Facility) -> Permissions.
+    """
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    plan = models.ForeignKey(Plan, on_delete=models.CASCADE, related_name="items")
+    plan = models.ForeignKey(Plan, on_delete=models.CASCADE, related_name="capabilities")
 
     service = models.ForeignKey(Service, on_delete=models.CASCADE, null=True, blank=True)
     category = models.ForeignKey(Category, on_delete=models.CASCADE, null=True, blank=True)
-
-    facilities = models.ManyToManyField(Facility, blank=True, related_name="plan_items")
+    facility = models.ForeignKey(Facility, on_delete=models.CASCADE, null=True, blank=True)
 
     can_view = models.BooleanField(default=False)
     can_create = models.BooleanField(default=False)
@@ -103,14 +106,15 @@ class PlanItem(models.Model):
     can_delete = models.BooleanField(default=False)
 
     class Meta:
-        unique_together = ("plan", "service", "category")
+        unique_together = ("plan", "service", "category", "facility")
 
     def __str__(self):
         svc = self.service.display_name if self.service else "NoService"
         cat = self.category.name if self.category else "NoCategory"
-        return f"{self.plan.title} - {svc} > {cat}"
+        fac = self.facility.name if self.facility else "AllFacilities"
+        return f"{self.plan.title} - {svc} > {cat} > {fac}"
 
-    
+
 class Coupon(models.Model):
     """
     Coupon / Discount management for Plans.
@@ -181,19 +185,18 @@ class PurchasedPlan(models.Model):
         return f"{self.user} purchased {self.plan.title}"
 
 
-class ProviderPlanPermission(models.Model):
+class ProviderPlanCapability(models.Model):
     """
     Actual permissions assigned to a user (provider) after purchasing a plan.
-    Copied from PlanItem templates.
+    Copied from PlanCapability templates.
     """
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="assigned_permissions")
-    plan = models.ForeignKey(Plan, on_delete=models.CASCADE, related_name="assigned_permissions")
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="assigned_capabilities")
+    plan = models.ForeignKey(Plan, on_delete=models.CASCADE, related_name="assigned_capabilities")
 
     service = models.ForeignKey(Service, on_delete=models.CASCADE, null=True, blank=True)
     category = models.ForeignKey(Category, on_delete=models.CASCADE, null=True, blank=True)
-
-    facilities = models.ManyToManyField(Facility, blank=True, related_name="provider_permissions")
+    facility = models.ForeignKey(Facility, on_delete=models.CASCADE, null=True, blank=True)
 
     can_view = models.BooleanField(default=False)
     can_create = models.BooleanField(default=False)
@@ -203,7 +206,7 @@ class ProviderPlanPermission(models.Model):
     assigned_at = models.DateTimeField(default=timezone.now)
 
     class Meta:
-        unique_together = ("user", "plan", "service", "category")
+        unique_together = ("user", "plan", "service", "category", "facility")
 
     def __str__(self):
         return f"{self.user} - {self.plan.title} ({self.service} / {self.category})"

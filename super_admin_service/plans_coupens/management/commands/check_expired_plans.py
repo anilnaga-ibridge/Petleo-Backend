@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
 from django.utils import timezone
-from plans_coupens.models import PurchasedPlan, ProviderPlanPermission
+from plans_coupens.models import PurchasedPlan, ProviderPlanCapability
 from plans_coupens.kafka_producer import publish_permissions_revoked
 import logging
 
@@ -24,7 +24,7 @@ class Command(BaseCommand):
                 plan.save(update_fields=["is_active"])
 
                 # 2. Remove Permissions
-                deleted_count, _ = ProviderPlanPermission.objects.filter(
+                deleted_count, _ = ProviderPlanCapability.objects.filter(
                     user=plan.user, 
                     plan=plan.plan
                 ).delete()

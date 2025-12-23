@@ -1,11 +1,6 @@
 
-
-
-
-
-
 from rest_framework import serializers
-from .models import BillingCycle, Plan, PlanPrice, PlanItem, Coupon,PurchasedPlan,ProviderPlanPermission
+from .models import BillingCycle, Plan, PlanPrice, PlanCapability, Coupon,PurchasedPlan,ProviderPlanCapability
 from dynamic_services.models import Service
 from dynamic_categories.models import Category
 from dynamic_facilities.serializers import FacilitySerializer
@@ -85,7 +80,7 @@ class SimpleFacilitySerializer(serializers.ModelSerializer):
         fields = ["id", "name"]
 
 
-class PlanItemSerializer(serializers.ModelSerializer):
+class PlanCapabilitySerializer(serializers.ModelSerializer):
     # WRITE FIELDS
     plan_id = serializers.PrimaryKeyRelatedField(
         queryset=Plan.objects.all(),
@@ -106,35 +101,28 @@ class PlanItemSerializer(serializers.ModelSerializer):
         allow_null=True,
         required=False
     )
-
-    facilities = serializers.PrimaryKeyRelatedField(
-        many=True,
+    facility_id = serializers.PrimaryKeyRelatedField(
         queryset=Facility.objects.all(),
-        write_only=True
+        source="facility",
+        write_only=True,
+        allow_null=True,
+        required=False
     )
 
     # READ FIELDS
     plan = SimplePlanSerializer(read_only=True)
     service = SimpleServiceSerializer(read_only=True)
     category = SimpleCategorySerializer(read_only=True)
-    facilities_detail = SimpleFacilitySerializer(
-        many=True,
-        read_only=True,
-        source="facilities"
-    )
+    facility = SimpleFacilitySerializer(read_only=True)
 
     class Meta:
-        model = PlanItem
+        model = PlanCapability
         fields = [
             "id",
-
             "plan", "plan_id",
             "service", "service_id",
             "category", "category_id",
-
-            "facilities",
-            "facilities_detail",
-
+            "facility", "facility_id",
             "can_view",
             "can_create",
             "can_edit",
@@ -148,44 +136,23 @@ class PlanItemSerializer(serializers.ModelSerializer):
                 "Either service_id or category_id is required."
             )
 
-        # Extra safety: if both provided, OK (some systems use both)
+        # Prevent duplicate combinations
         plan = data.get("plan") or (self.instance.plan if self.instance else None)
         service = data.get("service") or (self.instance.service if self.instance else None)
         category = data.get("category") or (self.instance.category if self.instance else None)
+        facility = data.get("facility") or (self.instance.facility if self.instance else None)
 
-        # Prevent duplicate combinations
-        qs = PlanItem.objects.filter(plan=plan, service=service, category=category)
+        qs = PlanCapability.objects.filter(plan=plan, service=service, category=category, facility=facility)
 
         if self.instance:
             qs = qs.exclude(id=self.instance.id)
 
         if qs.exists():
             raise serializers.ValidationError(
-                "This combination of plan, service, and category already exists."
+                "This combination of plan, service, category, and facility already exists."
             )
 
         return data
-
-    def create(self, validated_data):
-        facilities = validated_data.pop("facilities", [])
-        item = PlanItem.objects.create(**validated_data)
-        item.facilities.set(facilities)
-        return item
-
-    def update(self, instance, validated_data):
-        facilities = validated_data.pop("facilities", None)
-
-        for attr, val in validated_data.items():
-            setattr(instance, attr, val)
-
-        instance.save()
-
-        if facilities is not None:
-            instance.facilities.set(facilities)
-
-        return instance
-
-
 
 
 class PlanSerializer(serializers.ModelSerializer):
@@ -199,7 +166,7 @@ class PlanSerializer(serializers.ModelSerializer):
     )
 
     prices = PlanPriceSerializer(many=True, required=False)
-    items = PlanItemSerializer(many=True, required=False)
+    capabilities = PlanCapabilitySerializer(many=True, required=False)
     features = serializers.ListField(child=serializers.CharField(), required=False)
 
     class Meta:
@@ -208,13 +175,13 @@ class PlanSerializer(serializers.ModelSerializer):
             "id", "title", "slug", "role", "subtitle", "description",
             "features", "default_billing_cycle", "default_billing_cycle_id",
             "is_active", "created_at", "updated_at",
-            "prices", "items",
+            "prices", "capabilities",
         ]
         read_only_fields = ("slug", "created_at", "updated_at")
 
     def create(self, validated_data):
         prices = validated_data.pop("prices", [])
-        items = validated_data.pop("items", [])
+        capabilities = validated_data.pop("capabilities", [])
 
         if "features" not in validated_data:
             validated_data["features"] = []
@@ -225,18 +192,15 @@ class PlanSerializer(serializers.ModelSerializer):
         for p in prices:
             PlanPrice.objects.create(plan=plan, **p)
 
-        # create nested items
-        for it in items:
-            facilities = it.pop("facilities", [])
-            item = PlanItem.objects.create(plan=plan, **it)
-            if facilities:
-                item.facilities.set(facilities)
+        # create nested capabilities
+        for cap in capabilities:
+            PlanCapability.objects.create(plan=plan, **cap)
 
         return plan
 
     def update(self, instance, validated_data):
         prices = validated_data.pop("prices", None)
-        items = validated_data.pop("items", None)
+        capabilities = validated_data.pop("capabilities", None)
 
         # simple field update
         for k, v in validated_data.items():
@@ -249,16 +213,14 @@ class PlanSerializer(serializers.ModelSerializer):
             for p in prices:
                 PlanPrice.objects.create(plan=instance, **p)
 
-        # replace items on update
-        if items is not None:
-            instance.items.all().delete()
-            for it in items:
-                facilities = it.pop("facilities", [])
-                item = PlanItem.objects.create(plan=instance, **it)
-                if facilities:
-                    item.facilities.set(facilities)
+        # replace capabilities on update
+        if capabilities is not None:
+            instance.capabilities.all().delete()
+            for cap in capabilities:
+                PlanCapability.objects.create(plan=instance, **cap)
 
         return instance
+
 
 class CouponSerializer(serializers.ModelSerializer):
     applies_to_plans = serializers.PrimaryKeyRelatedField(
@@ -291,20 +253,18 @@ class CouponSerializer(serializers.ModelSerializer):
         return data
 
 
-
 class PurchasedPlanSerializer(serializers.ModelSerializer):
     class Meta:
         model = PurchasedPlan
         fields = "__all__"
 
 
-class ProviderPlanPermissionSerializer(serializers.ModelSerializer):
-    facilities = FacilitySerializer(many=True, read_only=True)
+class ProviderPlanCapabilitySerializer(serializers.ModelSerializer):
+    facility = FacilitySerializer(read_only=True)
 
     class Meta:
-        model = ProviderPlanPermission
+        model = ProviderPlanCapability
         fields = "__all__"
-
 
 
 class ProviderPlanViewSerializer(serializers.ModelSerializer):
@@ -338,43 +298,90 @@ class ProviderPlanViewSerializer(serializers.ModelSerializer):
         }
 
     def get_access(self, obj):
-        items = obj.items.select_related(
-            "service"
-        ).prefetch_related("facilities")
+        """
+        Groups flat PlanCapability rows into a hierarchical structure:
+        Service -> Category -> Facilities
+        """
+        capabilities = obj.capabilities.select_related(
+            "service", "category", "facility"
+        ).order_by("service__display_name", "category__name")
 
-        data = []
-        for item in items:
-            if not item.service:
+        # Structure:
+        # {
+        #   service_id: {
+        #       service_info: {...},
+        #       categories: {
+        #           category_id: {
+        #               category_info: {...},
+        #               permissions: {...},
+        #               facilities: [...]
+        #           }
+        #       }
+        #   }
+        # }
+        
+        grouped = {}
+
+        for cap in capabilities:
+            if not cap.service:
                 continue
-
-            # Fetch all categories belonging to this service
-            service_categories = item.service.categories.all()
-
-            cats_data = []
-            for cat in service_categories:
-                cats_data.append({
-                    "id": str(cat.id),
-                    "name": cat.name,
-                    "permissions": {
-                        "can_view": item.can_view,
-                        "can_create": item.can_create,
-                        "can_edit": item.can_edit,
-                        "can_delete": item.can_delete,
+            
+            s_id = str(cap.service.id)
+            if s_id not in grouped:
+                grouped[s_id] = {
+                    "service": {
+                        "id": s_id,
+                        "name": cap.service.display_name,
                     },
-                    "facilities": [
-                        {
-                            "id": str(f.id),
-                            "name": f.name
+                    "categories": {}
+                }
+            
+            if cap.category:
+                c_id = str(cap.category.id)
+                if c_id not in grouped[s_id]["categories"]:
+                    grouped[s_id]["categories"][c_id] = {
+                        "id": c_id,
+                        "name": cap.category.name,
+                        "permissions": {
+                            "can_view": False,
+                            "can_create": False,
+                            "can_edit": False,
+                            "can_delete": False,
+                        },
+                        "facilities": []
+                    }
+                
+                # If this capability is for the category itself (no facility), set permissions
+                if not cap.facility:
+                    grouped[s_id]["categories"][c_id]["permissions"] = {
+                        "can_view": cap.can_view,
+                        "can_create": cap.can_create,
+                        "can_edit": cap.can_edit,
+                        "can_delete": cap.can_delete,
+                    }
+                else:
+                    # It's a facility capability
+                    grouped[s_id]["categories"][c_id]["facilities"].append({
+                        "id": str(cap.facility.id),
+                        "name": cap.facility.name,
+                        "permissions": {
+                            "can_view": cap.can_view,
+                            "can_create": cap.can_create,
+                            "can_edit": cap.can_edit,
+                            "can_delete": cap.can_delete,
                         }
-                        for f in item.facilities.all()
-                    ]
-                })
+                    })
 
-            data.append({
-                "service": {
-                    "id": str(item.service.id),
-                    "name": item.service.display_name,
-                },
-                "categories": cats_data
+        # Convert to list format
+        result = []
+        for s_key, s_val in grouped.items():
+            cats_list = []
+            for c_key, c_val in s_val["categories"].items():
+                cats_list.append(c_val)
+            
+            result.append({
+                "service": s_val["service"],
+                "categories": cats_list
             })
-        return data
+            
+        return result

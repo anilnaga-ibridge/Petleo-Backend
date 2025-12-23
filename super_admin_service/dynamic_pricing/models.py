@@ -1,9 +1,11 @@
+import uuid
 from django.db import models
 from dynamic_services.models import Service
 from dynamic_categories.models import Category
 from dynamic_facilities.models import Facility
 
 class Pricing(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     service = models.ForeignKey(Service, on_delete=models.CASCADE, related_name="pricing")
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True)
     facility = models.ForeignKey(Facility, on_delete=models.SET_NULL, null=True, blank=True)

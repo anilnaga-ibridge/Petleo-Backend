@@ -67,7 +67,12 @@ def publish_permissions_event(event_name: str, payload: dict):
 # -------------------------------------------
 #  Permission Updated Event
 # -------------------------------------------
-def publish_permissions_updated(auth_user_id: str, purchase_id: str, permissions_list: list, purchased_plan: dict):
+def publish_permissions_updated(auth_user_id: str, purchase_id: str, permissions_list: list, purchased_plan: dict, templates: dict = None):
+    if templates:
+        print(f"DEBUG: Kafka Producer sending templates: {len(templates.get('services', []))} services, {len(templates.get('categories', []))} categories")
+    else:
+        print("DEBUG: Kafka Producer sending NO templates")
+
     payload = {
         "event": "provider.permissions.updated",
         "occurred_at": timezone.now().isoformat(),
@@ -76,6 +81,7 @@ def publish_permissions_updated(auth_user_id: str, purchase_id: str, permissions
             "purchase_id": str(purchase_id),
             "permissions": permissions_list,
             "purchased_plan": purchased_plan,
+            "templates": templates or {},
         },
     }
 

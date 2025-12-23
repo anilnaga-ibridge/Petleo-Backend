@@ -225,3 +225,56 @@ class ProviderProfileSerializer(serializers.Serializer):
     fields = serializers.ListField()
     uploaded_documents = serializers.ListField()
     requested_documents = serializers.ListField()
+
+
+# ==========================================================
+# 6) PROVIDER CRUD SERIALIZERS
+# ==========================================================
+from .models import ProviderCategory, ProviderFacility, ProviderPricing
+
+class ProviderCategorySerializer(serializers.ModelSerializer):
+    facilities = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ProviderCategory
+        fields = ["id", "service_id", "name", "is_active", "created_at", "facilities"]
+        read_only_fields = ["id", "created_at"]
+
+    def get_facilities(self, obj):
+        from .models import ProviderFacility
+        facilities = obj.facilities.filter(is_active=True)
+        return ProviderFacilitySerializer(facilities, many=True).data
+
+class ProviderFacilitySerializer(serializers.ModelSerializer):
+    category_name = serializers.CharField(source="category.name", read_only=True)
+
+    class Meta:
+        model = ProviderFacility
+        fields = ["id", "category", "category_name", "name", "description", "price", "is_active", "created_at"]
+        read_only_fields = ["id", "created_at"]
+
+class ProviderPricingSerializer(serializers.ModelSerializer):
+    facility_name = serializers.CharField(source="facility.name", read_only=True)
+    # We need to fetch category name. Since category_id is CharField (not FK), we can't use source="category.name".
+    # But wait, ProviderPricing.category_id stores the ID. 
+    # If it's a ProviderCategory, we can look it up.
+    # If it's a SuperAdmin category, we can't easily look it up here without a query.
+    # However, for Provider CRUD, we are mostly dealing with ProviderCategories.
+    # Let's add a SerializerMethodField.
+    category_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ProviderPricing
+        fields = ["id", "service_id", "category_id", "category_name", "facility", "facility_name", "price", "duration", "description", "is_active", "created_at"]
+        read_only_fields = ["id", "created_at"]
+
+    def get_category_name(self, obj):
+        if not obj.category_id:
+            return None
+        # Try to find ProviderCategory
+        from .models import ProviderCategory
+        try:
+            cat = ProviderCategory.objects.get(id=obj.category_id)
+            return cat.name
+        except:
+            return "Unknown Category"

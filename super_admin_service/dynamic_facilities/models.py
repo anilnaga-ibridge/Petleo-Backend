@@ -1,8 +1,10 @@
 from django.db import models
+import uuid
 from dynamic_services.models import Service
 from django.utils.text import slugify
 
 class Facility(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     service = models.ForeignKey(Service, on_delete=models.CASCADE, related_name="facilities")
     name = models.CharField(max_length=255)
     value = models.CharField(max_length=255, blank=True)
