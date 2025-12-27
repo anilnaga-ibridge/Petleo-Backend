@@ -450,6 +450,7 @@ class ProviderCapabilityAccess(models.Model):
     service_id = models.CharField(max_length=255, null=True, blank=True)
     category_id = models.CharField(max_length=255, null=True, blank=True)
     facility_id = models.CharField(max_length=255, null=True, blank=True)
+    pricing_id = models.CharField(max_length=255, null=True, blank=True)
     
     can_view = models.BooleanField(default=False)
     can_create = models.BooleanField(default=False)
@@ -460,7 +461,7 @@ class ProviderCapabilityAccess(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        unique_together = ("user", "plan_id", "service_id", "category_id", "facility_id")
+        unique_together = ("user", "plan_id", "service_id", "category_id", "facility_id", "pricing_id")
 
     def __str__(self):
         return f"{self.user.email} - {self.service_id}/{self.category_id}"

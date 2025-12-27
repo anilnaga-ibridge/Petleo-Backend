@@ -1,0 +1,21 @@
+2025-12-27 08:34:01,220 [INFO] 🚀 Starting Service Provider Unified Kafka Consumer...
+2025-12-27 08:34:01,232 [INFO] ✅ Connected to Kafka broker.
+2025-12-27 08:38:48,587 [INFO] 🔥 Event: USER_CREATED | Role: employee | Service: test_script
+2025-12-27 08:38:48,587 [INFO] 🔍 Processing Employee 869a1a94-7980-4533-af0b-71a12b591584 for Org 1431597c-72be-4565-a051-9cd8a9dea66c
+2025-12-27 08:38:48,627 [INFO] ✅ Created OrganizationEmployee 869a1a94-7980-4533-af0b-71a12b591584 (Invited)
+2025-12-27 09:28:31,765 [INFO] 🔥 Event: SEND_EMAIL | Role: employee | Service: auth_service
+2025-12-27 09:28:31,766 [WARNING] ⚠️ Unknown event type 'SEND_EMAIL' received.
+2025-12-27 09:28:31,774 [INFO] 🔥 Event: USER_CREATED | Role: employee | Service: auth_service
+2025-12-27 09:28:31,774 [INFO] 🔍 Processing Employee 3fac7baf-0283-43cf-8d8a-303a197b106e for Org b60ec54e-db5f-4697-acad-c960e301caa2
+2025-12-27 09:28:31,779 [INFO] ✅ Created OrganizationEmployee 3fac7baf-0283-43cf-8d8a-303a197b106e (Invited)
+2025-12-27 09:29:26,049 [INFO] 🔥 Event: USER_VERIFIED | Role: employee | Service: auth_service
+2025-12-27 09:29:26,055 [INFO] ✅ Activated OrganizationEmployee 3fac7baf-0283-43cf-8d8a-303a197b106e
+2025-12-27 09:35:35,040 [INFO] 🔥 Event: SEND_EMAIL | Role: employee | Service: auth_service
+2025-12-27 09:35:35,040 [WARNING] ⚠️ Unknown event type 'SEND_EMAIL' received.
+2025-12-27 09:35:35,048 [INFO] 🔥 Event: USER_CREATED | Role: employee | Service: auth_service
+2025-12-27 09:35:35,048 [INFO] 🔍 Processing Employee ba71d76b-9a71-4c10-9eb3-6fa0a2147ec9 for Org 7470623a-ee4b-4922-99f5-3ce2f17171d7
+2025-12-27 09:35:35,053 [INFO] ✅ Created OrganizationEmployee ba71d76b-9a71-4c10-9eb3-6fa0a2147ec9 (Invited)
+2025-12-27 09:36:10,116 [INFO] 🔥 Event: USER_VERIFIED | Role: employee | Service: auth_service
+2025-12-27 09:36:10,121 [INFO] ✅ Activated OrganizationEmployee ba71d76b-9a71-4c10-9eb3-6fa0a2147ec9
+2025-12-27 09:40:57,105 [INFO] 🚀 Starting Service Provider Unified Kafka Consumer...
+2025-12-27 09:40:57,125 [INFO] ✅ Connected to Kafka broker.

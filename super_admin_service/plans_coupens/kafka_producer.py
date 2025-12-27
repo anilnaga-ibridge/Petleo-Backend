@@ -74,7 +74,7 @@ def publish_permissions_updated(auth_user_id: str, purchase_id: str, permissions
         print("DEBUG: Kafka Producer sending NO templates")
 
     payload = {
-        "event": "provider.permissions.updated",
+        "event_type": "provider.permissions.updated",
         "occurred_at": timezone.now().isoformat(),
         "data": {
             "auth_user_id": str(auth_user_id),
@@ -93,7 +93,7 @@ def publish_permissions_updated(auth_user_id: str, purchase_id: str, permissions
 # -------------------------------------------
 def publish_permissions_revoked(auth_user_id: str, purchase_id: str = None):
     payload = {
-        "event": "provider.permissions.revoked",
+        "event_type": "provider.permissions.revoked",
         "occurred_at": timezone.now().isoformat(),
         "data": {
             "auth_user_id": str(auth_user_id),

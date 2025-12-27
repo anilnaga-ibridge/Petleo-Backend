@@ -16,7 +16,7 @@ from provider_dynamic_fields.serializers import (
     ProviderFieldValueSerializer,
 )
 
-from service_provider.models import VerifiedUser
+from service_provider.models import VerifiedUser, OrganizationEmployee
 
 import json
 
@@ -250,12 +250,35 @@ from service_provider.permissions import HasProviderPermission
 from .models import ProviderCategory, ProviderFacility, ProviderPricing
 from .serializers import ProviderCategorySerializer, ProviderFacilitySerializer, ProviderPricingSerializer
 
+def get_effective_provider_user(auth_user):
+    """
+    Returns the VerifiedUser of the provider.
+    If auth_user is an employee, returns the Organization's VerifiedUser.
+    
+    NOTE: auth_user is ALREADY a VerifiedUser instance due to VerifiedUserJWTAuthentication.
+    """
+    # print(f"DEBUG: get_effective_provider_user for {getattr(auth_user, 'email', 'Unknown')}")
+    
+    try:
+        # 1. Check if employee
+        # We must use auth_user.auth_user_id because OrganizationEmployee links via Auth ID
+        employee = OrganizationEmployee.objects.get(auth_user_id=auth_user.auth_user_id)
+        if employee.status == 'active':
+            # print(f"DEBUG: User is active employee of {employee.organization.id}")
+            return employee.organization.verified_user
+    except OrganizationEmployee.DoesNotExist:
+        pass
+        
+    # 2. Default to self (auth_user is already the VerifiedUser)
+    return auth_user
+
+
 class ProviderCategoryViewSet(viewsets.ModelViewSet):
     serializer_class = ProviderCategorySerializer
     permission_classes = [IsAuthenticated, HasProviderPermission]
 
     def get_verified_user(self):
-        return VerifiedUser.objects.get(auth_user_id=self.request.user.id)
+        return get_effective_provider_user(self.request.user)
 
     def get_queryset(self):
         qs = ProviderCategory.objects.filter(provider=self.get_verified_user()).order_by("-created_at")
@@ -266,6 +289,64 @@ class ProviderCategoryViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(provider=self.get_verified_user())
+
+    def destroy(self, request, *args, **kwargs):
+        pk = kwargs.get("pk")
+        if pk and str(pk).startswith("TEMPLATE_"):
+            # Handle Template Deletion (Hide by removing permission)
+            template_id = str(pk).replace("TEMPLATE_", "")
+            from .models import ProviderCapabilityAccess, ProviderTemplateCategory
+            
+            try:
+                t_cat = ProviderTemplateCategory.objects.get(id=template_id)
+                sa_cat_id = t_cat.super_admin_category_id
+                
+                deleted_count, _ = ProviderCapabilityAccess.objects.filter(
+                    user=self.get_verified_user(),
+                    category_id=sa_cat_id
+                ).delete()
+                
+                if deleted_count > 0:
+                    return Response({"message": "Template category hidden"}, status=status.HTTP_204_NO_CONTENT)
+                else:
+                    return Response({"error": "Permission not found"}, status=404)
+                    
+            except ProviderTemplateCategory.DoesNotExist:
+                return Response({"error": "Template not found"}, status=404)
+        
+        return super().destroy(request, *args, **kwargs)
+
+    def update(self, request, *args, **kwargs):
+        pk = kwargs.get("pk")
+        if pk and str(pk).startswith("TEMPLATE_"):
+            # Handle Template Edit (Shadowing)
+            template_id = str(pk).replace("TEMPLATE_", "")
+            from .models import ProviderCapabilityAccess, ProviderTemplateCategory
+            
+            try:
+                t_cat = ProviderTemplateCategory.objects.get(id=template_id)
+                sa_cat_id = t_cat.super_admin_category_id
+                
+                # 1. Create Real Category (Shadow)
+                data = request.data.copy()
+                data["service_id"] = t_cat.service.super_admin_service_id # Ensure service link
+                
+                serializer = self.get_serializer(data=data)
+                serializer.is_valid(raise_exception=True)
+                self.perform_create(serializer)
+                
+                # 2. Hide Template
+                ProviderCapabilityAccess.objects.filter(
+                    user=self.get_verified_user(),
+                    category_id=sa_cat_id
+                ).delete()
+                
+                return Response(serializer.data, status=status.HTTP_200_OK)
+                
+            except ProviderTemplateCategory.DoesNotExist:
+                return Response({"error": "Template not found"}, status=404)
+
+        return super().update(request, *args, **kwargs)
 
     def list(self, request, *args, **kwargs):
         service_id = request.query_params.get("service")
@@ -314,36 +395,53 @@ class ProviderCategoryViewSet(viewsets.ModelViewSet):
         # 4. Inject Permissions
         from provider_dynamic_fields.models import ProviderCapabilityAccess
         
-        perms = ProviderCapabilityAccess.objects.filter(user=self.get_verified_user())
+        perms = ProviderCapabilityAccess.objects.filter(user=request.user)
         if service_id:
             perms = perms.filter(service_id=service_id)
         # Map: category_id -> list of permissions
         perm_map = {}
+        facility_perm_map = {}
+        service_level_perms = []
+        
         for p in perms:
-            if p.category_id:
+            if p.facility_id:
+                fid = str(p.facility_id)
+                facility_perm_map[fid] = p
+            elif p.category_id:
                 cid = str(p.category_id)
                 if cid not in perm_map:
                     perm_map[cid] = []
                 perm_map[cid].append(p)
+            elif p.service_id and not p.category_id and not p.facility_id:
+                # Service-level permission (applies to all categories)
+                service_level_perms.append(p)
 
         final_data = []
         for item in combined:
             is_template = item.get("is_template", False)
             item["is_template"] = is_template
             
-            if not is_template:
+            # Determine if user is the owner
+            is_owner = (request.user.auth_user_id == self.get_verified_user().auth_user_id)
+            
+            if is_owner:
                 item["can_view"] = True
                 item["can_create"] = True
                 item["can_edit"] = True
                 item["can_delete"] = True
+                for f in item.get("facilities", []):
+                    f["can_view"] = True
+                    f["can_create"] = True
+                    f["can_edit"] = True
+                    f["can_delete"] = True
             else:
+                # For employees, we MUST check permissions even for custom data
                 s_id = str(item.get("service_id"))
-                c_id = str(item.get("original_id"))
+                # For custom data, original_id might not be set, use id
+                c_id = str(item.get("original_id") or item.get("id"))
                 
-                category_perms = perm_map.get(c_id, [])
+                category_perms = perm_map.get(c_id, []) + service_level_perms
                 
-                # Aggregate permissions
-                # If ANY permission (category or facility level) grants view, then category is viewable
                 can_view = False
                 can_create = False
                 can_edit = False
@@ -351,12 +449,6 @@ class ProviderCategoryViewSet(viewsets.ModelViewSet):
                 
                 for p in category_perms:
                     if p.can_view: can_view = True
-                    # For create/edit/delete, we might want to be stricter, 
-                    # but for now let's assume if you have power over a facility, you might need to see the category.
-                    # Actually, category-level actions (like renaming the category) should probably be restricted.
-                    # But the user wants to SEE the categories.
-                    
-                    # If it's a direct category permission (facility_id=None), it definitely applies
                     if not p.facility_id:
                         if p.can_create: can_create = True
                         if p.can_edit: can_edit = True
@@ -366,6 +458,23 @@ class ProviderCategoryViewSet(viewsets.ModelViewSet):
                 item["can_create"] = can_create
                 item["can_edit"] = can_edit
                 item["can_delete"] = can_delete
+
+                # Inject Facility Permissions
+                for f in item.get("facilities", []):
+                    f_id = str(f.get("original_id") or f.get("id"))
+                    f_perm = facility_perm_map.get(f_id)
+                    
+                    if f_perm:
+                        f["can_view"] = f_perm.can_view
+                        f["can_create"] = f_perm.can_create
+                        f["can_edit"] = f_perm.can_edit
+                        f["can_delete"] = f_perm.can_delete
+                    else:
+                        # Fallback to category permissions
+                        f["can_view"] = can_view
+                        f["can_create"] = can_create
+                        f["can_edit"] = can_edit
+                        f["can_delete"] = can_delete
 
             final_data.append(item)
 
@@ -377,7 +486,7 @@ class ProviderFacilityViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, HasProviderPermission]
 
     def get_verified_user(self):
-        return VerifiedUser.objects.get(auth_user_id=self.request.user.id)
+        return get_effective_provider_user(self.request.user)
 
     def get_queryset(self):
         qs = ProviderFacility.objects.filter(provider=self.get_verified_user()).order_by("-created_at")
@@ -441,6 +550,86 @@ class ProviderFacilityViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(provider=self.get_verified_user())
 
+    def destroy(self, request, *args, **kwargs):
+        pk = kwargs.get("pk")
+        if pk and str(pk).startswith("TEMPLATE_"):
+            # Handle Template Deletion (Hide by removing permission)
+            template_id = str(pk).replace("TEMPLATE_", "")
+            from .models import ProviderCapabilityAccess, ProviderTemplateFacility
+            
+            try:
+                t_fac = ProviderTemplateFacility.objects.get(id=template_id)
+                sa_fac_id = t_fac.super_admin_facility_id
+                
+                deleted_count, _ = ProviderCapabilityAccess.objects.filter(
+                    user=self.get_verified_user(),
+                    facility_id=sa_fac_id
+                ).delete()
+                
+                if deleted_count > 0:
+                    return Response({"message": "Template facility hidden"}, status=status.HTTP_204_NO_CONTENT)
+                else:
+                    return Response({"error": "Permission not found"}, status=404)
+                    
+            except ProviderTemplateFacility.DoesNotExist:
+                return Response({"error": "Template not found"}, status=404)
+        
+        return super().destroy(request, *args, **kwargs)
+
+    def update(self, request, *args, **kwargs):
+        pk = kwargs.get("pk")
+        if pk and str(pk).startswith("TEMPLATE_"):
+            # Handle Template Edit (Shadowing)
+            template_id = str(pk).replace("TEMPLATE_", "")
+            from .models import ProviderCapabilityAccess, ProviderTemplateFacility
+            
+            try:
+                t_fac = ProviderTemplateFacility.objects.get(id=template_id)
+                sa_fac_id = t_fac.super_admin_facility_id
+                
+                # 1. Create Real Facility (Shadow)
+                data = request.data.copy()
+                # We need to ensure category is set correctly.
+                # If the user is editing a facility, they might be changing its category too.
+                # But usually they just change name/price.
+                # If they don't send category, we should use the template's category (resolved to real).
+                
+                if not data.get("category"):
+                    # Resolve template category to real category
+                    from .models import ProviderCategory, ProviderTemplateCategory
+                    t_cat = t_fac.category
+                    real_cat = ProviderCategory.objects.filter(
+                        provider=self.get_verified_user(),
+                        service_id=t_cat.service.super_admin_service_id,
+                        name=t_cat.name
+                    ).first()
+                    
+                    if not real_cat:
+                        real_cat = ProviderCategory.objects.create(
+                            provider=self.get_verified_user(),
+                            service_id=t_cat.service.super_admin_service_id,
+                            name=t_cat.name,
+                            is_active=True
+                        )
+                    data["category"] = real_cat.id
+
+                serializer = self.get_serializer(data=data)
+                serializer.is_valid(raise_exception=True)
+                self.perform_create(serializer)
+                
+                # 2. Hide Template
+                ProviderCapabilityAccess.objects.filter(
+                    user=self.get_verified_user(),
+                    facility_id=sa_fac_id
+                ).delete()
+                
+                return Response(serializer.data, status=status.HTTP_200_OK)
+                
+            except ProviderTemplateFacility.DoesNotExist:
+                return Response({"error": "Template not found"}, status=404)
+
+        return super().update(request, *args, **kwargs)
+
     def list(self, request, *args, **kwargs):
         service_id = request.query_params.get("service")
         
@@ -474,30 +663,48 @@ class ProviderFacilityViewSet(viewsets.ModelViewSet):
         combined = template_data + custom_data
 
         # 4. Inject Permissions
-        # 4. Inject Permissions
         from provider_dynamic_fields.models import ProviderCapabilityAccess
-        perms = ProviderCapabilityAccess.objects.filter(user=self.get_verified_user())
+        perms = ProviderCapabilityAccess.objects.filter(user=request.user)
         
         # Map: facility_id -> perm
         perm_map = {}
+        category_level_perms = {}
+        service_level_perms = []
+
         for p in perms:
             if p.facility_id:
                 perm_map[str(p.facility_id)] = p
+            elif p.category_id:
+                category_level_perms[str(p.category_id)] = p
+            elif p.service_id:
+                service_level_perms.append(p)
 
         final_data = []
         for item in combined:
             is_template = item.get("is_template", False)
             item["is_template"] = is_template
             
-            if not is_template:
+            # Determine if user is the owner
+            is_owner = (request.user.auth_user_id == self.get_verified_user().auth_user_id)
+            
+            if is_owner:
                 item["can_view"] = True
                 item["can_create"] = True
                 item["can_edit"] = True
                 item["can_delete"] = True
             else:
-                f_id = str(item.get("original_id"))
+                f_id = str(item.get("original_id") or item.get("id"))
+                c_id = str(item.get("category_id"))
                 
                 perm = perm_map.get(f_id)
+                
+                if not perm:
+                    # Fallback to Category level
+                    perm = category_level_perms.get(c_id)
+                
+                if not perm and service_level_perms:
+                    # Fallback to Service level
+                    perm = service_level_perms[0]
                 
                 if perm:
                     item["can_view"] = perm.can_view
@@ -519,7 +726,236 @@ class ProviderPricingViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, HasProviderPermission]
 
     def get_verified_user(self):
-        return VerifiedUser.objects.get(auth_user_id=self.request.user.id)
+        return get_effective_provider_user(self.request.user)
+
+    def get_queryset(self):
+        qs = ProviderPricing.objects.filter(provider=self.get_verified_user()).order_by("-created_at")
+        service_id = self.request.query_params.get("service")
+        if service_id:
+            qs = qs.filter(service_id=service_id)
+        return qs
+
+    def perform_create(self, serializer):
+        serializer.save(provider=self.get_verified_user())
+
+    def create(self, request, *args, **kwargs):
+        data = request.data.copy()
+        facility_id = data.get("facility")
+        category_id = data.get("category_id")
+
+        # Helper to resolve/create Category
+        def resolve_category(template_cat_id):
+            from .models import ProviderTemplateCategory, ProviderCategory
+            try:
+                t_cat = ProviderTemplateCategory.objects.get(id=template_cat_id)
+                real_cat = ProviderCategory.objects.filter(
+                    provider=self.get_verified_user(),
+                    service_id=t_cat.service.super_admin_service_id,
+                    name=t_cat.name
+                ).first()
+                
+                if not real_cat:
+                    real_cat = ProviderCategory.objects.create(
+                        provider=self.get_verified_user(),
+                        service_id=t_cat.service.super_admin_service_id,
+                        name=t_cat.name,
+                        is_active=True
+                    )
+                return real_cat
+            except ProviderTemplateCategory.DoesNotExist:
+                return None
+
+        # 1. Handle Facility Template
+        if facility_id and str(facility_id).startswith("TEMPLATE_"):
+            from .models import ProviderTemplateFacility, ProviderFacility
+            try:
+                t_fac_id = str(facility_id).replace("TEMPLATE_", "")
+                t_fac = ProviderTemplateFacility.objects.get(id=t_fac_id)
+                
+                # Ensure Category exists first
+                real_cat = resolve_category(t_fac.category.id)
+                if not real_cat:
+                    return Response({"error": "Could not resolve template category for facility"}, status=400)
+                
+                # Find or Create Real Facility
+                real_fac = ProviderFacility.objects.filter(
+                    provider=self.get_verified_user(),
+                    category=real_cat,
+                    name=t_fac.name
+                ).first()
+                
+                if not real_fac:
+                    real_fac = ProviderFacility.objects.create(
+                        provider=self.get_verified_user(),
+                        category=real_cat,
+                        name=t_fac.name,
+                        description=t_fac.description,
+                        is_active=True
+                    )
+                
+                data["facility"] = real_fac.id
+                data["category_id"] = str(real_cat.id) # Ensure consistency
+                
+            except ProviderTemplateFacility.DoesNotExist:
+                return Response({"error": "Invalid template facility ID"}, status=400)
+
+        # 2. Handle Category Template (if no facility or facility didn't resolve it)
+        elif category_id and str(category_id).startswith("TEMPLATE_"):
+            t_cat_id = str(category_id).replace("TEMPLATE_", "")
+            real_cat = resolve_category(t_cat_id)
+            if real_cat:
+                data["category_id"] = str(real_cat.id)
+            else:
+                return Response({"error": "Invalid template category ID"}, status=400)
+
+        serializer = self.get_serializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
+    def destroy(self, request, *args, **kwargs):
+        pk = kwargs.get("pk")
+        if pk and str(pk).startswith("TEMPLATE_"):
+            # Handle Template Deletion (Shadowing with is_active=False)
+            template_id = str(pk).replace("TEMPLATE_", "")
+            from .models import ProviderTemplatePricing, ProviderPricing, ProviderCategory, ProviderFacility
+            
+            try:
+                t_price = ProviderTemplatePricing.objects.get(id=template_id)
+                
+                # Resolve/Create Local Category & Facility
+                # Use facility's category if pricing's category is None
+                t_fac = t_price.facility
+                if t_fac:
+                    t_cat = t_fac.category
+                else:
+                    t_cat = t_price.category
+                
+                if not t_cat:
+                     return Response({"error": "Template category not found"}, status=400)
+
+                real_cat = ProviderCategory.objects.filter(
+                    provider=self.get_verified_user(),
+                    service_id=t_cat.service.super_admin_service_id,
+                    name=t_cat.name
+                ).first()
+                
+                if not real_cat:
+                    real_cat = ProviderCategory.objects.create(
+                        provider=self.get_verified_user(),
+                        service_id=t_cat.service.super_admin_service_id,
+                        name=t_cat.name,
+                        is_active=True
+                    )
+                
+                real_fac = None
+                if t_fac:
+                    real_fac = ProviderFacility.objects.filter(
+                        provider=self.get_verified_user(),
+                        category=real_cat,
+                        name=t_fac.name
+                    ).first()
+                    
+                    if not real_fac:
+                        real_fac = ProviderFacility.objects.create(
+                            provider=self.get_verified_user(),
+                            category=real_cat,
+                            name=t_fac.name,
+                            description=t_fac.description,
+                            is_active=True
+                        )
+                
+                # Create Inactive Shadow Pricing
+                ProviderPricing.objects.create(
+                    provider=self.get_verified_user(),
+                    service_id=t_price.service.super_admin_service_id,
+                    category_id=str(real_cat.id),
+                    facility=real_fac,
+                    price=t_price.price,
+                    duration=t_price.duration,
+                    description=t_price.description,
+                    is_active=False # This hides it
+                )
+                
+                return Response({"message": "Template pricing hidden"}, status=status.HTTP_204_NO_CONTENT)
+                    
+            except ProviderTemplatePricing.DoesNotExist:
+                return Response({"error": "Template not found"}, status=404)
+        
+        return super().destroy(request, *args, **kwargs)
+
+    def update(self, request, *args, **kwargs):
+        pk = kwargs.get("pk")
+        if pk and str(pk).startswith("TEMPLATE_"):
+            # Handle Template Edit (Shadowing)
+            template_id = str(pk).replace("TEMPLATE_", "")
+            from .models import ProviderTemplatePricing, ProviderPricing, ProviderCategory, ProviderFacility
+            
+            try:
+                t_price = ProviderTemplatePricing.objects.get(id=template_id)
+                
+                # Resolve/Create Local Category & Facility
+                t_fac = t_price.facility
+                if t_fac:
+                    t_cat = t_fac.category
+                else:
+                    t_cat = t_price.category
+
+                if not t_cat:
+                     return Response({"error": "Template category not found"}, status=400)
+
+                real_cat = ProviderCategory.objects.filter(
+                    provider=self.get_verified_user(),
+                    service_id=t_cat.service.super_admin_service_id,
+                    name=t_cat.name
+                ).first()
+                
+                if not real_cat:
+                    real_cat = ProviderCategory.objects.create(
+                        provider=self.get_verified_user(),
+                        service_id=t_cat.service.super_admin_service_id,
+                        name=t_cat.name,
+                        is_active=True
+                    )
+                
+                real_fac = None
+                if t_fac:
+                    real_fac = ProviderFacility.objects.filter(
+                        provider=self.get_verified_user(),
+                        category=real_cat,
+                        name=t_fac.name
+                    ).first()
+                    
+                    if not real_fac:
+                        real_fac = ProviderFacility.objects.create(
+                            provider=self.get_verified_user(),
+                            category=real_cat,
+                            name=t_fac.name,
+                            description=t_fac.description,
+                            is_active=True
+                        )
+
+                # Create Active Shadow Pricing with New Data
+                data = request.data.copy()
+                data["service_id"] = t_price.service.super_admin_service_id
+                data["category_id"] = str(real_cat.id)
+                data["facility"] = real_fac.id if real_fac else None
+                
+                if not data.get("duration"):
+                    data["duration"] = t_price.duration
+
+                serializer = self.get_serializer(data=data)
+                serializer.is_valid(raise_exception=True)
+                self.perform_create(serializer)
+                
+                return Response(serializer.data, status=status.HTTP_200_OK)
+                
+            except ProviderTemplatePricing.DoesNotExist:
+                return Response({"error": "Template not found"}, status=404)
+
+        return super().update(request, *args, **kwargs)
+
     def list(self, request, *args, **kwargs):
         service_id = request.query_params.get("service")
         
@@ -536,12 +972,23 @@ class ProviderPricingViewSet(viewsets.ModelViewSet):
                 templates = ProviderTemplatePricing.objects.filter(service=template_service)
                 
                 for t in templates:
+                    # Derive category from facility if missing
+                    cat_id = None
+                    cat_name = "All Categories"
+                    
+                    if t.category:
+                        cat_id = t.category.super_admin_category_id
+                        cat_name = t.category.name
+                    elif t.facility and t.facility.category:
+                        cat_id = t.facility.category.super_admin_category_id
+                        cat_name = t.facility.category.name
+
                     template_data.append({
                         "id": f"TEMPLATE_{t.id}",
                         "original_id": str(t.id),
                         "service_id": service_id,
-                        "category_id": t.category.super_admin_category_id if t.category else None,
-                        "category_name": t.category.name if t.category else "All Categories",
+                        "category_id": cat_id,
+                        "category_name": cat_name,
                         "facility": t.facility.super_admin_facility_id if t.facility else None,
                         "facility_name": t.facility.name if t.facility else "All Facilities",
                         "price": str(t.price),
@@ -553,38 +1000,92 @@ class ProviderPricingViewSet(viewsets.ModelViewSet):
             except ProviderTemplateService.DoesNotExist:
                 pass
 
-        # 3. Merge
-        combined = template_data + custom_data
+        # 3. Shadowing Logic
+        # Map Custom Pricing (Local IDs) to Template Pricing (SA IDs) via Name Matching
+        sa_fac_map = {} # (category_name, facility_name) -> sa_facility_id
+        if service_id:
+            from .models import ProviderTemplateFacility, ProviderTemplateCategory, ProviderTemplateService
+            try:
+                ts = ProviderTemplateService.objects.get(super_admin_service_id=service_id)
+                t_cats = ProviderTemplateCategory.objects.filter(service=ts)
+                t_facs = ProviderTemplateFacility.objects.filter(category__in=t_cats)
+                for tf in t_facs:
+                    sa_fac_map[(tf.category.name, tf.name)] = tf.super_admin_facility_id
+            except:
+                pass
 
-        # 4. Inject Permissions
-        # 4. Inject Permissions
+        # Fetch ALL custom pricing (active and inactive)
+        all_custom = ProviderPricing.objects.filter(provider=self.get_verified_user())
+        if service_id:
+            all_custom = all_custom.filter(service_id=service_id)
+            
+        shadow_map = set()
+        for p in all_custom:
+            f_sa_id = None
+            if p.facility:
+                cat_name = p.facility.category.name if p.facility.category else None
+                fac_name = p.facility.name
+                if cat_name and fac_name:
+                    f_sa_id = sa_fac_map.get((cat_name, fac_name))
+            
+            f_key = f_sa_id if f_sa_id else (str(p.facility.id) if p.facility else "None")
+            s = str(p.service_id) if p.service_id else "None"
+            d = str(p.duration)
+            shadow_map.add((s, f_key, d))
+
+        # 4. Merge
+        final_list = []
+        
+        # Add Templates (if not shadowed)
+        for t in template_data:
+            s = str(t["service_id"])
+            f = str(t["facility"]) if t["facility"] else "None"
+            d = str(t["duration"])
+            
+            if (s, f, d) not in shadow_map:
+                final_list.append(t)
+                
+        # Add Custom (only active ones)
+        for c in custom_data:
+            if c.get("is_active"):
+                final_list.append(c)
+
+        # 5. Inject Permissions
         from provider_dynamic_fields.models import ProviderCapabilityAccess
-        perms = ProviderCapabilityAccess.objects.filter(user=self.get_verified_user())
+        perms = ProviderCapabilityAccess.objects.filter(user=request.user)
         if service_id:
             perms = perms.filter(service_id=service_id)
             
         perm_map = {}
         for p in perms:
-            k = (str(p.service_id), str(p.category_id) if p.category_id else None)
-            perm_map[k] = p
+            s = str(p.service_id) if p.service_id else "None"
+            c = str(p.category_id) if p.category_id else "None"
+            f = str(p.facility_id) if p.facility_id else "None"
+            perm_map[(s, c, f)] = p
 
         final_data = []
-        for item in combined:
+        for item in final_list:
             is_template = item.get("is_template", False)
             item["is_template"] = is_template
             
-            if not is_template:
+            # Determine if user is the owner
+            is_owner = (request.user.auth_user_id == self.get_verified_user().auth_user_id)
+            
+            if is_owner:
                 item["can_view"] = True
                 item["can_create"] = True
                 item["can_edit"] = True
                 item["can_delete"] = True
             else:
-                s_id = str(item.get("service_id"))
-                c_id = str(item.get("category_id")) if item.get("category_id") else None
+                s = str(item.get("service_id")) if item.get("service_id") else "None"
+                c = str(item.get("category_id")) if item.get("category_id") else "None"
+                f = str(item.get("facility")) if item.get("facility") else "None"
                 
-                perm = perm_map.get((s_id, c_id))
+                perm = perm_map.get((s, c, f))
                 if not perm:
-                    perm = perm_map.get((s_id, None))
+                    perm = perm_map.get((s, c, "None"))
+                if not perm:
+                    perm = perm_map.get((s, "None", "None"))
                 
                 if perm:
                     item["can_view"] = perm.can_view
@@ -600,13 +1101,3 @@ class ProviderPricingViewSet(viewsets.ModelViewSet):
             final_data.append(item)
 
         return Response(final_data)
-    def get_queryset(self):
-        # Filter by service if provided in query params
-        qs = ProviderPricing.objects.filter(provider=self.get_verified_user()).order_by("-created_at")
-        service_id = self.request.query_params.get("service")
-        if service_id:
-            qs = qs.filter(service_id=service_id)
-        return qs
-
-    def perform_create(self, serializer):
-        serializer.save(provider=self.get_verified_user())

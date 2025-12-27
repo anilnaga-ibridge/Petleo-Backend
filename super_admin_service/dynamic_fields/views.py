@@ -1,4 +1,4 @@
-from rest_framework import viewsets, generics
+from rest_framework import viewsets, generics, permissions
 from rest_framework.permissions import AllowAny
 from admin_core.permissions import IsSuperAdmin
 
@@ -15,7 +15,16 @@ from .serializers import (
 class ProviderFieldDefinitionViewSet(viewsets.ModelViewSet):
     queryset = ProviderFieldDefinition.objects.all()
     serializer_class = ProviderFieldDefinitionSerializer
+    # Default permission for write operations
     permission_classes = [IsSuperAdmin]
+
+    def get_permissions(self):
+        """
+        Allow IsAuthenticated for list (GET), but require IsSuperAdmin for everything else.
+        """
+        if self.action == 'list':
+            return [permissions.IsAuthenticated()]
+        return [IsSuperAdmin()]
 
     def get_queryset(self):
         qs = super().get_queryset()

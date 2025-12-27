@@ -90,22 +90,46 @@ class RegisterView(APIView):
         logger.debug("🔵 REGISTER REQUEST DATA: %s", request.data)
         logger.debug("🔵 REGISTER HEADERS: %s", request.headers)
 
+        # ---------------------------------------------------------------
+        # 1. Security Check for Employee Registration
+        # ---------------------------------------------------------------
+        role_input = str(request.data.get('role', '')).lower()
+        if role_input == 'employee':
+            if not request.user.is_authenticated:
+                return Response(
+                    {"detail": "Authentication required to register an employee."},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            # Check if logged-in user is an Organization
+            # Note: request.user.role is a Role model instance
+            user_role_name = request.user.role.name.lower() if request.user.role else ""
+            if user_role_name != 'organization':
+                return Response(
+                    {"detail": "Only organizations can register employees."},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+
         serializer = RegisterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()  # user created here
         phone = user.phone_number
+        
         # --------------------
         # Send static/DB template email immediately (non-blocking to user flow)
         # --------------------
-        # Send automatic registration email
+        # Send automatic registration email via Kafka
         try:
-            ok = send_automatic_registration_email_for_user(user)
-            if ok:
-                logger.info(f"Automatic registration email triggered for user {user.id}")
-            else:
-                logger.info(f"Automatic registration email not sent for user {user.id} (no template)")
+            email_payload = {
+                "user_id": str(user.id),
+                "email": user.email,
+                "full_name": user.full_name,
+                "role": user.role.name.lower() if user.role else "user"
+            }
+            publish_event("SEND_EMAIL", email_payload)
+            logger.info(f"Published SEND_EMAIL event for user {user.id}")
         except Exception:
-            logger.exception("Automatic email sending failed")
+            logger.exception("Failed to publish SEND_EMAIL event")
 
         # Continue with OTP / rate-limit and event publishing logic
         
@@ -120,13 +144,20 @@ class RegisterView(APIView):
 
         # Kafka Event — send user role name
         try:
+            user_role_name = user.role.name.lower() if getattr(user, "role", None) else None
             payload = {
                 "auth_user_id": str(user.id),
                 "phone_number": phone,
                 "email": user.email,
                 "full_name": user.full_name,
-                "role": user.role.name.lower() if getattr(user, "role", None) else None,
+                "role": user_role_name,
             }
+
+            # If Employee, attach Organization ID (from logged-in user)
+            if user_role_name == 'employee':
+                payload['organization_id'] = str(request.user.id)
+                payload['created_by'] = str(request.user.id)
+
             publish_event("USER_CREATED", payload)
         except Exception:
             logger.exception("Kafka USER_CREATED publish failed")

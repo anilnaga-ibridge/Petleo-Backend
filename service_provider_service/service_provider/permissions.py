@@ -61,14 +61,9 @@ class HasProviderPermission(permissions.BasePermission):
             return False
 
         # Check permission in DB
-        from service_provider.models import VerifiedUser
         from provider_dynamic_fields.models import ProviderCapabilityAccess
 
-        try:
-            verified_user = VerifiedUser.objects.get(auth_user_id=request.user.id)
-        except VerifiedUser.DoesNotExist:
-            return False
-
+        verified_user = request.user
         perms = ProviderCapabilityAccess.objects.filter(user=verified_user, service_id=str(service_id))
         
         if category_id:

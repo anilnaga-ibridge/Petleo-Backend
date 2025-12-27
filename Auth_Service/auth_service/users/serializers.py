@@ -138,15 +138,25 @@ class RegisterSerializer(serializers.ModelSerializer):
         except Role.DoesNotExist:
             raise serializers.ValidationError("Invalid role. Use role ID or valid role name.")
 
-    def validate_phone_number(self, value):
-        if User.objects.filter(phone_number=value).exists():
-            raise serializers.ValidationError("Phone number already registered")
-        return value
+    def validate(self, attrs):
+        phone = attrs.get('phone_number')
+        email = attrs.get('email')
 
-    def validate_email(self, value):
-        if value and User.objects.filter(email=value).exists():
-            raise serializers.ValidationError("Email already registered")
-        return value
+        errors = []
+        if phone and User.objects.filter(phone_number=phone).exists():
+            errors.append("phone number")
+        if email and User.objects.filter(email=email).exists():
+            errors.append("email")
+
+        if errors:
+            what_exists = " and ".join(errors)
+            msg = (
+                f"thank for registration to your site ,your using {what_exists} is alredy in use "
+                f"please register using aothere mail or phone numebr ,what is alredy exist"
+            )
+            raise serializers.ValidationError({"detail": msg})
+
+        return attrs
 
     def create(self, validated_data):
         # Get normalized role_id from validated_data

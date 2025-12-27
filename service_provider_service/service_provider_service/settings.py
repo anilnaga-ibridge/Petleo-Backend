@@ -46,7 +46,7 @@ INSTALLED_APPS = [
     'org_employees',
     'rest_framework',
     'corsheaders',
-    'django_extensions',
+    # 'django_extensions',
     'provider_dynamic_fields',
     'provider_cart',
     

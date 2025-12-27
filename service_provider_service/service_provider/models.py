@@ -126,3 +126,70 @@ class AllowedService(models.Model):
 
     def __str__(self):
         return f"{self.verified_user.email} - {self.name}"
+
+
+class OrganizationEmployee(models.Model):
+    """
+    Represents an employee belonging to an organization.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    auth_user_id = models.UUIDField(unique=True)  # The employee's auth ID
+    
+    organization = models.ForeignKey(
+        ServiceProvider,
+        on_delete=models.CASCADE,
+        related_name="employees"
+    )
+
+    # Denormalized fields for direct access
+    full_name = models.CharField(max_length=100, blank=True, null=True)
+    email = models.EmailField(blank=True, null=True)
+    phone_number = models.CharField(max_length=15, blank=True, null=True)
+    role = models.CharField(max_length=50, default="employee")
+    
+    status = models.CharField(
+        max_length=20,
+        choices=[("invited", "Invited"), ("active", "Active"), ("suspended", "Suspended")],
+        default="invited"
+    )
+    
+    created_by = models.UUIDField()  # Auth ID of the creator
+    joined_at = models.DateTimeField(null=True, blank=True)
+    deleted_at = models.DateTimeField(null=True, blank=True)  # Soft delete
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"Employee {self.auth_user_id} of {self.organization}"
+
+
+class ProviderSubscription(models.Model):
+    """
+    Tracks the local validity of a provider's plan.
+    Synced from Super Admin via Kafka.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    verified_user = models.ForeignKey(
+        VerifiedUser,
+        on_delete=models.CASCADE,
+        related_name="subscription"
+    )
+    plan_id = models.CharField(max_length=255)
+    billing_cycle_id = models.CharField(max_length=255, null=True, blank=True)
+    
+    start_date = models.DateTimeField()
+    end_date = models.DateTimeField(null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.verified_user.email} - {self.plan_id} ({'Active' if self.is_active else 'Inactive'})"

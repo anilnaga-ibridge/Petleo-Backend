@@ -9,6 +9,14 @@ class ServiceProviderSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ServiceProvider
-        fields = ['id', 'auth_user_id', 'full_name', 'email', 'phone_number', 'role', 'profile_status', 'avatar', 'is_fully_verified']
+        fields = ['id', 'auth_user_id', 'full_name', 'email', 'phone_number', 'profile_status', 'avatar', 'is_fully_verified']
+
+
+from .models import OrganizationEmployee, VerifiedUser
+
+class OrganizationEmployeeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = OrganizationEmployee
+        fields = ['id', 'auth_user_id', 'status', 'joined_at', 'full_name', 'email', 'phone_number']
 
 

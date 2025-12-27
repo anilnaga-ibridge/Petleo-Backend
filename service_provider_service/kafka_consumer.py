@@ -2,40 +2,40 @@ import os
 import json
 import django
 import logging
+import time
 from kafka import KafkaConsumer
 from django.db import transaction
+from django.utils import timezone
 
 # Django setup
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "service_provider_service.settings")
 django.setup()
 
-from service_provider.models import VerifiedUser
-from provider_dynamic_fields.models import LocalFieldDefinition, LocalDocumentDefinition
+from service_provider.models import VerifiedUser, OrganizationEmployee, ServiceProvider
+from provider_dynamic_fields.models import LocalFieldDefinition, LocalDocumentDefinition, ProviderDocument
 
 # Logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logging.getLogger("kafka").setLevel(logging.CRITICAL)
 logger = logging.getLogger("service_provider_consumer")
+# Add File Handler
+fh = logging.FileHandler("debug_consumer.txt")
+fh.setLevel(logging.INFO)
+formatter = logging.Formatter("%(asctime)s [%(levelname)s] %(message)s")
+fh.setFormatter(formatter)
+logger.addHandler(fh)
 
 logger.info("🚀 Starting Service Provider Unified Kafka Consumer...")
 
-# Normalize role safely
-def normalize_role(role):
-    if not role:
-        return None
-    return str(role).replace(" ", "").replace("_", "").lower()
-
-# Kafka setup
-# Kafka setup
-import time
-
+# Kafka init (retry loop)
 consumer = None
 while not consumer:
     try:
         consumer = KafkaConsumer(
             "individual_events",
             "organization_events",
-            "admin_events",  # Added admin_events
+            "admin_events",
+            "service_provider_events",
             bootstrap_servers="localhost:9093",
             group_id="service-provider-group",
             auto_offset_reset="latest",
@@ -43,77 +43,167 @@ while not consumer:
             value_deserializer=lambda v: json.loads(v.decode("utf-8")),
         )
         logger.info("✅ Connected to Kafka broker.")
-        logger.info("📡 Listening to: individual_events, organization_events, admin_events")
     except Exception as e:
         logger.warning(f"⚠️ Kafka unavailable: {e}")
-        logger.info("🔁 Retrying in 5 seconds...")
         time.sleep(5)
 
 for message in consumer:
     try:
         event = message.value
-        event_type = (event.get("event_type") or event.get("event") or "").upper()
-        # Handle payload vs data structure difference
-        data = event.get("data") or event.get("payload") or {}
-        role = event.get("role")
+        event_type = (event.get("event_type") or "").upper()
+        data = event.get("data") or {}
+        role = (event.get("role") or "").lower()
         service = event.get("service")
 
-        logger.info(f"🔥 Received event: {event_type} | Role: {role} | Service: {service}")
+        logger.info(f"🔥 Event: {event_type} | Role: {role} | Service: {service}")
 
         # -----------------------------
-        # FILTER: Ignore Admin/SuperAdmin User Events
+        # SKIP ADMIN EVENTS
         # -----------------------------
-        if role in ["admin", "super_admin"] and event_type in ["USER_CREATED", "USER_UPDATED", "USER_DELETED", "USER_VERIFIED"]:
-            logger.info(f"⏭️ Skipping {role} user event (handled by Super Admin Service)")
+        if role in ["admin", "super_admin"] and event_type.startswith("USER_"):
+            logger.info("⏭️ Skipping admin/super_admin user event")
             continue
 
         # ==========================
-        # AUTH & USER EVENTS
+        # USER EVENTS
         # ==========================
         if event_type in ["USER_CREATED", "USER_VERIFIED"]:
-            if not data.get("auth_user_id"):
-                logger.warning("⚠️ Missing auth_user_id. Skipping message.")
+            auth_user_id = data.get("auth_user_id")
+            if not auth_user_id:
+                logger.warning("⚠️ Missing auth_user_id, skipping")
                 continue
 
-            auth_user_id = data["auth_user_id"]
-            with transaction.atomic():
-                # Use auth_user_id as the lookup field (it's unique)
-                user, created = VerifiedUser.objects.update_or_create(
-                    auth_user_id=auth_user_id, 
-                    defaults={
-                        "full_name": data.get("full_name"),
-                        "email": data.get("email"),
-                        "phone_number": data.get("phone_number"),
-                        "role": role or data.get("role"),
-                        "permissions": data.get("permissions", []),
-                    },
-                )
-                logger.info(f"{'✅ Created' if created else '🔄 Updated'} VerifiedUser ({user.email})")
+            # ==========================
+            # EMPLOYEE FLOW (ONLY ORG EMPLOYEES)
+            # ==========================
+            if role == "employee":
+                organization_id = data.get("organization_id")
+                # For USER_VERIFIED, organization_id might not be in payload, so we rely on existing record
+                # But for USER_CREATED it is mandatory.
+                
+                if event_type == "USER_CREATED":
+                    if not organization_id:
+                        logger.error(f"❌ Employee {auth_user_id} missing organization_id in USER_CREATED")
+                        continue
+                    
+                    logger.info(f"🔍 Processing Employee {auth_user_id} for Org {organization_id}")
+                    
+                    try:
+                        org_provider = ServiceProvider.objects.get(
+                            verified_user__auth_user_id=organization_id
+                        )
+                        
+                        OrganizationEmployee.objects.update_or_create(
+                            auth_user_id=auth_user_id,
+                            defaults={
+                                "organization": org_provider,
+                                "full_name": data.get("full_name"),
+                                "email": data.get("email"),
+                                "phone_number": data.get("phone_number"),
+                                "role": "employee",
+                                "status": "invited",
+                                "created_by": data.get("created_by")
+                            },
+                        )
+                        logger.info(f"✅ Created OrganizationEmployee {auth_user_id} (Invited)")
+                        
+                    except ServiceProvider.DoesNotExist:
+                        # Try to recover by creating the provider profile if the user exists
+                        try:
+                            org_user = VerifiedUser.objects.get(auth_user_id=organization_id)
+                            org_provider, _ = ServiceProvider.objects.get_or_create(verified_user=org_user)
+                            logger.info(f"✅ Recovered/Created ServiceProvider for {organization_id}")
+                            
+                            # Retry creation
+                            OrganizationEmployee.objects.update_or_create(
+                                auth_user_id=auth_user_id,
+                                defaults={
+                                    "organization": org_provider,
+                                    "full_name": data.get("full_name"),
+                                    "email": data.get("email"),
+                                    "phone_number": data.get("phone_number"),
+                                    "role": "employee",
+                                    "status": "invited",
+                                    "created_by": data.get("created_by")
+                                },
+                            )
+                            logger.info(f"✅ Created OrganizationEmployee {auth_user_id} (Invited) after recovery")
+                            
+                        except VerifiedUser.DoesNotExist:
+                            logger.error(f"❌ Organization User {organization_id} not found. Cannot create employee.")
+                            continue
 
+                elif event_type == "USER_VERIFIED":
+                    try:
+                        employee = OrganizationEmployee.objects.get(auth_user_id=auth_user_id)
+                        employee.status = "active"
+                        employee.joined_at = timezone.now()
+                        employee.full_name = data.get("full_name", employee.full_name)
+                        employee.email = data.get("email", employee.email)
+                        employee.phone_number = data.get("phone_number", employee.phone_number)
+                        employee.save()
+                        logger.info(f"✅ Activated OrganizationEmployee {auth_user_id}")
+                    except OrganizationEmployee.DoesNotExist:
+                        logger.warning(f"⚠️ Employee {auth_user_id} not found for activation")
+
+                # continue  # 🚨 REMOVED: We NEED VerifiedUser for employees too!
+            
+            # ==========================
+            # VERIFIED USER CREATION (ALL ROLES)
+            # ==========================
+            if role in ["individual", "organization", "serviceprovider", "pet_owner", "employee"]:
+                with transaction.atomic():
+                    user, created = VerifiedUser.objects.update_or_create(
+                        auth_user_id=auth_user_id,
+                        defaults={
+                            "full_name": data.get("full_name"),
+                            "email": data.get("email"),
+                            "phone_number": data.get("phone_number"),
+                            "role": role,
+                            "permissions": data.get("permissions", []),
+                        },
+                    )
+                    logger.info(
+                        f"{'✅ Created' if created else '🔄 Updated'} VerifiedUser {user.email}"
+                    )
+                    
+                    # Auto-create ServiceProvider profile for organizations
+                    if role in ["organization", "serviceprovider"]:
+                        provider, p_created = ServiceProvider.objects.get_or_create(verified_user=user)
+                        if p_created:
+                            logger.info(f"✅ Auto-created ServiceProvider profile for {user.email}")
+
+        # ==========================
+        # USER UPDATED (NON-EMPLOYEE ONLY)
+        # ==========================
         elif event_type == "USER_UPDATED":
-            if not data.get("auth_user_id"):
+            if role == "employee":
                 continue
-            auth_user_id = data["auth_user_id"]
+
+            auth_user_id = data.get("auth_user_id")
+            if not auth_user_id:
+                continue
+
             updated = VerifiedUser.objects.filter(auth_user_id=auth_user_id).update(
                 full_name=data.get("full_name"),
                 email=data.get("email"),
                 phone_number=data.get("phone_number"),
-                role=role or data.get("role"),
+                role=role,
             )
             if updated:
-                logger.info(f"🆙 VerifiedUser updated: {data.get('email')}")
-            else:
-                logger.warning(f"⚠️ No VerifiedUser found for update: {auth_user_id}")
+                logger.info(f"🆙 Updated VerifiedUser {auth_user_id}")
 
+        # ==========================
+        # USER DELETED
+        # ==========================
         elif event_type == "USER_DELETED":
-            if not data.get("auth_user_id"):
+            auth_user_id = data.get("auth_user_id")
+            if not auth_user_id:
                 continue
-            auth_user_id = data["auth_user_id"]
-            deleted, _ = VerifiedUser.objects.filter(auth_user_id=auth_user_id).delete()
-            if deleted > 0:
-                logger.info(f"🗑️ VerifiedUser deleted successfully: ID={auth_user_id}")
-            else:
-                logger.warning(f"⚠️ No VerifiedUser found for deletion: ID={auth_user_id}")
+
+            VerifiedUser.objects.filter(auth_user_id=auth_user_id).delete()
+            OrganizationEmployee.objects.filter(auth_user_id=auth_user_id).delete()
+            logger.info(f"🗑️ Deleted user records for {auth_user_id}")
 
         # ==========================
         # DYNAMIC FIELDS SYNC
@@ -186,20 +276,10 @@ for message in consumer:
                     with transaction.atomic():
                         # 1. SYNC TEMPLATES (If provided)
                         if templates:
-                            # 1. DELETE OLD TEMPLATES (Global Wipe as per requirement)
-                            logger.info("🗑️ Deleting old templates before sync...")
-                            ProviderTemplatePricing.objects.all().delete()
-                            ProviderTemplateFacility.objects.all().delete()
-                            ProviderTemplateCategory.objects.all().delete()
-                            ProviderTemplateService.objects.all().delete()
+                            # NOTE: Do NOT wipe templates globally. They are shared across all users.
+                            # We use update_or_create to ensure we have the latest definitions.
 
-                            with open("consumer_debug.log", "a") as f:
-                                f.write(f"Received Templates for {auth_user_id}: S={len(templates.get('services', []))}, C={len(templates.get('categories', []))}, F={len(templates.get('facilities', []))}, P={len(templates.get('pricing', []))}\n")
-                            
                             # Services
-                            count_services = len(templates.get("services", []))
-                            print(f"Saving template services: {count_services}")
-                            logger.info(f"Saving {count_services} template services...")
                             for svc in templates.get("services", []):
                                 ProviderTemplateService.objects.update_or_create(
                                     super_admin_service_id=svc["id"],
@@ -211,9 +291,6 @@ for message in consumer:
                                 )
                             
                             # Categories
-                            count_categories = len(templates.get("categories", []))
-                            print(f"Saving template categories: {count_categories}")
-                            logger.info(f"Saving {count_categories} template categories...")
                             for cat in templates.get("categories", []):
                                 try:
                                     service_obj = ProviderTemplateService.objects.get(super_admin_service_id=cat["service_id"])
@@ -228,9 +305,6 @@ for message in consumer:
                                     logger.warning(f"⚠️ Service {cat['service_id']} not found for category {cat['name']}")
 
                             # Facilities
-                            count_facilities = len(templates.get("facilities", []))
-                            print(f"Saving template facilities: {count_facilities}")
-                            logger.info(f"Saving {count_facilities} template facilities...")
                             for fac in templates.get("facilities", []):
                                 try:
                                     cat_obj = ProviderTemplateCategory.objects.get(super_admin_category_id=fac["category_id"])
@@ -246,9 +320,6 @@ for message in consumer:
                                     logger.warning(f"⚠️ Category {fac['category_id']} not found for facility {fac['name']}")
 
                             # Pricing
-                            count_pricing = len(templates.get("pricing", []))
-                            print(f"Saving template pricing: {count_pricing}")
-                            logger.info(f"Saving {count_pricing} template pricing rules...")
                             for price in templates.get("pricing", []):
                                 try:
                                     service_obj = ProviderTemplateService.objects.get(super_admin_service_id=price["service_id"])
@@ -278,24 +349,91 @@ for message in consumer:
                             logger.info(f"✅ Synced Templates for user {auth_user_id}")
 
                         # 2. SYNC PERMISSIONS (ProviderCapabilityAccess)
-                        # Clear existing permissions
-                        ProviderCapabilityAccess.objects.filter(user=user).delete()
-                        
-                        # Create new permissions
-                        new_perms = []
                         plan_id = data.get("purchased_plan", {}).get("plan_id")
                         
+                        if plan_id:
+                            # Only clear permissions for this specific plan
+                            ProviderCapabilityAccess.objects.filter(user=user, plan_id=plan_id).delete()
+                        else:
+                            # Fallback: Clear all if no plan_id provided
+                            ProviderCapabilityAccess.objects.filter(user=user).delete()
+                        
+                        # Dictionary to track unique permissions: (service, category, facility, pricing) -> dict
+                        perms_map = {}
+                        
+                        # Helper to add/update permission
+                        def add_perm(s_id, c_id, f_id, p_id, **kwargs):
+                            key = (s_id, c_id, f_id, p_id)
+                            if key not in perms_map:
+                                perms_map[key] = {
+                                    "service_id": s_id,
+                                    "category_id": c_id,
+                                    "facility_id": f_id,
+                                    "pricing_id": p_id,
+                                    "can_view": True, # Default to True for templates
+                                    "can_create": False,
+                                    "can_edit": False,
+                                    "can_delete": False
+                                }
+                            perms_map[key].update(kwargs)
+
+                        # A. Auto-generate from Templates (Robust Sync)
+                        # ---------------------------------------------
+                        # 1. Services
+                        for svc in templates.get("services", []):
+                            add_perm(svc["id"], None, None, None)
+                            
+                        # 2. Categories
+                        cat_service_map = {} # Map category_id -> service_id for facilities lookup
+                        for cat in templates.get("categories", []):
+                            cat_service_map[cat["id"]] = cat["service_id"]
+                            add_perm(cat["service_id"], cat["id"], None, None)
+                            
+                        # 3. Facilities
+                        for fac in templates.get("facilities", []):
+                            s_id = cat_service_map.get(fac["category_id"])
+                            if s_id:
+                                add_perm(s_id, fac["category_id"], fac["id"], None)
+                            else:
+                                logger.warning(f"⚠️ Could not resolve Service ID for facility {fac['name']}")
+
+                        # 4. Pricing
+                        for price in templates.get("pricing", []):
+                            add_perm(
+                                price["service_id"], 
+                                price.get("category_id"), 
+                                price.get("facility_id"), 
+                                price["id"]
+                            )
+
+                        # B. Apply Explicit Permissions (Overrides)
+                        # -----------------------------------------
                         for perm in permissions_list:
+                            add_perm(
+                                perm.get("service_id"),
+                                perm.get("category_id"),
+                                perm.get("facility_id"),
+                                perm.get("pricing_id"),
+                                can_view=perm.get("can_view", True),
+                                can_create=perm.get("can_create", False),
+                                can_edit=perm.get("can_edit", False),
+                                can_delete=perm.get("can_delete", False)
+                            )
+
+                        # Create new permissions objects
+                        new_perms = []
+                        for p_data in perms_map.values():
                             new_perms.append(ProviderCapabilityAccess(
                                 user=user,
                                 plan_id=plan_id,
-                                service_id=perm.get("service_id"),
-                                category_id=perm.get("category_id"),
-                                facility_id=perm.get("facility_id"),
-                                can_view=perm.get("can_view", False),
-                                can_create=perm.get("can_create", False),
-                                can_edit=perm.get("can_edit", False),
-                                can_delete=perm.get("can_delete", False),
+                                service_id=p_data["service_id"],
+                                category_id=p_data["category_id"],
+                                facility_id=p_data["facility_id"],
+                                pricing_id=p_data["pricing_id"],
+                                can_view=p_data["can_view"],
+                                can_create=p_data["can_create"],
+                                can_edit=p_data["can_edit"],
+                                can_delete=p_data["can_delete"],
                             ))
                         
                         if new_perms:
@@ -303,6 +441,32 @@ for message in consumer:
                             
                     logger.info(f"✅ Updated {len(new_perms)} capabilities for user {auth_user_id}")
                     
+                    # 3. SYNC SUBSCRIPTION (Dynamic Validation)
+                    purchased_plan_info = data.get("purchased_plan", {})
+                    if purchased_plan_info and plan_id:
+                        from service_provider.models import ProviderSubscription
+                        from django.utils.dateparse import parse_datetime
+                        
+                        start_date = parse_datetime(purchased_plan_info.get("start_date")) if purchased_plan_info.get("start_date") else timezone.now()
+                        end_date = parse_datetime(purchased_plan_info.get("end_date")) if purchased_plan_info.get("end_date") else None
+                        
+                        # Check if active based on dates
+                        is_active = True
+                        if end_date and end_date < timezone.now():
+                            is_active = False
+                            
+                        ProviderSubscription.objects.update_or_create(
+                            verified_user=user,
+                            defaults={
+                                "plan_id": plan_id,
+                                "billing_cycle_id": purchased_plan_info.get("billing_cycle_id"),
+                                "start_date": start_date,
+                                "end_date": end_date,
+                                "is_active": is_active
+                            }
+                        )
+                        logger.info(f"✅ Synced Subscription for user {auth_user_id} (Active: {is_active})")
+
                 except VerifiedUser.DoesNotExist:
                     logger.warning(f"⚠️ User {auth_user_id} not found for permission update")
                 except Exception as e:
@@ -327,7 +491,6 @@ for message in consumer:
             reason = data.get("rejection_reason")
             
             if doc_id:
-                from provider_dynamic_fields.models import ProviderDocument
                 updated_count = ProviderDocument.objects.filter(id=doc_id).update(
                     status=status,
                     notes=reason
@@ -339,7 +502,6 @@ for message in consumer:
 
         else:
             logger.warning(f"⚠️ Unknown event type '{event_type}' received.")
-            logger.info(f"🔍 RAW EVENT: {event}")
 
     except Exception as e:
-        logger.exception(f"❌ Error processing message: {e}")
+        logger.exception(f"❌ Error processing Kafka message: {e}")

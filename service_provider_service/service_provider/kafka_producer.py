@@ -58,3 +58,59 @@ def publish_document_uploaded(provider_id, document_id, file_url, filename):
         logger.info(f"📤 Published PROVIDER.DOCUMENT.UPLOADED for {filename}")
     except Exception as e:
         logger.error(f"❌ Failed to publish document upload event: {e}")
+
+def publish_employee_updated(employee):
+    producer = get_kafka_producer()
+    if not producer:
+        logger.warning(f"⚠️ Kafka not connected. Employee update for '{employee.auth_user_id}' skipped.")
+        return
+
+    topic = "service_provider_events"
+    
+    # Get Organization ID (VerifiedUser auth_id of the provider)
+    try:
+        org_id = str(employee.organization.verified_user.auth_user_id)
+    except Exception:
+        org_id = None
+
+    payload = {
+        "event_type": "EMPLOYEE_UPDATED",
+        "role": "employee",
+        "data": {
+            "auth_user_id": str(employee.auth_user_id),
+            "organization_id": org_id,
+            "full_name": employee.full_name,
+            "email": employee.email,
+            "phone_number": employee.phone_number
+        }
+    }
+    
+    try:
+        producer.send(topic, payload)
+        producer.flush()
+        logger.info(f"📤 Published EMPLOYEE_UPDATED for {employee.auth_user_id}")
+    except Exception as e:
+        logger.error(f"❌ Failed to publish employee update event: {e}")
+
+def publish_employee_deleted(auth_user_id):
+    producer = get_kafka_producer()
+    if not producer:
+        logger.warning(f"⚠️ Kafka not connected. Employee deletion for '{auth_user_id}' skipped.")
+        return
+
+    topic = "service_provider_events"
+    
+    payload = {
+        "event_type": "EMPLOYEE_DELETED",
+        "role": "employee",
+        "data": {
+            "auth_user_id": str(auth_user_id)
+        }
+    }
+    
+    try:
+        producer.send(topic, payload)
+        producer.flush()
+        logger.info(f"📤 Published EMPLOYEE_DELETED for {auth_user_id}")
+    except Exception as e:
+        logger.error(f"❌ Failed to publish employee deletion event: {e}")

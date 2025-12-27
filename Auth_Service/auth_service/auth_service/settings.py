@@ -191,6 +191,11 @@ LOGGING = {
         },
     },
     'loggers': {
+        'users': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
         'users.email_utils': {
             'handlers': ['console'],
             'level': 'INFO',
@@ -198,7 +203,7 @@ LOGGING = {
         },
         'kafka': {
             'handlers': ['console'],
-            'level': 'CRITICAL',
+            'level': 'INFO',  # Changed to INFO to see connection logs
             'propagate': False,
         },
     },
