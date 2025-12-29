@@ -1,21 +1,21 @@
-2025-12-27 08:34:01,220 [INFO] 🚀 Starting Service Provider Unified Kafka Consumer...
-2025-12-27 08:34:01,232 [INFO] ✅ Connected to Kafka broker.
-2025-12-27 08:38:48,587 [INFO] 🔥 Event: USER_CREATED | Role: employee | Service: test_script
-2025-12-27 08:38:48,587 [INFO] 🔍 Processing Employee 869a1a94-7980-4533-af0b-71a12b591584 for Org 1431597c-72be-4565-a051-9cd8a9dea66c
-2025-12-27 08:38:48,627 [INFO] ✅ Created OrganizationEmployee 869a1a94-7980-4533-af0b-71a12b591584 (Invited)
-2025-12-27 09:28:31,765 [INFO] 🔥 Event: SEND_EMAIL | Role: employee | Service: auth_service
-2025-12-27 09:28:31,766 [WARNING] ⚠️ Unknown event type 'SEND_EMAIL' received.
-2025-12-27 09:28:31,774 [INFO] 🔥 Event: USER_CREATED | Role: employee | Service: auth_service
-2025-12-27 09:28:31,774 [INFO] 🔍 Processing Employee 3fac7baf-0283-43cf-8d8a-303a197b106e for Org b60ec54e-db5f-4697-acad-c960e301caa2
-2025-12-27 09:28:31,779 [INFO] ✅ Created OrganizationEmployee 3fac7baf-0283-43cf-8d8a-303a197b106e (Invited)
-2025-12-27 09:29:26,049 [INFO] 🔥 Event: USER_VERIFIED | Role: employee | Service: auth_service
-2025-12-27 09:29:26,055 [INFO] ✅ Activated OrganizationEmployee 3fac7baf-0283-43cf-8d8a-303a197b106e
-2025-12-27 09:35:35,040 [INFO] 🔥 Event: SEND_EMAIL | Role: employee | Service: auth_service
-2025-12-27 09:35:35,040 [WARNING] ⚠️ Unknown event type 'SEND_EMAIL' received.
-2025-12-27 09:35:35,048 [INFO] 🔥 Event: USER_CREATED | Role: employee | Service: auth_service
-2025-12-27 09:35:35,048 [INFO] 🔍 Processing Employee ba71d76b-9a71-4c10-9eb3-6fa0a2147ec9 for Org 7470623a-ee4b-4922-99f5-3ce2f17171d7
-2025-12-27 09:35:35,053 [INFO] ✅ Created OrganizationEmployee ba71d76b-9a71-4c10-9eb3-6fa0a2147ec9 (Invited)
-2025-12-27 09:36:10,116 [INFO] 🔥 Event: USER_VERIFIED | Role: employee | Service: auth_service
-2025-12-27 09:36:10,121 [INFO] ✅ Activated OrganizationEmployee ba71d76b-9a71-4c10-9eb3-6fa0a2147ec9
-2025-12-27 09:40:57,105 [INFO] 🚀 Starting Service Provider Unified Kafka Consumer...
-2025-12-27 09:40:57,125 [INFO] ✅ Connected to Kafka broker.
+2025-12-29 05:11:26,463 [INFO] 🚀 Starting Service Provider Unified Kafka Consumer...
+2025-12-29 05:11:26,479 [INFO] ✅ Connected to Kafka broker.
+2025-12-29 05:44:07,148 [INFO] 🔥 Event: SEND_EMAIL | Role: employee | Service: auth_service
+2025-12-29 05:44:07,149 [WARNING] ⚠️ Unknown event type 'SEND_EMAIL' received.
+2025-12-29 05:44:07,154 [INFO] 🔥 Event: USER_CREATED | Role: employee | Service: auth_service
+2025-12-29 05:44:07,155 [INFO] 🔍 Processing Employee 83101d02-e2d6-4bb4-8ede-11e1ac8dfab4 for Org 5d560f6b-a1cb-4025-b7bb-87ef212f8a1c
+2025-12-29 05:44:07,357 [INFO] ✅ Created OrganizationEmployee 83101d02-e2d6-4bb4-8ede-11e1ac8dfab4 (Invited)
+2025-12-29 05:44:07,391 [INFO] ✅ Created VerifiedUser bro@gmail.com
+2025-12-29 05:46:04,566 [INFO] 🔥 Event: PROVIDER.PERMISSIONS.UPDATED | Role:  | Service: None
+2025-12-29 05:46:04,630 [INFO] ✅ Synced Templates for user 5d560f6b-a1cb-4025-b7bb-87ef212f8a1c
+2025-12-29 05:46:04,641 [INFO] ✅ Updated 15 capabilities for user 5d560f6b-a1cb-4025-b7bb-87ef212f8a1c
+2025-12-29 05:46:04,646 [INFO] ✅ Synced Subscription for user 5d560f6b-a1cb-4025-b7bb-87ef212f8a1c (Active: True)
+2025-12-29 06:30:46,788 [INFO] 🔥 Event: USER_VERIFIED | Role: employee | Service: auth_service
+2025-12-29 06:30:46,794 [INFO] ✅ Activated OrganizationEmployee 83101d02-e2d6-4bb4-8ede-11e1ac8dfab4
+2025-12-29 06:30:46,798 [INFO] 🔄 Updated VerifiedUser bro@gmail.com
+2025-12-29 07:54:32,066 [INFO] 🔥 Event: EMPLOYEE_UPDATED | Role: employee | Service: None
+2025-12-29 07:54:32,068 [WARNING] ⚠️ Unknown event type 'EMPLOYEE_UPDATED' received.
+2025-12-29 07:55:05,197 [INFO] 🔥 Event: USER_UPDATED | Role: employee | Service: auth_service
+2025-12-29 07:55:06,294 [INFO] 🔥 Event: USER_UPDATED | Role: employee | Service: auth_service
+2025-12-29 07:55:07,158 [INFO] 🔥 Event: USER_UPDATED | Role: employee | Service: auth_service
+2025-12-29 07:55:08,096 [INFO] 🔥 Event: USER_UPDATED | Role: employee | Service: auth_service
