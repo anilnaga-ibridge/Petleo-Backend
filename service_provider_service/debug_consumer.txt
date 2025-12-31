@@ -19,3 +19,163 @@
 2025-12-29 07:55:06,294 [INFO] 🔥 Event: USER_UPDATED | Role: employee | Service: auth_service
 2025-12-29 07:55:07,158 [INFO] 🔥 Event: USER_UPDATED | Role: employee | Service: auth_service
 2025-12-29 07:55:08,096 [INFO] 🔥 Event: USER_UPDATED | Role: employee | Service: auth_service
+2025-12-30 05:16:30,370 [INFO] 🚀 Starting Service Provider Unified Kafka Consumer...
+2025-12-30 05:16:30,382 [INFO] ✅ Connected to Kafka broker.
+2025-12-30 07:26:51,820 [INFO] 🔥 Event: PROVIDER.PERMISSIONS.UPDATED | Role:  | Service: None
+2025-12-30 07:26:51,954 [INFO] ✅ Synced Templates for user 7470623a-ee4b-4922-99f5-3ce2f17171d7
+2025-12-30 07:26:51,971 [INFO] ✅ Updated 17 capabilities for user 7470623a-ee4b-4922-99f5-3ce2f17171d7
+2025-12-30 07:26:51,975 [INFO] ✅ Synced Subscription for user 7470623a-ee4b-4922-99f5-3ce2f17171d7 (Active: True)
+2025-12-31 04:45:11,834 [INFO] 🚀 Starting Service Provider Unified Kafka Consumer...
+2025-12-31 04:45:11,846 [INFO] ✅ Connected to Kafka broker.
+2025-12-31 06:37:22,459 [INFO] 🔥 Event: SEND_EMAIL | Role: receptionist | Service: auth_service
+2025-12-31 06:37:22,461 [WARNING] ⚠️ Unknown event type 'SEND_EMAIL' received.
+2025-12-31 06:37:22,468 [INFO] 🔥 Event: USER_CREATED | Role: receptionist | Service: auth_service
+2025-12-31 06:44:31,686 [INFO] 🔥 Event: USER_CREATED | Role: receptionist | Service: auth_service
+2025-12-31 06:45:18,311 [INFO] 🔥 Event: USER_CREATED | Role: receptionist | Service: auth_service
+2025-12-31 06:55:48,579 [INFO] 🔥 Event: USER_CREATED | Role: receptionist | Service: auth_service
+2025-12-31 06:55:48,580 [INFO] 🔥 Event: USER_CREATED | Role: vitals staff | Service: auth_service
+2025-12-31 06:55:48,584 [INFO] 🔥 Event: USER_CREATED | Role: doctor | Service: auth_service
+2025-12-31 06:55:48,584 [INFO] 🔥 Event: USER_CREATED | Role: lab tech | Service: auth_service
+2025-12-31 06:55:48,585 [INFO] 🔥 Event: USER_CREATED | Role: pharmacy | Service: auth_service
+2025-12-31 06:58:43,304 [INFO] 🔥 Event: USER_CREATED | Role: receptionist | Service: auth_service
+2025-12-31 06:58:43,305 [INFO] 🔥 Event: USER_CREATED | Role: vitals staff | Service: auth_service
+2025-12-31 06:58:43,305 [INFO] 🔥 Event: USER_CREATED | Role: doctor | Service: auth_service
+2025-12-31 06:58:43,305 [INFO] 🔥 Event: USER_CREATED | Role: lab tech | Service: auth_service
+2025-12-31 06:58:43,305 [INFO] 🔥 Event: USER_CREATED | Role: pharmacy | Service: auth_service
+2025-12-31 07:02:06,555 [INFO] 🔥 Event: SEND_EMAIL | Role: receptionist | Service: auth_service
+2025-12-31 07:02:06,555 [WARNING] ⚠️ Unknown event type 'SEND_EMAIL' received.
+2025-12-31 07:02:06,564 [INFO] 🔥 Event: USER_CREATED | Role: receptionist | Service: auth_service
+2025-12-31 07:06:50,444 [INFO] 🚀 Starting Service Provider Unified Kafka Consumer...
+2025-12-31 07:06:50,454 [INFO] ✅ Connected to Kafka broker.
+2025-12-31 07:08:41,142 [INFO] 🔥 Event: USER_CREATED | Role: receptionist | Service: auth_service
+2025-12-31 07:08:41,142 [INFO] DEBUG: Checking role 'receptionist' against employee list...
+2025-12-31 07:08:41,142 [INFO] DEBUG: Role matched employee list.
+2025-12-31 07:08:41,143 [INFO] 🔍 Processing Employee 3be50240-ccb7-47f1-9de6-5bef0e4f89f7 for Org 5d560f6b-a1cb-4025-b7bb-87ef212f8a1c
+2025-12-31 07:08:41,203 [INFO] ✅ Created OrganizationEmployee 3be50240-ccb7-47f1-9de6-5bef0e4f89f7 (Invited)
+2025-12-31 07:08:41,214 [INFO] ✅ Created VerifiedUser receptionist_3be50@test.com
+2025-12-31 07:08:41,219 [INFO] 🔥 Event: USER_CREATED | Role: vitals staff | Service: auth_service
+2025-12-31 07:08:41,219 [INFO] DEBUG: Checking role 'vitals staff' against employee list...
+2025-12-31 07:08:41,219 [INFO] DEBUG: Role matched employee list.
+2025-12-31 07:08:41,219 [INFO] 🔍 Processing Employee 8b730e1f-d671-4b9d-a4a4-aa06547e0f5f for Org 5d560f6b-a1cb-4025-b7bb-87ef212f8a1c
+2025-12-31 07:08:41,225 [INFO] ✅ Created OrganizationEmployee 8b730e1f-d671-4b9d-a4a4-aa06547e0f5f (Invited)
+2025-12-31 07:08:41,230 [INFO] ✅ Created VerifiedUser vitalsstaff_8b730@test.com
+2025-12-31 07:08:41,230 [INFO] 🔥 Event: USER_CREATED | Role: doctor | Service: auth_service
+2025-12-31 07:08:41,230 [INFO] DEBUG: Checking role 'doctor' against employee list...
+2025-12-31 07:08:41,231 [INFO] DEBUG: Role matched employee list.
+2025-12-31 07:08:41,231 [INFO] 🔍 Processing Employee 6ffcd0c0-81a0-402a-901e-3d8729566a85 for Org 5d560f6b-a1cb-4025-b7bb-87ef212f8a1c
+2025-12-31 07:08:41,236 [INFO] ✅ Created OrganizationEmployee 6ffcd0c0-81a0-402a-901e-3d8729566a85 (Invited)
+2025-12-31 07:08:41,247 [INFO] ✅ Created VerifiedUser doctor_6ffcd@test.com
+2025-12-31 07:08:41,248 [INFO] 🔥 Event: USER_CREATED | Role: lab tech | Service: auth_service
+2025-12-31 07:08:41,248 [INFO] DEBUG: Checking role 'lab tech' against employee list...
+2025-12-31 07:08:41,248 [INFO] DEBUG: Role matched employee list.
+2025-12-31 07:08:41,248 [INFO] 🔍 Processing Employee d26420b9-6ed6-4964-b617-fd706c0465bd for Org 5d560f6b-a1cb-4025-b7bb-87ef212f8a1c
+2025-12-31 07:08:41,252 [INFO] ✅ Created OrganizationEmployee d26420b9-6ed6-4964-b617-fd706c0465bd (Invited)
+2025-12-31 07:08:41,256 [INFO] ✅ Created VerifiedUser labtech_d2642@test.com
+2025-12-31 07:08:41,257 [INFO] 🔥 Event: USER_CREATED | Role: pharmacy | Service: auth_service
+2025-12-31 07:08:41,257 [INFO] DEBUG: Checking role 'pharmacy' against employee list...
+2025-12-31 07:08:41,257 [INFO] DEBUG: Role matched employee list.
+2025-12-31 07:08:41,257 [INFO] 🔍 Processing Employee 24fc16ea-7121-445e-83f4-bee777806ada for Org 5d560f6b-a1cb-4025-b7bb-87ef212f8a1c
+2025-12-31 07:08:41,262 [INFO] ✅ Created OrganizationEmployee 24fc16ea-7121-445e-83f4-bee777806ada (Invited)
+2025-12-31 07:08:41,265 [INFO] ✅ Created VerifiedUser pharmacy_24fc1@test.com
+2025-12-31 07:12:22,874 [INFO] 🔥 Event: USER_CREATED | Role: receptionist | Service: auth_service
+2025-12-31 07:12:22,875 [INFO] DEBUG: Checking role 'receptionist' against employee list...
+2025-12-31 07:12:22,875 [INFO] DEBUG: Role matched employee list.
+2025-12-31 07:12:22,875 [INFO] 🔍 Processing Employee d00a0be1-7134-4897-b98b-e5876e8e7358 for Org 7470623a-ee4b-4922-99f5-3ce2f17171d7
+2025-12-31 07:12:22,881 [INFO] ✅ Created OrganizationEmployee d00a0be1-7134-4897-b98b-e5876e8e7358 (Invited)
+2025-12-31 07:12:22,886 [INFO] ✅ Created VerifiedUser receptionist_d00a0@test.com
+2025-12-31 07:12:22,887 [INFO] 🔥 Event: USER_CREATED | Role: vitals staff | Service: auth_service
+2025-12-31 07:12:22,887 [INFO] DEBUG: Checking role 'vitals staff' against employee list...
+2025-12-31 07:12:22,887 [INFO] DEBUG: Role matched employee list.
+2025-12-31 07:12:22,887 [INFO] 🔍 Processing Employee 4c96ad89-1fd2-4e5c-a9fd-de5278a6260a for Org 7470623a-ee4b-4922-99f5-3ce2f17171d7
+2025-12-31 07:12:22,893 [INFO] ✅ Created OrganizationEmployee 4c96ad89-1fd2-4e5c-a9fd-de5278a6260a (Invited)
+2025-12-31 07:12:22,897 [INFO] ✅ Created VerifiedUser vitalsstaff_4c96a@test.com
+2025-12-31 07:12:22,897 [INFO] 🔥 Event: USER_CREATED | Role: doctor | Service: auth_service
+2025-12-31 07:12:22,897 [INFO] DEBUG: Checking role 'doctor' against employee list...
+2025-12-31 07:12:22,897 [INFO] DEBUG: Role matched employee list.
+2025-12-31 07:12:22,898 [INFO] 🔍 Processing Employee ded8d424-e13b-4b94-92d2-0e4dd1071ed6 for Org 7470623a-ee4b-4922-99f5-3ce2f17171d7
+2025-12-31 07:12:22,904 [INFO] ✅ Created OrganizationEmployee ded8d424-e13b-4b94-92d2-0e4dd1071ed6 (Invited)
+2025-12-31 07:12:22,907 [INFO] ✅ Created VerifiedUser doctor_ded8d@test.com
+2025-12-31 07:12:22,908 [INFO] 🔥 Event: USER_CREATED | Role: lab tech | Service: auth_service
+2025-12-31 07:12:22,908 [INFO] DEBUG: Checking role 'lab tech' against employee list...
+2025-12-31 07:12:22,908 [INFO] DEBUG: Role matched employee list.
+2025-12-31 07:12:22,908 [INFO] 🔍 Processing Employee 067490a4-9ef9-4d9a-894f-8a490da3d1b6 for Org 7470623a-ee4b-4922-99f5-3ce2f17171d7
+2025-12-31 07:12:22,912 [INFO] ✅ Created OrganizationEmployee 067490a4-9ef9-4d9a-894f-8a490da3d1b6 (Invited)
+2025-12-31 07:12:22,917 [INFO] ✅ Created VerifiedUser labtech_06749@test.com
+2025-12-31 07:12:22,918 [INFO] 🔥 Event: USER_CREATED | Role: pharmacy | Service: auth_service
+2025-12-31 07:12:22,918 [INFO] DEBUG: Checking role 'pharmacy' against employee list...
+2025-12-31 07:12:22,918 [INFO] DEBUG: Role matched employee list.
+2025-12-31 07:12:22,919 [INFO] 🔍 Processing Employee b45b1d30-e65e-46fb-b9f0-cf48d3734018 for Org 7470623a-ee4b-4922-99f5-3ce2f17171d7
+2025-12-31 07:12:22,923 [INFO] ✅ Created OrganizationEmployee b45b1d30-e65e-46fb-b9f0-cf48d3734018 (Invited)
+2025-12-31 07:12:22,926 [INFO] ✅ Created VerifiedUser pharmacy_b45b1@test.com
+2025-12-31 07:14:04,773 [INFO] 🔥 Event: SEND_EMAIL | Role: receptionist | Service: auth_service
+2025-12-31 07:14:04,773 [WARNING] ⚠️ Unknown event type 'SEND_EMAIL' received.
+2025-12-31 07:14:04,780 [INFO] 🔥 Event: USER_CREATED | Role: receptionist | Service: auth_service
+2025-12-31 07:14:04,780 [INFO] DEBUG: Checking role 'receptionist' against employee list...
+2025-12-31 07:14:04,781 [INFO] DEBUG: Role matched employee list.
+2025-12-31 07:14:04,781 [ERROR] ❌ Employee 948f3264-05b8-47d5-9739-284815e7a76f missing organization_id in USER_CREATED
+2025-12-31 07:20:15,286 [INFO] 🚀 Starting Service Provider Unified Kafka Consumer...
+2025-12-31 07:20:15,296 [INFO] ✅ Connected to Kafka broker.
+2025-12-31 07:20:37,677 [INFO] 🔥 Event: EMPLOYEE_DELETED | Role: employee | Service: None
+2025-12-31 07:20:37,677 [WARNING] ⚠️ Unknown event type 'EMPLOYEE_DELETED' received.
+2025-12-31 07:20:43,042 [INFO] 🔥 Event: EMPLOYEE_DELETED | Role: employee | Service: None
+2025-12-31 07:20:43,043 [WARNING] ⚠️ Unknown event type 'EMPLOYEE_DELETED' received.
+2025-12-31 07:21:23,555 [INFO] 🔥 Event: SEND_EMAIL | Role: receptionist | Service: auth_service
+2025-12-31 07:21:23,556 [WARNING] ⚠️ Unknown event type 'SEND_EMAIL' received.
+2025-12-31 07:21:23,565 [INFO] 🔥 Event: USER_CREATED | Role: receptionist | Service: auth_service
+2025-12-31 07:21:23,565 [INFO] DEBUG: Checking role 'receptionist' against employee list...
+2025-12-31 07:21:23,565 [INFO] DEBUG: Role matched employee list.
+2025-12-31 07:21:23,565 [INFO] 🔍 Processing Employee 0a2f8972-93c6-4160-9942-da2b63bc296b for Org 7470623a-ee4b-4922-99f5-3ce2f17171d7
+2025-12-31 07:21:23,617 [INFO] ✅ Created OrganizationEmployee 0a2f8972-93c6-4160-9942-da2b63bc296b (Invited)
+2025-12-31 07:21:23,621 [INFO] ✅ Created VerifiedUser receptionist@gmail.com
+2025-12-31 07:28:20,779 [INFO] 🔥 Event: SEND_EMAIL | Role: receptionist | Service: auth_service
+2025-12-31 07:28:20,779 [WARNING] ⚠️ Unknown event type 'SEND_EMAIL' received.
+2025-12-31 07:28:20,788 [INFO] 🔥 Event: USER_CREATED | Role: receptionist | Service: auth_service
+2025-12-31 07:28:20,788 [INFO] DEBUG: Checking role 'receptionist' against employee list...
+2025-12-31 07:28:20,788 [INFO] DEBUG: Role matched employee list.
+2025-12-31 07:28:20,788 [INFO] 🔍 Processing Employee 0160b0e8-dbc2-4d99-afaa-59bdfdfa4356 for Org 7470623a-ee4b-4922-99f5-3ce2f17171d7
+2025-12-31 07:28:20,797 [INFO] ✅ Created OrganizationEmployee 0160b0e8-dbc2-4d99-afaa-59bdfdfa4356 (Invited)
+2025-12-31 07:28:20,803 [INFO] ✅ Created VerifiedUser receptionist2@gmail.com
+2025-12-31 07:29:00,841 [INFO] 🔥 Event: USER_VERIFIED | Role: receptionist | Service: auth_service
+2025-12-31 07:29:00,841 [INFO] DEBUG: Checking role 'receptionist' against employee list...
+2025-12-31 07:29:00,841 [INFO] DEBUG: Role matched employee list.
+2025-12-31 07:29:00,850 [INFO] ✅ Activated OrganizationEmployee 0a2f8972-93c6-4160-9942-da2b63bc296b
+2025-12-31 07:29:00,857 [INFO] 🔄 Updated VerifiedUser receptionist@gmail.com
+2025-12-31 07:34:20,357 [INFO] 🔥 Event: USER_VERIFIED | Role: receptionist | Service: auth_service
+2025-12-31 07:34:20,357 [INFO] DEBUG: Checking role 'receptionist' against employee list...
+2025-12-31 07:34:20,357 [INFO] DEBUG: Role matched employee list.
+2025-12-31 07:34:20,366 [INFO] ✅ Activated OrganizationEmployee 0160b0e8-dbc2-4d99-afaa-59bdfdfa4356
+2025-12-31 07:34:20,370 [INFO] 🔄 Updated VerifiedUser receptionist2@gmail.com
+2025-12-31 09:29:29,568 [INFO] 🔥 Event: EMPLOYEE_UPDATED | Role: employee | Service: None
+2025-12-31 09:29:29,568 [WARNING] ⚠️ Unknown event type 'EMPLOYEE_UPDATED' received.
+2025-12-31 09:35:54,309 [INFO] 🔥 Event: EMPLOYEE_DELETED | Role: employee | Service: None
+2025-12-31 09:35:54,309 [WARNING] ⚠️ Unknown event type 'EMPLOYEE_DELETED' received.
+2025-12-31 09:35:58,304 [INFO] 🔥 Event: EMPLOYEE_DELETED | Role: employee | Service: None
+2025-12-31 09:35:58,305 [WARNING] ⚠️ Unknown event type 'EMPLOYEE_DELETED' received.
+2025-12-31 09:36:40,580 [INFO] 🔥 Event: SEND_EMAIL | Role: doctor | Service: auth_service
+2025-12-31 09:36:40,581 [WARNING] ⚠️ Unknown event type 'SEND_EMAIL' received.
+2025-12-31 09:36:40,588 [INFO] 🔥 Event: USER_CREATED | Role: doctor | Service: auth_service
+2025-12-31 09:36:40,588 [INFO] DEBUG: Checking role 'doctor' against employee list...
+2025-12-31 09:36:40,588 [INFO] DEBUG: Role matched employee list.
+2025-12-31 09:36:40,589 [INFO] 🔍 Processing Employee 5b3578d9-f5c1-4f9c-bc43-0d25caa47ca8 for Org 7470623a-ee4b-4922-99f5-3ce2f17171d7
+2025-12-31 09:36:40,597 [INFO] ✅ Created OrganizationEmployee 5b3578d9-f5c1-4f9c-bc43-0d25caa47ca8 (Invited)
+2025-12-31 09:36:40,601 [INFO] ✅ Created VerifiedUser doctor@gmail.com
+2025-12-31 09:37:15,832 [INFO] 🔥 Event: USER_VERIFIED | Role: doctor | Service: auth_service
+2025-12-31 09:37:15,832 [INFO] DEBUG: Checking role 'doctor' against employee list...
+2025-12-31 09:37:15,832 [INFO] DEBUG: Role matched employee list.
+2025-12-31 09:37:15,835 [INFO] ✅ Activated OrganizationEmployee 5b3578d9-f5c1-4f9c-bc43-0d25caa47ca8
+2025-12-31 09:37:15,840 [INFO] 🔄 Updated VerifiedUser doctor@gmail.com
+2025-12-31 09:38:17,843 [INFO] 🔥 Event: EMPLOYEE_UPDATED | Role: employee | Service: None
+2025-12-31 09:38:17,844 [WARNING] ⚠️ Unknown event type 'EMPLOYEE_UPDATED' received.
+2025-12-31 11:39:00,553 [INFO] 🔥 Event: SEND_EMAIL | Role: organization | Service: auth_service
+2025-12-31 11:39:00,554 [WARNING] ⚠️ Unknown event type 'SEND_EMAIL' received.
+2025-12-31 11:39:00,557 [INFO] 🔥 Event: USER_CREATED | Role: organization | Service: auth_service
+2025-12-31 11:39:00,558 [INFO] DEBUG: Checking role 'organization' against employee list...
+2025-12-31 11:39:00,581 [INFO] ✅ Created VerifiedUser das@gmail.com
+2025-12-31 11:39:00,588 [INFO] ✅ Auto-created ServiceProvider profile for das@gmail.com
+2025-12-31 11:40:19,714 [INFO] 🔥 Event: USER_VERIFIED | Role: organization | Service: auth_service
+2025-12-31 11:40:19,715 [INFO] DEBUG: Checking role 'organization' against employee list...
+2025-12-31 11:40:19,720 [INFO] 🔄 Updated VerifiedUser das@gmail.com
+2025-12-31 11:46:01,638 [INFO] 🔥 Event: PROVIDER.PERMISSIONS.UPDATED | Role:  | Service: None
+2025-12-31 11:46:01,685 [INFO] ✅ Synced Templates for user 66874c90-2059-4b18-a17b-34963fc0c9af
+2025-12-31 11:46:01,697 [INFO] ✅ Updated 9 capabilities for user 66874c90-2059-4b18-a17b-34963fc0c9af
+2025-12-31 11:46:01,701 [INFO] ✅ Synced Subscription for user 66874c90-2059-4b18-a17b-34963fc0c9af (Active: True)

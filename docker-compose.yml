@@ -145,6 +145,26 @@ services:
       timeout: 5s
       retries: 15
 
+  # 🗄 PostgreSQL for Veterinary Service
+  postgres_veterinary:
+    image: postgres:15
+    container_name: postgres_veterinary
+    environment:
+      POSTGRES_DB: veterinary_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5436:5432"
+    volumes:
+      - postgres_veterinary_data:/var/lib/postgresql/data
+    networks:
+      - micro_net
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+
   # 🔐 Django Auth Service
   auth_service:
     build:
@@ -215,6 +235,28 @@ services:
     networks:
       - micro_net
 
+  # 🐾 Django Veterinary Service
+  veterinary_service:
+    build:
+      context: ./veterinary_service
+    container_name: veterinary_service
+    command: python manage.py runserver 0.0.0.0:8000 --noreload
+    ports:
+      - "8004:8000"
+    depends_on:
+      postgres_veterinary:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+    environment:
+      POSTGRES_HOST: postgres_veterinary
+      POSTGRES_DB: veterinary_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      KAFKA_BROKER_URL: kafka:9092
+    networks:
+      - micro_net
+
   # 🚪 API Gateway — KONG
   kong:
     image: kong:3.6
@@ -244,3 +286,4 @@ volumes:
   postgres_sp_data:
   postgres_sa_data:
   redis_data:
+  postgres_veterinary_data:

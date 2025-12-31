@@ -1,0 +1,266 @@
+
+from django.db import models
+from django.utils.translation import gettext_lazy as _
+import uuid
+
+class TimeStampedModel(models.Model):
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        abstract = True
+
+# ========================
+# STATIC CORE MODELS
+# ========================
+
+class Clinic(TimeStampedModel):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField(max_length=255)
+    provider_id = models.CharField(max_length=255, unique=True, help_text="ID from Auth Service")
+    capabilities = models.JSONField(default=dict, blank=True, help_text="Synced from Provider Service")
+    
+    def __str__(self):
+        return self.name
+
+class PetOwner(TimeStampedModel):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    clinic = models.ForeignKey(Clinic, on_delete=models.CASCADE, related_name='owners')
+    auth_user_id = models.CharField(max_length=255, help_text="ID from Auth Service", null=True, blank=True)
+    name = models.CharField(max_length=255, default="Unknown")
+    email = models.EmailField(blank=True, null=True)
+    phone = models.CharField(max_length=50)
+    address = models.TextField(blank=True, null=True)
+    
+    class Meta:
+        unique_together = ('clinic', 'phone')
+
+    def __str__(self):
+        return f"Owner {self.phone}"
+
+class Pet(TimeStampedModel):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    owner = models.ForeignKey(PetOwner, on_delete=models.CASCADE, related_name='pets')
+    name = models.CharField(max_length=255, default="Unknown Pet")
+    species = models.CharField(max_length=100, blank=True, null=True)
+    breed = models.CharField(max_length=100, blank=True, null=True)
+    
+    def __str__(self):
+        return f"{self.name} ({self.species})"
+
+class Visit(TimeStampedModel):
+    STATUS_CHOICES = [
+        ('CREATED', 'Created'),
+        ('CHECKED_IN', 'Checked In'),
+        ('VITALS_RECORDED', 'Vitals Recorded'),
+        ('LAB_ORDERED', 'Lab Ordered'),
+        ('LAB_RESULTS_READY', 'Lab Results Ready'),
+        ('PRESCRIPTION_FINALIZED', 'Prescription Finalized'),
+        ('MEDICINES_DISPENSED', 'Medicines Dispensed'),
+        ('CLOSED', 'Closed'),
+    ]
+
+    VISIT_TYPE_CHOICES = [
+        ('OFFLINE', 'Offline'),
+        ('ONLINE', 'Online'),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    clinic = models.ForeignKey(Clinic, on_delete=models.CASCADE, related_name='visits')
+    pet = models.ForeignKey(Pet, on_delete=models.CASCADE, related_name='visits')
+    status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='CREATED')
+    visit_type = models.CharField(max_length=20, choices=VISIT_TYPE_CHOICES, default='OFFLINE')
+    
+    # SLA / Timeline Fields
+    checked_in_at = models.DateTimeField(null=True, blank=True)
+    vitals_started_at = models.DateTimeField(null=True, blank=True) # Added per spec
+    vitals_completed_at = models.DateTimeField(null=True, blank=True)
+    doctor_started_at = models.DateTimeField(null=True, blank=True)
+    lab_ordered_at = models.DateTimeField(null=True, blank=True)
+    lab_completed_at = models.DateTimeField(null=True, blank=True)
+    prescription_finalized_at = models.DateTimeField(null=True, blank=True)
+    pharmacy_completed_at = models.DateTimeField(null=True, blank=True) # Added per spec (alias for medicines_dispensed)
+    closed_at = models.DateTimeField(null=True, blank=True)
+    
+    def __str__(self):
+        return f"Visit {self.id} ({self.status})"
+
+# ========================
+# DYNAMIC FIELD ENGINE
+# ========================
+
+class DynamicFieldDefinition(TimeStampedModel):
+    ENTITY_TYPES = [
+        ('CLINIC', 'Clinic'),
+        ('OWNER', 'Pet Owner'),
+        ('PET', 'Pet'),
+        ('VISIT', 'Visit'),
+        ('VITALS', 'Vitals'),
+        ('DIAGNOSIS', 'Diagnosis'),
+        ('LAB', 'Lab Test'),
+        ('PRESCRIPTION', 'Prescription'),
+        ('VACCINE', 'Vaccine'),
+    ]
+    
+    FIELD_TYPES = [
+        ('TEXT', 'Text'),
+        ('NUMBER', 'Number'),
+        ('TEXTAREA', 'Textarea'),
+        ('DATE', 'Date'),
+        ('BOOLEAN', 'Boolean'),
+        ('DROPDOWN', 'Dropdown'),
+        ('MULTISELECT', 'Multi-Select'),
+        ('FILE', 'File'),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    clinic = models.ForeignKey(Clinic, on_delete=models.CASCADE, related_name='field_definitions')
+    entity_type = models.CharField(max_length=50, choices=ENTITY_TYPES)
+    key = models.CharField(max_length=50, help_text="Machine key, e.g., 'temperature_c'")
+    label = models.CharField(max_length=100, help_text="UI Label")
+    field_type = models.CharField(max_length=20, choices=FIELD_TYPES)
+    is_required = models.BooleanField(default=False)
+    options = models.JSONField(default=list, blank=True, help_text="Options for DROPDOWN/MULTISELECT")
+    order = models.IntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+    
+    class Meta:
+        unique_together = ('clinic', 'entity_type', 'key')
+        ordering = ['order']
+
+    def __str__(self):
+        return f"{self.label} ({self.entity_type})"
+
+class DynamicFieldValue(TimeStampedModel):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    definition = models.ForeignKey(DynamicFieldDefinition, on_delete=models.PROTECT)
+    entity_id = models.UUIDField(help_text="ID of the related entity (Visit, Pet, or Virtual UUID)")
+    value = models.JSONField(help_text="Stores the actual value")
+    
+    class Meta:
+        indexes = [
+            models.Index(fields=['entity_id']),
+            models.Index(fields=['definition']),
+        ]
+
+# ========================
+# PHASE 2: METADATA ENGINE
+# ========================
+
+class FormDefinition(TimeStampedModel):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    code = models.CharField(max_length=50, unique=True, help_text="Unique code e.g. VITALS_FORM")
+    name = models.CharField(max_length=100)
+    description = models.TextField(blank=True, null=True)
+    is_active = models.BooleanField(default=True)
+    clinic = models.ForeignKey(Clinic, on_delete=models.CASCADE, related_name='forms', null=True, blank=True, help_text="Null for global forms")
+
+    def __str__(self):
+        return f"{self.name} ({self.code})"
+
+class FormField(TimeStampedModel):
+    FIELD_TYPES = [
+        ('TEXT', 'Text'),
+        ('NUMBER', 'Number'),
+        ('SELECT', 'Select'),
+        ('BOOLEAN', 'Boolean'),
+        ('DATE', 'Date'),
+        ('TEXTAREA', 'Textarea'),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    form_definition = models.ForeignKey(FormDefinition, on_delete=models.CASCADE, related_name='fields')
+    field_key = models.CharField(max_length=50, help_text="Key for JSON storage e.g. temperature")
+    label = models.CharField(max_length=100)
+    field_type = models.CharField(max_length=20, choices=FIELD_TYPES)
+    unit = models.CharField(max_length=20, blank=True, null=True, help_text="e.g. kg, bpm")
+    is_required = models.BooleanField(default=False)
+    order = models.IntegerField(default=0)
+    metadata = models.JSONField(default=dict, blank=True, help_text="Extra config like select options")
+
+    class Meta:
+        ordering = ['order']
+        unique_together = ('form_definition', 'field_key')
+
+    def __str__(self):
+        return f"{self.label} ({self.field_key})"
+
+class FieldValidation(TimeStampedModel):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    form_field = models.ForeignKey(FormField, on_delete=models.CASCADE, related_name='validations')
+    min_value = models.FloatField(null=True, blank=True)
+    max_value = models.FloatField(null=True, blank=True)
+    regex = models.CharField(max_length=255, null=True, blank=True)
+    error_message = models.CharField(max_length=255, null=True, blank=True)
+
+class FormSubmission(TimeStampedModel):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    form_definition = models.ForeignKey(FormDefinition, on_delete=models.PROTECT, related_name='submissions')
+    visit = models.ForeignKey(Visit, on_delete=models.CASCADE, related_name='form_submissions')
+    submitted_by = models.CharField(max_length=255, help_text="Auth User ID")
+    data = models.JSONField(default=dict)
+
+    def __str__(self):
+        return f"Submission for {self.form_definition.code} in Visit {self.visit.id}"
+
+# ========================
+# PHASE 3: EXECUTION LAYER
+# ========================
+
+class PharmacyDispense(TimeStampedModel):
+    DISPENSE_STATUS = [
+        ('DISPENSED', 'Dispensed'),
+        ('PARTIAL', 'Partial'),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    visit = models.ForeignKey(Visit, on_delete=models.CASCADE, related_name='dispenses')
+    prescription_submission = models.ForeignKey(FormSubmission, on_delete=models.CASCADE, related_name='dispenses')
+    dispensed_by = models.CharField(max_length=255, help_text="Auth User ID")
+    dispensed_at = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(max_length=20, choices=DISPENSE_STATUS, default='DISPENSED')
+
+    def __str__(self):
+        return f"Dispense for Visit {self.visit.id}"
+
+class MedicationReminder(TimeStampedModel):
+    REMINDER_STATUS = [
+        ('ACTIVE', 'Active'),
+        ('COMPLETED', 'Completed'),
+        ('MISSED', 'Missed'),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    visit = models.ForeignKey(Visit, on_delete=models.CASCADE, related_name='reminders')
+    pet = models.ForeignKey(Pet, on_delete=models.CASCADE, related_name='reminders')
+    medicine_name = models.CharField(max_length=255)
+    dosage = models.CharField(max_length=100)
+    frequency = models.CharField(max_length=100, help_text="e.g. '1-0-1' or 'Once a day'")
+    start_date = models.DateField()
+    end_date = models.DateField()
+    next_reminder_at = models.DateTimeField()
+    status = models.CharField(max_length=20, choices=REMINDER_STATUS, default='ACTIVE')
+
+    def __str__(self):
+        return f"Reminder for {self.medicine_name} ({self.pet.id})"
+
+class VeterinaryAuditLog(TimeStampedModel):
+    ACTION_TYPES = [
+        ('STATUS_CHANGE', 'Status Change'),
+        ('VITALS_ENTERED', 'Vitals Entered'),
+        ('LAB_ORDERED', 'Lab Ordered'),
+        ('LAB_RESULT_ADDED', 'Lab Result Added'),
+        ('PRESCRIPTION_CREATED', 'Prescription Created'),
+        ('MEDICINE_DISPENSED', 'Medicine Dispensed'),
+        ('VISIT_CREATED', 'Visit Created'),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    visit = models.ForeignKey(Visit, on_delete=models.CASCADE, related_name='audit_logs')
+    action_type = models.CharField(max_length=50, choices=ACTION_TYPES)
+    performed_by = models.CharField(max_length=255, help_text="Auth User ID")
+    capability_used = models.CharField(max_length=100, blank=True, null=True)
+    metadata = models.JSONField(default=dict, blank=True)
+
+    def __str__(self):
+        return f"{self.action_type} on Visit {self.visit.id} by {self.performed_by}"

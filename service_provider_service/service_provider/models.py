@@ -149,8 +149,8 @@ class OrganizationEmployee(models.Model):
     
     status = models.CharField(
         max_length=20,
-        choices=[("invited", "Invited"), ("active", "Active"), ("suspended", "Suspended")],
-        default="invited"
+        choices=[("PENDING", "Pending"), ("ACTIVE", "Active"), ("DISABLED", "Disabled")],
+        default="PENDING"
     )
     
     created_by = models.UUIDField()  # Auth ID of the creator

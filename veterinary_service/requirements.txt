@@ -1,0 +1,11 @@
+Django>=5.0
+djangorestframework
+djangorestframework-simplejwt
+redis
+kafka-python
+django-cors-headers
+django-environ
+python-dotenv
+python-decouple
+psycopg2-binary
+django-redis

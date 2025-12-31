@@ -1,6 +1,22 @@
 from rest_framework import permissions
 
 
+class IsOrganizationAdmin(permissions.BasePermission):
+    """
+    Allows access only to organization admins.
+    """
+    def has_permission(self, request, view):
+        if not request.user or not request.user.is_authenticated:
+            return False
+        
+        # In Provider Service, request.user is a VerifiedUser object
+        role = getattr(request.user, 'role', '')
+        if not role:
+            return False
+            
+        return role.upper() == 'ORGANIZATION'
+
+
 class HasProviderPermission(permissions.BasePermission):
     """
     Checks if the provider has permission to perform the action on the specific service/category.

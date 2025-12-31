@@ -34,7 +34,7 @@
 # # =======================================================phno otp ============================
 # users/urls.py
 from django.urls import path, include
-from .views import RegisterView, SendOTPView, VerifyOTPView, RefreshTokenView, LogoutView
+from .views import RegisterView, SendOTPView, VerifyOTPView, RefreshTokenView, LogoutView, UnifiedLoginView
 from . import views
 from rest_framework.routers import DefaultRouter
 from .views import (
@@ -50,6 +50,7 @@ router.register(r"permissions", PermissionViewSet, basename="permissions")
 router.register(r'email-templates', EmailTemplateViewSet, basename='email-templates')
 
 urlpatterns = [
+    path('api/auth/login/', UnifiedLoginView.as_view(), name='auth-login'),
     path('api/auth/register/', RegisterView.as_view(), name='auth-register'),
     path('api/auth/send-otp/', SendOTPView.as_view(), name='auth-send-otp'),
     path('api/auth/refresh-token/', RefreshTokenView.as_view(), name='auth-refresh'),
@@ -68,17 +69,12 @@ urlpatterns = [
       path('', include(router.urls)),
       
       
-       # --- 🔐 PIN Authentication Routes ---
-    path("set-pin/", SetPinView.as_view(), name="set-pin"),  
-    # Authenticated user sets a PIN after OTP login
-
-    path("login-with-pin/", LoginWithPinView.as_view(), name="login-with-pin"),
-    # Login using PIN (only valid same calendar day)
-
-    path("reset-pin/", ResetPinView.as_view(), name="reset-pin"),
-    # Triggers OTP for PIN reset (verify OTP → set new PIN)
-
-    path("change-pin/", ChangePinView.as_view(), name="change-pin"),
+    # --- 🔐 PIN Authentication Routes ---
+    path("api/auth/set-pin/", SetPinView.as_view(), name="set-pin"),
+    path("set-pin/", SetPinView.as_view(), name="set-pin-short"), # [NEW] Handle /auth/set-pin/  
+    path("api/auth/login-with-pin/", LoginWithPinView.as_view(), name="login-with-pin"),
+    path("api/auth/reset-pin/", ResetPinView.as_view(), name="reset-pin"),
+    path("api/auth/change-pin/", ChangePinView.as_view(), name="change-pin"),
     # Authenticated user changes PIN (old PIN + new PIN)
     
     

@@ -65,11 +65,19 @@ class User(AbstractUser):
     # PIN fields
     pin_hash = models.CharField(max_length=255, null=True, blank=True)
     pin_set_at = models.DateTimeField(null=True, blank=True)
-    pin_expires_at = models.DateTimeField(null=True, blank=True)  # New field
+    pin_expires_at = models.DateTimeField(null=True, blank=True)
     last_pin_login = models.DateTimeField(null=True, blank=True)
 
     # OTP login optional
     last_otp_login = models.DateTimeField(null=True, blank=True)
+
+    # Staff Management
+    organization_id = models.UUIDField(null=True, blank=True) # For employees
+    status = models.CharField(
+        max_length=20, 
+        choices=[('PENDING', 'Pending'), ('ACTIVE', 'Active'), ('DISABLED', 'Disabled')],
+        default='PENDING'
+    )
 
     # ⭐ New field for inactivity lock feature
     last_active_at = models.DateTimeField(null=True, blank=True)

@@ -13,6 +13,7 @@ django.setup()
 
 from service_provider.models import VerifiedUser, OrganizationEmployee, ServiceProvider
 from provider_dynamic_fields.models import LocalFieldDefinition, LocalDocumentDefinition, ProviderDocument
+from service_provider.role_capabilities import get_default_capabilities
 
 # Logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
@@ -76,7 +77,9 @@ for message in consumer:
             # ==========================
             # EMPLOYEE FLOW (ONLY ORG EMPLOYEES)
             # ==========================
-            if role == "employee":
+            logger.info(f"DEBUG: Checking role '{role}' against employee list...")
+            if role in ["employee", "receptionist", "veterinarian", "groomer", "doctor", "labtech", "lab tech", "pharmacy", "vitalsstaff", "vitals staff"]:
+                logger.info("DEBUG: Role matched employee list.")
                 organization_id = data.get("organization_id")
                 # For USER_VERIFIED, organization_id might not be in payload, so we rely on existing record
                 # But for USER_CREATED it is mandatory.
@@ -100,8 +103,8 @@ for message in consumer:
                                 "full_name": data.get("full_name"),
                                 "email": data.get("email"),
                                 "phone_number": data.get("phone_number"),
-                                "role": "employee",
-                                "status": "invited",
+                                "role": role,
+                                "status": "PENDING",
                                 "created_by": data.get("created_by")
                             },
                         )
@@ -122,8 +125,8 @@ for message in consumer:
                                     "full_name": data.get("full_name"),
                                     "email": data.get("email"),
                                     "phone_number": data.get("phone_number"),
-                                    "role": "employee",
-                                    "status": "invited",
+                                    "role": role,
+                                    "status": "PENDING",
                                     "created_by": data.get("created_by")
                                 },
                             )
@@ -136,7 +139,7 @@ for message in consumer:
                 elif event_type == "USER_VERIFIED":
                     try:
                         employee = OrganizationEmployee.objects.get(auth_user_id=auth_user_id)
-                        employee.status = "active"
+                        employee.status = "ACTIVE"
                         employee.joined_at = timezone.now()
                         employee.full_name = data.get("full_name", employee.full_name)
                         employee.email = data.get("email", employee.email)
@@ -151,7 +154,7 @@ for message in consumer:
             # ==========================
             # VERIFIED USER CREATION (ALL ROLES)
             # ==========================
-            if role in ["individual", "organization", "serviceprovider", "pet_owner", "employee"]:
+            if role in ["individual", "organization", "serviceprovider", "pet_owner", "employee", "receptionist", "veterinarian", "groomer", "doctor", "labtech", "lab tech", "pharmacy", "vitalsstaff", "vitals staff"]:
                 with transaction.atomic():
                     user, created = VerifiedUser.objects.update_or_create(
                         auth_user_id=auth_user_id,
@@ -160,7 +163,7 @@ for message in consumer:
                             "email": data.get("email"),
                             "phone_number": data.get("phone_number"),
                             "role": role,
-                            "permissions": data.get("permissions", []),
+                            "permissions": get_default_capabilities(role),
                         },
                     )
                     logger.info(
@@ -177,7 +180,7 @@ for message in consumer:
         # USER UPDATED (NON-EMPLOYEE ONLY)
         # ==========================
         elif event_type == "USER_UPDATED":
-            if role == "employee":
+            if role in ["employee", "receptionist", "veterinarian", "groomer", "doctor", "labtech", "pharmacy", "vitalsstaff"]:
                 continue
 
             auth_user_id = data.get("auth_user_id")
@@ -189,6 +192,7 @@ for message in consumer:
                 email=data.get("email"),
                 phone_number=data.get("phone_number"),
                 role=role,
+                permissions=get_default_capabilities(role),
             )
             if updated:
                 logger.info(f"🆙 Updated VerifiedUser {auth_user_id}")

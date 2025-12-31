@@ -17,6 +17,6 @@ from .models import OrganizationEmployee, VerifiedUser
 class OrganizationEmployeeSerializer(serializers.ModelSerializer):
     class Meta:
         model = OrganizationEmployee
-        fields = ['id', 'auth_user_id', 'status', 'joined_at', 'full_name', 'email', 'phone_number']
+        fields = ['id', 'auth_user_id', 'status', 'joined_at', 'full_name', 'email', 'phone_number', 'role']
 
 

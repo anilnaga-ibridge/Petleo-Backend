@@ -2,6 +2,8 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import AllowAny
+import requests
+from django.conf import settings
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 
@@ -103,26 +105,54 @@ def get_my_permissions(request):
         pass
 
     # 2. Dynamic Plan Validation
+    # 2. Dynamic Plan Validation
     try:
-        subscription = subscription_owner.subscription.first()
-        if not subscription:
-            print(f"DEBUG: No subscription for {subscription_owner.email}")
+        # Check for ANY active subscription
+        active_subs = subscription_owner.subscription.filter(is_active=True)
+        
+        # Filter out expired ones in Python if needed, or use exclude
+        valid_sub = None
+        for sub in active_subs:
+            if not sub.end_date or sub.end_date >= timezone.now():
+                valid_sub = sub
+                break
+        
+        if not valid_sub:
+            print(f"DEBUG: No valid active subscription found for {subscription_owner.email}")
             return Response({"permissions": [], "plan": None})
-            
-        if not subscription.is_active:
-             print(f"DEBUG: Subscription inactive for {subscription_owner.email}")
-             return Response({"permissions": [], "plan": None})
-             
-        if subscription.end_date and subscription.end_date < timezone.now():
-            print(f"DEBUG: Subscription expired for {subscription_owner.email}")
-            return Response({"permissions": [], "plan": None})
+
+        print(f"DEBUG: Found valid subscription: {valid_sub.plan_id}")
             
     except Exception as e:
         print(f"Subscription check failed: {e}")
-        pass
+        # In case of error, we might want to fail safe or allow? 
+        # For now, let's fail safe (no permissions)
+        return Response({"permissions": [], "plan": None})
 
     # 3. Fetch Capabilities using the robust helper
     permissions_list = _build_permission_tree(user)
+
+    # --- INJECT VETERINARY_CORE CAPABILITY ---
+    # Veterinary staff must have access to the dashboard even without specific service assignments.
+    user_role = getattr(user, 'role', '').upper()
+    vet_roles = ['RECEPTIONIST', 'DOCTOR', 'LAB_TECH', 'PHARMACY', 'VITALS_STAFF', 'NURSE']
+    
+    if user_role in vet_roles:
+        # Check if VETERINARY_CORE is already present (to avoid duplicates)
+        has_vet_core = any(p.get('service_name') == 'VETERINARY_CORE' for p in permissions_list)
+        
+        if not has_vet_core:
+            permissions_list.append({
+                "service_id": "VETERINARY_CORE",
+                "service_name": "VETERINARY_CORE",
+                "icon": "tabler-stethoscope",
+                "categories": [],
+                "can_view": True,
+                "can_create": False,
+                "can_edit": False,
+                "can_delete": False
+            })
+    # -----------------------------------------
     
     # Construct response
     response_data = {
@@ -184,46 +214,101 @@ from rest_framework import viewsets
 from rest_framework.decorators import action
 from .models import OrganizationEmployee, ServiceProvider
 from .serializers import OrganizationEmployeeSerializer
+from .permissions import IsOrganizationAdmin
 
 class EmployeeViewSet(viewsets.ModelViewSet):
     """
     Manage employees for the logged-in organization.
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsOrganizationAdmin]
     serializer_class = OrganizationEmployeeSerializer
     
     def get_queryset(self):
         # Return employees where organization owner is the logged-in user
         user = self.request.user
-        print(f"DEBUG: EmployeeViewSet.get_queryset user={user} (Type: {type(user)})")
+        
+        with open("debug_views.log", "a") as f:
+            f.write(f"\\n[{timezone.now()}] Request User: {user} (ID: {user.id}) Role: {getattr(user, 'role', 'N/A')}\\n")
         
         # Find the ServiceProvider associated with the logged-in user
         try:
             provider = ServiceProvider.objects.get(verified_user=user)
-            print(f"DEBUG: Found Provider {provider.id}")
+            with open("debug_views.log", "a") as f:
+                f.write(f"[{timezone.now()}] Found Provider: {provider.id}\\n")
+            
             qs = OrganizationEmployee.objects.filter(organization=provider, deleted_at__isnull=True)
-            print(f"DEBUG: Found {qs.count()} employees")
+            
+            with open("debug_views.log", "a") as f:
+                f.write(f"[{timezone.now()}] Employee Count: {qs.count()}\\n")
+                for emp in qs:
+                    f.write(f"   - {emp.full_name} ({emp.role})\\n")
+            
             return qs
         except ServiceProvider.DoesNotExist:
-            print("DEBUG: ServiceProvider not found for user")
+            with open("debug_views.log", "a") as f:
+                f.write(f"[{timezone.now()}] ServiceProvider NOT found for user {user.id}\\n")
             return OrganizationEmployee.objects.none()
         except Exception as e:
-            print(f"DEBUG: Error in get_queryset: {e}")
+            with open("debug_views.log", "a") as f:
+                f.write(f"[{timezone.now()}] Error in get_queryset: {e}\\n")
             return OrganizationEmployee.objects.none()
+
+    def create(self, request, *args, **kwargs):
+        """
+        Proxy staff creation to Auth Service.
+        """
+        # 1. Prepare data for Auth Service
+        auth_data = {
+            "full_name": request.data.get("full_name"),
+            "email": request.data.get("email"),
+            "phone_number": request.data.get("phone_number"),
+            "role": request.data.get("role"),
+        }
+        
+        # 2. Call Auth Service to register
+        auth_header = request.headers.get('Authorization')
+        try:
+            # Auth Service is at 8000
+            auth_url = "http://localhost:8000/auth/api/auth/register/"
+            response = requests.post(
+                auth_url,
+                json=auth_data,
+                headers={"Authorization": auth_header}
+            )
+            
+            if response.status_code != 201:
+                return Response(response.json(), status=response.status_code)
+            
+            # The Kafka consumer will handle creating the OrganizationEmployee record.
+            # But we can return the auth response which contains user details.
+            return Response(response.json(), status=status.HTTP_201_CREATED)
+            
+        except Exception as e:
+            return Response({"error": f"Failed to connect to Auth Service: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(detail=True, methods=['post'])
     def suspend(self, request, pk=None):
         employee = self.get_object()
-        employee.status = 'suspended'
+        employee.status = 'DISABLED'
         employee.save()
-        return Response({'status': 'suspended'})
+        
+        # Sync with Auth Service (optional, but good practice)
+        from .kafka_producer import publish_employee_updated
+        publish_employee_updated(employee)
+        
+        return Response({'status': 'DISABLED'})
 
     @action(detail=True, methods=['post'])
     def activate(self, request, pk=None):
         employee = self.get_object()
-        employee.status = 'active'
+        employee.status = 'ACTIVE'
         employee.save()
-        return Response({'status': 'active'})
+        
+        # Sync with Auth Service
+        from .kafka_producer import publish_employee_updated
+        publish_employee_updated(employee)
+        
+        return Response({'status': 'ACTIVE'})
 
     def perform_destroy(self, instance):
         auth_user_id = instance.auth_user_id
@@ -470,7 +555,7 @@ class EmployeeAssignmentViewSet(viewsets.ViewSet):
     Manage service assignments for employees.
     Supports granular permissions (Service -> Category -> Facility).
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsOrganizationAdmin]
 
     @action(detail=False, methods=['get'])
     def available(self, request):

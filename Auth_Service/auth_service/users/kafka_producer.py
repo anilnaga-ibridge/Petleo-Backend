@@ -126,6 +126,14 @@ TOPIC_MAP = {
     "serviceprovider": "service_provider_events",
     "pet_owner": "pet_owner_events",
     "employee": "service_provider_events",
+    "receptionist": "service_provider_events",
+    "veterinarian": "service_provider_events",
+    "groomer": "service_provider_events",
+    "doctor": "service_provider_events",
+    "vitalsstaff": "service_provider_events",
+    "vitals staff": "service_provider_events",
+    "labtech": "service_provider_events",
+    "lab tech": "service_provider_events",
 }
 
 SERVICE_NAME = getattr(settings, "SERVICE_NAME", "auth_service")

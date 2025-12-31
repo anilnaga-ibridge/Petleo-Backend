@@ -416,6 +416,9 @@ def purchase_plan(request):
             "plan_id": str(plan.id),
             "plan_title": plan.title,
             "billing_cycle_id": billing_cycle.id if billing_cycle else None,
+            "start_date": purchased.start_date.isoformat() if purchased.start_date else None,
+            "end_date": purchased.end_date.isoformat() if purchased.end_date else None,
+            "is_active": purchased.is_active
         }
 
         # Publish Kafka Event

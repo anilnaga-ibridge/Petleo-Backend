@@ -30,6 +30,7 @@ from .serializers import (
     VerifyOTPSerializer,
     UserUpdateSerializer,
 )
+from .permissions import IsOwnerOrOrgAdmin
 from .kafka_producer import publish_event
 from .utils import (
     create_otp_session,
@@ -94,7 +95,9 @@ class RegisterView(APIView):
         # 1. Security Check for Employee Registration
         # ---------------------------------------------------------------
         role_input = str(request.data.get('role', '')).lower()
-        if role_input == 'employee':
+        employee_roles = ["employee", "receptionist", "veterinarian", "groomer", "doctor", "labtech", "lab tech", "pharmacy", "vitalsstaff", "vitals staff"]
+        
+        if role_input in employee_roles:
             if not request.user.is_authenticated:
                 return Response(
                     {"detail": "Authentication required to register an employee."},
@@ -112,7 +115,14 @@ class RegisterView(APIView):
 
         serializer = RegisterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        user = serializer.save()  # user created here
+        
+        # Set organization_id if employee
+        user = serializer.save()
+        if role_input in employee_roles:
+            user.organization_id = request.user.id
+            user.status = 'PENDING'
+            user.save(update_fields=['organization_id', 'status'])
+        
         phone = user.phone_number
         
         # --------------------
@@ -153,8 +163,9 @@ class RegisterView(APIView):
                 "role": user_role_name,
             }
 
-            # If Employee, attach Organization ID (from logged-in user)
-            if user_role_name == 'employee':
+            # If Employee (or similar role), attach Organization ID (from logged-in user)
+            employee_roles = ["employee", "receptionist", "veterinarian", "groomer", "doctor", "labtech", "lab tech", "pharmacy", "vitalsstaff", "vitals staff"]
+            if user_role_name in employee_roles:
                 payload['organization_id'] = str(request.user.id)
                 payload['created_by'] = str(request.user.id)
 
@@ -315,12 +326,13 @@ class VerifyOTPView(APIView):
             return Response({"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND)
 
         user.is_active = True
+        user.status = 'ACTIVE'
         if hasattr(user, "is_verified"):
             user.is_verified = True
         user.save(
-            update_fields=["is_active", "is_verified"]
+            update_fields=["is_active", "is_verified", "status"]
             if hasattr(user, "is_verified")
-            else ["is_active"]
+            else ["is_active", "status"]
         )
 
         # Kafka event
@@ -951,22 +963,34 @@ def public_roles(request):
 # User ViewSet (basic CRUD + events)
 # ----------------------
 class UserViewSet(viewsets.ViewSet):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsOwnerOrOrgAdmin]
+
+    def get_queryset(self):
+        user = self.request.user
+        user_role = user.role.name.lower() if user.role else ""
+        
+        if user_role == 'organization':
+            # Org admins see themselves and their employees
+            from django.db.models import Q
+            return User.objects.filter(Q(id=user.id) | Q(organization_id=user.id))
+        
+        # Others only see themselves
+        return User.objects.filter(id=user.id)
 
     def retrieve(self, request, pk=None):
         user = get_object_or_404(User, pk=pk)
+        self.check_object_permissions(request, user)
         serializer = UserUpdateSerializer(user)
         return Response(serializer.data)
 
     def list(self, request):
         status_param = request.query_params.get("status")
+        qs = self.get_queryset()
 
         if status_param == "active":
-            qs = User.objects.filter(is_active=True)
+            qs = qs.filter(is_active=True)
         elif status_param == "inactive":
-            qs = User.objects.filter(is_active=False)
-        else:
-            qs = User.objects.all()   # default → return both
+            qs = qs.filter(is_active=False)
 
         serializer = UserUpdateSerializer(qs, many=True)
         return Response(serializer.data)
@@ -974,6 +998,7 @@ class UserViewSet(viewsets.ViewSet):
 
     def partial_update(self, request, pk=None):
         user = get_object_or_404(User, pk=pk)
+        self.check_object_permissions(request, user)
         serializer = UserUpdateSerializer(user, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
@@ -1012,6 +1037,7 @@ class UserViewSet(viewsets.ViewSet):
 
     def destroy(self, request, pk=None):
         user = get_object_or_404(User, pk=pk)
+        self.check_object_permissions(request, user)
         user_id = str(user.id)
 
         dynamic_role = user.role.name if user.role else None
@@ -1100,6 +1126,15 @@ class ResendOTPView(APIView):
 def transform_for_frontend(tokens, user, require_set_pin=False):
     """Transform backend user and tokens into frontend-expected structure."""
     
+    # Determine capabilities based on role
+    capabilities = []
+    if user.role:
+        role_name = user.role.name.upper()
+        if role_name in ['DOCTOR', 'RECEPTIONIST', 'VITALS_STAFF', 'LAB_TECH', 'PHARMACY']:
+            capabilities.append('VETERINARY_MODULE')
+        elif role_name == 'ORGANIZATION':
+            capabilities.append('PROVIDER_MODULE')
+
     return {
         "userAbilityRules": [{"action": "manage", "subject": "all"}],
         "accessToken": tokens.get("access"),
@@ -1112,22 +1147,72 @@ def transform_for_frontend(tokens, user, require_set_pin=False):
             "username": user.full_name,
             "avatar": "/images/avatars/avatar-1.png",
             "email": user.email or f"{user.phone_number}@demo.com",
-            "role": user.role.name if user.role else None,
+            "role": user.role.name.upper() if user.role else None,
             "permissions": [p.codename for p in user.role.permissions.all()] if user.role else [],
             "phoneNumber": user.phone_number,
-          
+            "provider_id": str(user.organization_id) if user.organization_id else str(user.id),
+            "capabilities": capabilities,
             "provider_type": (
                 user.role.name 
                 if (user.role and user.role.name in ["individual", "organization"]) 
                 else None
             ),
-
         },
         "has_pin": bool(user.pin_hash),
         "pin_valid_today": is_pin_valid_today(user),
-        # Frontend behavior hint (not persisted)
         "require_set_pin": require_set_pin,
     }
+
+class UnifiedLoginView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        phone = request.data.get("phone_number")
+        otp = request.data.get("otp")
+        pin = request.data.get("pin")
+        session_id = request.data.get("session_id")
+        remember_me = request.data.get("remember_me", False)
+
+        if not phone:
+            return Response({"detail": "phone_number is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user = User.objects.get(phone_number=phone)
+        except User.DoesNotExist:
+            return Response({"detail": "Phone not registered."}, status=status.HTTP_404_NOT_FOUND)
+
+        if user.status == 'DISABLED' or not user.is_active:
+            return Response({"detail": "Account is disabled or pending verification."}, status=status.HTTP_403_FORBIDDEN)
+
+        # 1. Handle OTP Login
+        if otp and session_id:
+            session = get_otp_session(session_id)
+            if not session or session["phone_number"] != phone or session["otp"] != otp:
+                return Response({"detail": "Invalid OTP or session."}, status=status.HTTP_400_BAD_REQUEST)
+            
+            delete_otp_session(session_id)
+            user.last_otp_login = timezone.now()
+            user.save(update_fields=["last_otp_login"])
+
+        # 2. Handle PIN Login
+        elif pin:
+            if not user.pin_hash:
+                return Response({"detail": "No PIN set. Login via OTP first."}, status=status.HTTP_400_BAD_REQUEST)
+            if not check_password(pin, user.pin_hash):
+                return Response({"detail": "Invalid PIN."}, status=status.HTTP_400_BAD_REQUEST)
+            
+            user.last_pin_login = timezone.now()
+            user.save(update_fields=["last_pin_login"])
+        
+        else:
+            return Response({"detail": "OTP or PIN required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Success -> Issue tokens
+        tokens = get_tokens_for_user(user, request=request, remember_me=remember_me)
+        require_set_pin = not user.pin_hash
+        res = transform_for_frontend(tokens, user, require_set_pin=require_set_pin)
+        res["message"] = "Login successful."
+        return Response(res, status=status.HTTP_200_OK)
 
 
 
