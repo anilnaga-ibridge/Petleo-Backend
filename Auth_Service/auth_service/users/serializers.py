@@ -190,6 +190,8 @@ class RegisterSerializer(serializers.ModelSerializer):
 class UserUpdateSerializer(serializers.ModelSerializer):
     role_name = serializers.CharField(source='role.name', read_only=True)
 
+    is_verified = serializers.SerializerMethodField()
+
     class Meta:
         model = User
         fields = [
@@ -200,8 +202,14 @@ class UserUpdateSerializer(serializers.ModelSerializer):
             "phone_number",
             "role",
             "role_name",
+            "is_active",
+            "is_verified",
         ]
-        read_only_fields = ["id", "username"]
+        read_only_fields = ["id", "username", "is_verified"]
+
+    def get_is_verified(self, obj):
+        # Consider verified if they have OTP login history, PIN set, OR are currently active
+        return bool(obj.last_otp_login or obj.pin_set_at or obj.is_active)
 
 # ============================
 # OTP Serializers

@@ -179,3 +179,13 @@
 2025-12-31 11:46:01,685 [INFO] ✅ Synced Templates for user 66874c90-2059-4b18-a17b-34963fc0c9af
 2025-12-31 11:46:01,697 [INFO] ✅ Updated 9 capabilities for user 66874c90-2059-4b18-a17b-34963fc0c9af
 2025-12-31 11:46:01,701 [INFO] ✅ Synced Subscription for user 66874c90-2059-4b18-a17b-34963fc0c9af (Active: True)
+2026-01-02 05:01:56,548 [INFO] 🚀 Starting Service Provider Unified Kafka Consumer...
+2026-01-02 05:01:56,560 [INFO] ✅ Connected to Kafka broker.
+2026-01-02 05:37:22,135 [INFO] 🔥 Event: PROVIDER.PERMISSIONS.UPDATED | Role:  | Service: None
+2026-01-02 05:37:22,228 [INFO] ✅ Synced Templates for user 0bb650a0-03ff-41fd-a9c4-b260e80e4813
+2026-01-02 05:37:22,241 [INFO] ✅ Updated 9 capabilities for user 0bb650a0-03ff-41fd-a9c4-b260e80e4813
+2026-01-02 05:37:22,246 [INFO] ✅ Synced Subscription for user 0bb650a0-03ff-41fd-a9c4-b260e80e4813 (Active: True)
+2026-01-02 05:37:22,254 [INFO] 🔥 Event: PROVIDER.PERMISSIONS.UPDATED | Role:  | Service: None
+2026-01-02 05:37:22,305 [INFO] ✅ Synced Templates for user 0bb650a0-03ff-41fd-a9c4-b260e80e4813
+2026-01-02 05:37:22,310 [INFO] ✅ Updated 15 capabilities for user 0bb650a0-03ff-41fd-a9c4-b260e80e4813
+2026-01-02 05:37:22,313 [INFO] ✅ Synced Subscription for user 0bb650a0-03ff-41fd-a9c4-b260e80e4813 (Active: True)

@@ -94,10 +94,29 @@ class RegisterView(APIView):
         # ---------------------------------------------------------------
         # 1. Security Check for Employee Registration
         # ---------------------------------------------------------------
-        role_input = str(request.data.get('role', '')).lower()
+        # ---------------------------------------------------------------
+        # 1. Security Check for Employee Registration
+        # ---------------------------------------------------------------
+        role_input = request.data.get('role', '')
+        
+        # Resolve Role ID to Name if necessary
+        role_name = str(role_input).lower()
+        try:
+            # If input is an ID (int or digit string), fetch the role name
+            if isinstance(role_input, int) or (isinstance(role_input, str) and role_input.isdigit()):
+                role_obj = Role.objects.get(id=int(role_input))
+                role_name = role_obj.name.lower()
+            # If input is a name, ensure it exists (optional, but good for validation)
+            else:
+                 role_obj = Role.objects.filter(name__iexact=role_input).first()
+                 if role_obj:
+                     role_name = role_obj.name.lower()
+        except Role.DoesNotExist:
+            pass # Let serializer handle invalid role error later
+
         employee_roles = ["employee", "receptionist", "veterinarian", "groomer", "doctor", "labtech", "lab tech", "pharmacy", "vitalsstaff", "vitals staff"]
         
-        if role_input in employee_roles:
+        if role_name in employee_roles:
             if not request.user.is_authenticated:
                 return Response(
                     {"detail": "Authentication required to register an employee."},
@@ -967,14 +986,19 @@ class UserViewSet(viewsets.ViewSet):
 
     def get_queryset(self):
         user = self.request.user
+        
+        # 1. Super Admin / Admin -> See ALL users
+        if user.is_superuser or (user.role and user.role.name.lower() == 'admin'):
+            return User.objects.all()
+
         user_role = user.role.name.lower() if user.role else ""
         
+        # 2. Organization -> See themselves + their employees
         if user_role == 'organization':
-            # Org admins see themselves and their employees
             from django.db.models import Q
             return User.objects.filter(Q(id=user.id) | Q(organization_id=user.id))
         
-        # Others only see themselves
+        # 3. Others -> See only themselves
         return User.objects.filter(id=user.id)
 
     def retrieve(self, request, pk=None):
