@@ -9,27 +9,26 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from admin_core.authentication import CentralAuthJWTAuthentication as AuthServiceJWTAuthentication
 
 from admin_core.permissions import IsSuperAdmin
-from .models import BillingCycle, Plan, Coupon, PlanPrice, PlanCapability, PurchasedPlan, ProviderPlanCapability
-# from .serializers import BillingCycleSerializer, PlanSerializer, CouponSerializer
-from .kafka_producer import publish_permissions_updated
+from .models import Plan, Coupon, PlanCapability, PurchasedPlan, ProviderPlanCapability, BillingCycleConfig
+from .kafka_producer import publish_permissions_updated, publish_plan_status_changed
 from .serializers import (
-    BillingCycleSerializer,
     PlanSerializer,
-    PlanPriceSerializer,
     PlanCapabilitySerializer,
     CouponSerializer,
     PurchasedPlanSerializer, ProviderPlanCapabilitySerializer,
     ProviderPlanViewSerializer,
+    BillingCycleConfigSerializer,
 )
 from django.db.models import Q
 from .services import assign_plan_permissions_to_user, calculate_end_date
 from django.db import transaction
 
-# -------------------- BILLING CYCLE --------------------
-class BillingCycleViewSet(viewsets.ModelViewSet):
-    queryset = BillingCycle.objects.all()
-    serializer_class = BillingCycleSerializer
+# -------------------- BILLING CYCLE CONFIG --------------------
+class BillingCycleConfigViewSet(viewsets.ModelViewSet):
+    queryset = BillingCycleConfig.objects.all().order_by("duration_days")
+    serializer_class = BillingCycleConfigSerializer
     permission_classes = [IsSuperAdmin]
+
 # -------------------- PLAN --------------------
 class PlanViewSet(viewsets.ModelViewSet):
     queryset = Plan.objects.all().order_by("-created_at")
@@ -39,11 +38,22 @@ class PlanViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         qs = super().get_queryset()
 
-        role = self.request.query_params.get("role")
-        if role:
-            qs = qs.filter(role=role)
+        target_type = self.request.query_params.get("target_type")
+        if target_type:
+            qs = qs.filter(target_type=target_type)
 
         return qs
+
+    def perform_update(self, serializer):
+        instance = self.get_object()
+        old_status = instance.is_active
+        updated_instance = serializer.save()
+        new_status = updated_instance.is_active
+
+        if old_status != new_status:
+            print(f"DEBUG: Plan {updated_instance.id} status changed: {old_status} -> {new_status}")
+            publish_plan_status_changed(updated_instance.id, new_status)
+
 
     @action(detail=True, methods=["get"], permission_classes=[IsAuthenticated])
     def permissions(self, request, pk=None):
@@ -75,31 +85,22 @@ class PlanViewSet(viewsets.ModelViewSet):
                     grouped[s_id]["categories"][c_id] = {
                         "category_id": c_id,
                         "category_name": cap.category.name,
-                        "permissions": {
-                            "can_view": False, "can_create": False, "can_edit": False, "can_delete": False
-                        },
+                        "permissions": cap.permissions,
+                        "limits": cap.limits,
                         "facilities": []
                     }
                 
                 if not cap.facility:
                     # Category-level permissions
-                    grouped[s_id]["categories"][c_id]["permissions"] = {
-                        "can_view": cap.can_view,
-                        "can_create": cap.can_create,
-                        "can_edit": cap.can_edit,
-                        "can_delete": cap.can_delete,
-                    }
+                    grouped[s_id]["categories"][c_id]["permissions"] = cap.permissions
+                    grouped[s_id]["categories"][c_id]["limits"] = cap.limits
                 else:
                     # Facility
                     grouped[s_id]["categories"][c_id]["facilities"].append({
                         "id": str(cap.facility.id),
                         "name": cap.facility.name,
-                        "permissions": {
-                            "can_view": cap.can_view,
-                            "can_create": cap.can_create,
-                            "can_edit": cap.can_edit,
-                            "can_delete": cap.can_delete,
-                        }
+                        "permissions": cap.permissions,
+                        "limits": cap.limits
                     })
 
         # Flatten for response
@@ -119,11 +120,6 @@ class PlanViewSet(viewsets.ModelViewSet):
         })
 
 
-# -------------------- PLAN PRICE --------------------
-class PlanPriceViewSet(viewsets.ModelViewSet):
-    queryset = PlanPrice.objects.all()
-    serializer_class = PlanPriceSerializer
-    permission_classes = [IsSuperAdmin]
 # -------------------- PLAN CAPABILITY --------------------
 class PlanCapabilityViewSet(viewsets.ModelViewSet):
     """
@@ -177,6 +173,7 @@ class PlanCapabilityViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         instance.delete()
         return Response({"detail": "Plan capability deleted"}, status=status.HTTP_204_NO_CONTENT)
+
 # -------------------- COUPON --------------------
 class CouponViewSet(viewsets.ModelViewSet):
     queryset = Coupon.objects.all().order_by("-created_at")
@@ -187,6 +184,7 @@ class CouponViewSet(viewsets.ModelViewSet):
         coupon = self.get_object()
         is_valid = coupon.is_valid()
         return Response({"valid": is_valid}, status=200)
+
 # -------------------- PURCHASED PLAN & PERMISSIONS --------------------
 
 class PurchasedPlanViewSet(viewsets.ReadOnlyModelViewSet):
@@ -245,13 +243,11 @@ def purchase_plan(request):
     """
     Body:
     {
-      "plan_id": "<uuid>",
-      "billing_cycle_id": <int>   // optional
+      "plan_id": "<uuid>"
     }
     """
     user = request.user
     plan_id = request.data.get("plan_id")
-    billing_cycle_id = request.data.get("billing_cycle_id")
 
     with open("purchase_debug.log", "a") as f:
         f.write(f"Purchase Request: User={user}, Plan={plan_id}\n")
@@ -261,9 +257,9 @@ def purchase_plan(request):
 
     plan = get_object_or_404(Plan, id=plan_id)
 
-    billing_cycle = None
-    if billing_cycle_id:
-        billing_cycle = get_object_or_404(BillingCycle, id=billing_cycle_id)
+    if not plan.is_active:
+        return Response({"detail": "This plan is no longer available for purchase."}, status=status.HTTP_400_BAD_REQUEST)
+
 
     # -------------------------------------------------------------------
     # PURCHASE + ASSIGN PERMISSIONS + PUBLISH KAFKA EVENT
@@ -273,19 +269,18 @@ def purchase_plan(request):
         # Calculate End Date
         start_date = timezone.now()
         end_date = None
-
-        if billing_cycle:
-            end_date = calculate_end_date(
-                start_date, 
-                billing_cycle.duration_value, 
-                billing_cycle.duration_type
-            )
+        
+        # Simple duration calculation based on billing_cycle enum
+        if plan.billing_cycle == Plan.BillingCycle.MONTHLY:
+            end_date = start_date + timezone.timedelta(days=30)
+        elif plan.billing_cycle == Plan.BillingCycle.YEARLY:
+            end_date = start_date + timezone.timedelta(days=365)
 
         # Create or Update purchase record
         purchased, created = PurchasedPlan.objects.update_or_create(
             user=user,
             plan=plan,
-            billing_cycle=billing_cycle,
+            billing_cycle=plan.billing_cycle,
             defaults={
                 "start_date": start_date,
                 "end_date": end_date,
@@ -304,10 +299,8 @@ def purchase_plan(request):
                 "service_id": str(p.service_id) if p.service_id else None,
                 "category_id": str(p.category_id) if p.category_id else None,
                 "facility_id": str(p.facility_id) if p.facility_id else None,
-                "can_view": p.can_view,
-                "can_create": p.can_create,
-                "can_edit": p.can_edit,
-                "can_delete": p.can_delete,
+                "permissions": p.permissions,
+                "limits": p.limits
             }
             for p in perms
         ]
@@ -325,7 +318,7 @@ def purchase_plan(request):
         from dynamic_services.models import Service
         from dynamic_categories.models import Category
         from dynamic_facilities.models import Facility
-        from dynamic_pricing.models import Pricing
+        from dynamic_pricing.models import PricingRule
 
         services = Service.objects.filter(id__in=allowed_service_ids)
         
@@ -373,7 +366,7 @@ def purchase_plan(request):
                 if p.facility.id not in seen_facilities:
                     templates_payload["facilities"].append({
                         "id": str(p.facility.id),
-                        "category_id": str(p.category.id) if p.category else None, # Facility might not strictly need category here if global, but usually does
+                        "category_id": str(p.category.id) if p.category else None, 
                         "name": p.facility.name,
                         "description": p.facility.description
                     })
@@ -382,7 +375,7 @@ def purchase_plan(request):
 
         # 2. Pricing Rules
         # Filter pricing to only include rules relevant to allowed services, categories, and facilities
-        all_pricing = Pricing.objects.filter(service__id__in=allowed_service_ids)
+        all_pricing = PricingRule.objects.filter(service__id__in=allowed_service_ids)
         
         for p in all_pricing:
             # Rule 1: Must match service (already filtered)
@@ -400,9 +393,10 @@ def purchase_plan(request):
                 "service_id": str(p.service.id),
                 "category_id": str(p.category.id) if p.category else None,
                 "facility_id": str(p.facility.id) if p.facility else None,
-                "price": float(p.price),
-                "duration": p.duration,
-                "description": "",
+                "price": float(p.base_price),
+                "billing_unit": p.billing_unit,
+                "duration_minutes": p.duration_minutes,
+                "currency_code": p.currency_code,
                 "is_template": True
             })
         
@@ -415,7 +409,7 @@ def purchase_plan(request):
         purchased_plan_data = {
             "plan_id": str(plan.id),
             "plan_title": plan.title,
-            "billing_cycle_id": billing_cycle.id if billing_cycle else None,
+            "billing_cycle": plan.billing_cycle,
             "start_date": purchased.start_date.isoformat() if purchased.start_date else None,
             "end_date": purchased.end_date.isoformat() if purchased.end_date else None,
             "is_active": purchased.is_active
@@ -450,7 +444,8 @@ def user_has_permission(user, service, category, action: str) -> bool:
         # For now, checking category level
         perm = ProviderPlanCapability.objects.filter(user=user, service=service, category=category, facility__isnull=True).first()
         if perm:
-             return getattr(perm, f"can_{action}", False)
+             # Check JSON permissions
+             return perm.permissions.get(f"can_{action}", False)
         return False
     except Exception:
         return False
@@ -462,7 +457,21 @@ class ProviderPlanView(generics.ListAPIView):
 
     def get_queryset(self):
         qs = Plan.objects.filter(is_active=True).order_by("created_at")
+        
+        # Support both target_type and role
+        target_type = self.request.query_params.get("target_type")
         role = self.request.query_params.get("role")
+
+        print(f"DEBUG: ProviderPlanView params: {self.request.query_params}")
+        print(f"DEBUG: Initial Plan Count: {qs.count()}")
+
         if role:
-            qs = qs.filter(role=role)
+            target_type = role.upper()
+        
+        print(f"DEBUG: Filtering by target_type: {target_type}")
+
+        if target_type:
+            qs = qs.filter(target_type=target_type)
+            
+        print(f"DEBUG: Final Plan Count: {qs.count()}")
         return qs

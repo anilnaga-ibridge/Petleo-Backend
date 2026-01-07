@@ -13,45 +13,45 @@ from dynamic_categories.models import Category
 from dynamic_facilities.models import Facility
 
 
-class BillingCycle(models.Model):
-    DURATION_TYPE_CHOICES = [
-        ("days", "Days"),
-        ("weeks", "Weeks"),
-        ("months", "Months"),
-        ("years", "Years"),
-    ]
-
-    id = models.AutoField(primary_key=True)
-    name = models.CharField(max_length=50, unique=True)
-    duration_value = models.PositiveIntegerField(default=1)
-    duration_type = models.CharField(max_length=10, choices=DURATION_TYPE_CHOICES, default="months")
+class BillingCycleConfig(models.Model):
+    code = models.CharField(max_length=50, unique=True, help_text="e.g. MONTHLY")
+    display_name = models.CharField(max_length=100, help_text="e.g. Monthly")
+    duration_days = models.PositiveIntegerField(default=30)
     is_active = models.BooleanField(default=True)
-    created_at = models.DateTimeField(default=timezone.now)
 
     def __str__(self):
-        return f"{self.name} ({self.duration_value} {self.duration_type})"
+        return self.display_name
 
 
 class Plan(models.Model):
-    ROLE_CHOICES = [
-        ("individual", "Individual"),
-        ("organization", "Organization"),
-    ]
+    class TargetType(models.TextChoices):
+        INDIVIDUAL = "INDIVIDUAL", "Individual"
+        ORGANIZATION = "ORGANIZATION", "Organization"
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     title = models.CharField(max_length=255)
     slug = models.SlugField(unique=True)
-    role = models.CharField(max_length=20, choices=ROLE_CHOICES)
-
+    
+    target_type = models.CharField(
+        max_length=20, 
+        choices=TargetType.choices,
+        default=TargetType.ORGANIZATION
+    )
+    
     subtitle = models.CharField(max_length=255, blank=True)
     description = models.TextField(blank=True, null=True)
     features = models.JSONField(default=list, blank=True, null=True)
 
-    is_active = models.BooleanField(default=True)
-    default_billing_cycle = models.ForeignKey(
-        BillingCycle, on_delete=models.SET_NULL, null=True, blank=True, related_name="default_plans"
+    # Pricing & Billing
+    billing_cycle = models.CharField(
+        max_length=50,
+        default="MONTHLY",
+        help_text="Code from BillingCycleConfig"
     )
+    price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    currency = models.CharField(max_length=3, default="INR")
 
+    is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -70,22 +70,7 @@ class Plan(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.title} ({self.role})"
-
-
-class PlanPrice(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    plan = models.ForeignKey(Plan, on_delete=models.CASCADE, related_name="prices")
-    billing_cycle = models.ForeignKey(BillingCycle, on_delete=models.CASCADE)
-    amount = models.DecimalField(max_digits=12, decimal_places=2)
-    currency = models.CharField(max_length=10, default="USD")
-    is_active = models.BooleanField(default=True)
-
-    class Meta:
-        unique_together = ("plan", "billing_cycle")
-
-    def __str__(self):
-        return f"{self.plan.title} - {self.billing_cycle.name} ({self.amount} {self.currency})"
+        return f"{self.title} ({self.target_type} - {self.billing_cycle})"
 
 
 class PlanCapability(models.Model):
@@ -100,10 +85,9 @@ class PlanCapability(models.Model):
     category = models.ForeignKey(Category, on_delete=models.CASCADE, null=True, blank=True)
     facility = models.ForeignKey(Facility, on_delete=models.CASCADE, null=True, blank=True)
 
-    can_view = models.BooleanField(default=False)
-    can_create = models.BooleanField(default=False)
-    can_edit = models.BooleanField(default=False)
-    can_delete = models.BooleanField(default=False)
+    # Granular Controls
+    limits = models.JSONField(default=dict, blank=True, help_text="e.g. {'max_bookings': 100}")
+    permissions = models.JSONField(default=dict, blank=True, help_text="e.g. {'can_create': true, 'online_consult': true}")
 
     class Meta:
         unique_together = ("plan", "service", "category", "facility")
@@ -172,7 +156,11 @@ class PurchasedPlan(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="purchased_plans")
     plan = models.ForeignKey(Plan, on_delete=models.CASCADE, related_name="purchases")
-    billing_cycle = models.ForeignKey(BillingCycle, on_delete=models.SET_NULL, null=True, blank=True)
+    
+    billing_cycle = models.CharField(
+        max_length=50,
+        default="MONTHLY"
+    )
 
     start_date = models.DateTimeField(default=timezone.now)
     end_date = models.DateTimeField(null=True, blank=True)
@@ -198,10 +186,17 @@ class ProviderPlanCapability(models.Model):
     category = models.ForeignKey(Category, on_delete=models.CASCADE, null=True, blank=True)
     facility = models.ForeignKey(Facility, on_delete=models.CASCADE, null=True, blank=True)
 
-    can_view = models.BooleanField(default=False)
-    can_create = models.BooleanField(default=False)
-    can_edit = models.BooleanField(default=False)
-    can_delete = models.BooleanField(default=False)
+    # Granular Controls (Copied from PlanCapability)
+    limits = models.JSONField(default=dict, blank=True)
+    permissions = models.JSONField(default=dict, blank=True)
+
+    assigned_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        unique_together = ("user", "plan", "service", "category", "facility")
+
+    def __str__(self):
+        return f"{self.user} - {self.plan.title} ({self.service} / {self.category})"
 
     assigned_at = models.DateTimeField(default=timezone.now)
 

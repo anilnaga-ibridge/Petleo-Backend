@@ -53,7 +53,7 @@ for message in consumer:
         event = message.value
         event_type = (event.get("event_type") or "").upper()
         data = event.get("data") or {}
-        role = (event.get("role") or "").lower()
+        role = (event.get("role") or data.get("role") or "").lower()
         service = event.get("service")
 
         logger.info(f"🔥 Event: {event_type} | Role: {role} | Service: {service}")
@@ -148,6 +148,20 @@ for message in consumer:
                         logger.info(f"✅ Activated OrganizationEmployee {auth_user_id}")
                     except OrganizationEmployee.DoesNotExist:
                         logger.warning(f"⚠️ Employee {auth_user_id} not found for activation")
+
+        elif event_type == "EMPLOYEE_UPDATED":
+            auth_user_id = data.get("auth_user_id")
+            if auth_user_id:
+                updated_count = OrganizationEmployee.objects.filter(auth_user_id=auth_user_id).update(
+                    full_name=data.get("full_name"),
+                    email=data.get("email"),
+                    phone_number=data.get("phone_number"),
+                    role=role or data.get("role")
+                )
+                if updated_count:
+                    logger.info(f"🆙 Updated OrganizationEmployee {auth_user_id}")
+                else:
+                    logger.warning(f"⚠️ OrganizationEmployee {auth_user_id} not found for update")
 
                 # continue  # 🚨 REMOVED: We NEED VerifiedUser for employees too!
             
@@ -302,7 +316,8 @@ for message in consumer:
                                         super_admin_category_id=cat["id"],
                                         defaults={
                                             "service": service_obj,
-                                            "name": cat["name"]
+                                            "name": cat["name"],
+                                            "linked_capability": cat.get("linked_capability")
                                         }
                                     )
                                 except ProviderTemplateService.DoesNotExist:
@@ -444,6 +459,22 @@ for message in consumer:
                             ProviderCapabilityAccess.objects.bulk_create(new_perms)
                             
                     logger.info(f"✅ Updated {len(new_perms)} capabilities for user {auth_user_id}")
+
+                    # C. Update VerifiedUser Permissions (Linked Capabilities)
+                    # ------------------------------------------------------
+                    linked_caps = set()
+                    for perm in permissions_list:
+                        cap = perm.get("linked_capability")
+                        if cap:
+                            linked_caps.add(cap)
+                    
+                    if linked_caps:
+                        # Ensure user.permissions is a list
+                        current_perms = set(user.permissions) if isinstance(user.permissions, list) else set()
+                        updated_perms = list(current_perms.union(linked_caps))
+                        user.permissions = updated_perms
+                        user.save()
+                        logger.info(f"✅ Added linked capabilities to user {auth_user_id}: {linked_caps}")
                     
                     # 3. SYNC SUBSCRIPTION (Dynamic Validation)
                     purchased_plan_info = data.get("purchased_plan", {})
@@ -475,6 +506,14 @@ for message in consumer:
                     logger.warning(f"⚠️ User {auth_user_id} not found for permission update")
                 except Exception as e:
                     logger.error(f"❌ Error updating permissions for {auth_user_id}: {e}")
+                
+                # Publish Sync Event
+                try:
+                    from service_provider.kafka_producer import publish_permissions_synced
+                    # We send the raw permissions list. The consumer (Veterinary Service) must interpret it.
+                    publish_permissions_synced(auth_user_id, permissions_list)
+                except Exception as e:
+                    logger.error(f"❌ Failed to publish sync event: {e}")
 
         elif event_type == "PROVIDER.PERMISSIONS.REVOKED":
             auth_user_id = data.get("auth_user_id") or data.get("data", {}).get("auth_user_id")
@@ -503,6 +542,22 @@ for message in consumer:
                     logger.info(f"✅ Document {doc_id} verified: {status}")
                 else:
                     logger.warning(f"⚠️ Document {doc_id} not found for verification update")
+
+        # ==========================
+        # PLAN STATUS SYNC
+        # ==========================
+        elif event_type == "PLAN.STATUS.CHANGED":
+            plan_id = data.get("plan_id")
+            is_active = data.get("is_active", False)
+            
+            if plan_id:
+                from service_provider.models import ProviderSubscription
+                
+                with transaction.atomic():
+                    # Update all subscriptions for this plan
+                    updated_count = ProviderSubscription.objects.filter(plan_id=plan_id).update(is_active=is_active)
+                    logger.info(f"🔄 Plan {plan_id} status changed to {is_active}. Updated {updated_count} subscriptions.")
+
 
         else:
             logger.warning(f"⚠️ Unknown event type '{event_type}' received.")

@@ -14,10 +14,12 @@ urlpatterns = [
 ]
 
 from rest_framework.routers import DefaultRouter
-from .views import EmployeeViewSet, EmployeeAssignmentViewSet
+from .views import EmployeeViewSet, EmployeeAssignmentViewSet, CapabilityViewSet, ProviderRoleViewSet
 
 router = DefaultRouter()
 router.register(r'employees', EmployeeViewSet, basename='employee')
 router.register(r'employee-assignments', EmployeeAssignmentViewSet, basename='employee-assignments')
+router.register(r'capabilities', CapabilityViewSet, basename='capabilities')
+router.register(r'roles', ProviderRoleViewSet, basename='roles')
 
 urlpatterns += router.urls

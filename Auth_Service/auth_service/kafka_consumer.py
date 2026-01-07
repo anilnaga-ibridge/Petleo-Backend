@@ -59,6 +59,18 @@ for message in consumer:
                 # Email update might be tricky if it's the username, but let's try
                 if data.get("email"):
                     user.email = data.get("email")
+                
+                # ✅ Update Role
+                role_name = data.get("role")
+                if role_name:
+                    from users.models import Role
+                    try:
+                        role_obj = Role.objects.get(name__iexact=role_name)
+                        user.role = role_obj
+                        logger.info(f"🎭 Updated Role for {auth_user_id} to {role_name}")
+                    except Role.DoesNotExist:
+                        logger.warning(f"⚠️ Role '{role_name}' not found in Auth Service")
+
                 user.save()
                 logger.info(f"✅ Updated User {auth_user_id}")
             except User.DoesNotExist:

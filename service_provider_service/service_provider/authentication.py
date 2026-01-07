@@ -34,7 +34,16 @@ class VerifiedUserJWTAuthentication(JWTAuthentication):
 
             try:
                 user = VerifiedUser.objects.get(auth_user_id=user_id)
-                # print(f"DEBUG: Found VerifiedUser: {user.email}")
+                
+                # ✅ Check if user is a disabled employee
+                from .models import OrganizationEmployee
+                try:
+                    employee = OrganizationEmployee.objects.get(auth_user_id=user_id)
+                    if employee.status == 'DISABLED':
+                        raise AuthenticationFailed("Your account has been disabled by your organization.", code="user_disabled")
+                except OrganizationEmployee.DoesNotExist:
+                    pass
+
             except VerifiedUser.DoesNotExist:
                 print(f"DEBUG: VerifiedUser not found for auth_user_id: {user_id}")
                 raise AuthenticationFailed("User not found in Service Provider Service", code="user_not_found")

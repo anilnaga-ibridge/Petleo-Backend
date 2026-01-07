@@ -23,6 +23,16 @@ class Clinic(TimeStampedModel):
     def __str__(self):
         return self.name
 
+class VeterinaryStaff(TimeStampedModel):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    auth_user_id = models.CharField(max_length=255, unique=True, help_text="ID from Auth Service")
+    clinic = models.ForeignKey(Clinic, on_delete=models.SET_NULL, related_name='staff', null=True, blank=True)
+    role = models.CharField(max_length=50, blank=True, null=True)
+    permissions = models.JSONField(default=list, blank=True)
+    
+    def __str__(self):
+        return f"Staff {self.auth_user_id} ({self.role})"
+
 class PetOwner(TimeStampedModel):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     clinic = models.ForeignKey(Clinic, on_delete=models.CASCADE, related_name='owners')
@@ -246,13 +256,15 @@ class MedicationReminder(TimeStampedModel):
 
 class VeterinaryAuditLog(TimeStampedModel):
     ACTION_TYPES = [
+        ('VISIT_CREATED', 'Visit Created'),
         ('STATUS_CHANGE', 'Status Change'),
         ('VITALS_ENTERED', 'Vitals Entered'),
         ('LAB_ORDERED', 'Lab Ordered'),
         ('LAB_RESULT_ADDED', 'Lab Result Added'),
         ('PRESCRIPTION_CREATED', 'Prescription Created'),
         ('MEDICINE_DISPENSED', 'Medicine Dispensed'),
-        ('VISIT_CREATED', 'Visit Created'),
+        ('INVOICE_PAID', 'Invoice Paid'),
+        ('MEDICAL_RECORD_VIEWED', 'Medical Record Viewed'),
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -264,3 +276,57 @@ class VeterinaryAuditLog(TimeStampedModel):
 
     def __str__(self):
         return f"{self.action_type} on Visit {self.visit.id} by {self.performed_by}"
+
+
+# ========================
+# PHASE 4: BILLING LAYER
+# ========================
+
+class VisitInvoice(TimeStampedModel):
+    STATUS_CHOICES = [
+        ('DRAFT', 'Draft'),
+        ('PAID', 'Paid'),
+        ('CANCELLED', 'Cancelled'),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    visit = models.OneToOneField(Visit, on_delete=models.CASCADE, related_name='invoice')
+    subtotal = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    tax = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    total = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='DRAFT')
+
+    def __str__(self):
+        return f"Invoice {self.id} for Visit {self.visit.id}"
+
+    def recalculate_totals(self):
+        charges = self.charges.all()
+        self.subtotal = sum(charge.amount for charge in charges)
+        # Assuming 0% tax for now, or can be configured
+        self.tax = 0 
+        self.total = self.subtotal + self.tax
+        self.save()
+
+
+class VisitCharge(TimeStampedModel):
+    CHARGE_TYPE_CHOICES = [
+        ('CONSULTATION', 'Consultation'),
+        ('LAB', 'Lab Test'),
+        ('MEDICINE', 'Medicine'),
+        ('VITALS', 'Vitals'),
+        ('OTHER', 'Other'),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    visit_invoice = models.ForeignKey(VisitInvoice, on_delete=models.CASCADE, related_name='charges')
+    charge_type = models.CharField(max_length=30, choices=CHARGE_TYPE_CHOICES)
+    reference_id = models.UUIDField(null=True, blank=True, help_text="ID of lab_id / prescription_id / etc.")
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    description = models.CharField(max_length=255, blank=True, null=True)
+
+    def __str__(self):
+        return f"{self.charge_type} Charge: {self.amount}"
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        self.visit_invoice.recalculate_totals()

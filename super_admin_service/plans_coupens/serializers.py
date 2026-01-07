@@ -1,60 +1,14 @@
-
 from rest_framework import serializers
-from .models import BillingCycle, Plan, PlanPrice, PlanCapability, Coupon,PurchasedPlan,ProviderPlanCapability
+from .models import Plan, PlanCapability, Coupon, PurchasedPlan, ProviderPlanCapability, BillingCycleConfig
 from dynamic_services.models import Service
 from dynamic_categories.models import Category
 from dynamic_facilities.serializers import FacilitySerializer
 from dynamic_facilities.models import Facility
 
-
-class BillingCycleSerializer(serializers.ModelSerializer):
+class BillingCycleConfigSerializer(serializers.ModelSerializer):
     class Meta:
-        model = BillingCycle
+        model = BillingCycleConfig
         fields = "__all__"
-
-
-class PlanPriceSerializer(serializers.ModelSerializer):
-
-    plan = serializers.SerializerMethodField()
-    billing_cycle = BillingCycleSerializer(read_only=True)
-
-    billing_cycle_id = serializers.PrimaryKeyRelatedField(
-        queryset=BillingCycle.objects.all(),
-        source="billing_cycle",
-        write_only=True
-    )
-
-    plan_id = serializers.PrimaryKeyRelatedField(
-        queryset=Plan.objects.all(),
-        source="plan",
-        write_only=True
-    )
-
-    class Meta:
-        model = PlanPrice
-        fields = [
-            "id",
-            "plan",          # nested
-            "plan_id",       # write-only
-            "billing_cycle",
-            "billing_cycle_id",
-            "amount",
-            "currency",
-            "is_active",
-        ]
-
-    def get_plan(self, obj):
-        return {
-            "id": obj.plan.id,
-            "title": obj.plan.title,
-            "slug": obj.plan.slug,
-            "role": obj.plan.role,
-        }
-
-
-
-
-
 
 class SimplePlanSerializer(serializers.ModelSerializer):
     class Meta:
@@ -123,10 +77,8 @@ class PlanCapabilitySerializer(serializers.ModelSerializer):
             "service", "service_id",
             "category", "category_id",
             "facility", "facility_id",
-            "can_view",
-            "can_create",
-            "can_edit",
-            "can_delete",
+            "limits",
+            "permissions",
         ]
 
     def validate(self, data):
@@ -156,41 +108,31 @@ class PlanCapabilitySerializer(serializers.ModelSerializer):
 
 
 class PlanSerializer(serializers.ModelSerializer):
-    default_billing_cycle = BillingCycleSerializer(read_only=True)
-    default_billing_cycle_id = serializers.PrimaryKeyRelatedField(
-        queryset=BillingCycle.objects.all(),
-        source="default_billing_cycle",
-        write_only=True,
-        required=False,
-        allow_null=True
-    )
-
-    prices = PlanPriceSerializer(many=True, required=False)
     capabilities = PlanCapabilitySerializer(many=True, required=False)
     features = serializers.ListField(child=serializers.CharField(), required=False)
 
     class Meta:
         model = Plan
         fields = [
-            "id", "title", "slug", "role", "subtitle", "description",
-            "features", "default_billing_cycle", "default_billing_cycle_id",
+            "id", "title", "slug", "target_type", "subtitle", "description",
+            "features", "billing_cycle", "price", "currency",
             "is_active", "created_at", "updated_at",
-            "prices", "capabilities",
+            "capabilities",
         ]
         read_only_fields = ("slug", "created_at", "updated_at")
 
+    def validate_billing_cycle(self, value):
+        if not BillingCycleConfig.objects.filter(code=value, is_active=True).exists():
+            raise serializers.ValidationError(f"Invalid billing cycle code: {value}")
+        return value
+
     def create(self, validated_data):
-        prices = validated_data.pop("prices", [])
         capabilities = validated_data.pop("capabilities", [])
 
         if "features" not in validated_data:
             validated_data["features"] = []
 
         plan = Plan.objects.create(**validated_data)
-
-        # create nested prices
-        for p in prices:
-            PlanPrice.objects.create(plan=plan, **p)
 
         # create nested capabilities
         for cap in capabilities:
@@ -199,19 +141,12 @@ class PlanSerializer(serializers.ModelSerializer):
         return plan
 
     def update(self, instance, validated_data):
-        prices = validated_data.pop("prices", None)
         capabilities = validated_data.pop("capabilities", None)
 
         # simple field update
         for k, v in validated_data.items():
             setattr(instance, k, v)
         instance.save()
-
-        # replace prices on update
-        if prices is not None:
-            instance.prices.all().delete()
-            for p in prices:
-                PlanPrice.objects.create(plan=instance, **p)
 
         # replace capabilities on update
         if capabilities is not None:
@@ -268,10 +203,6 @@ class ProviderPlanCapabilitySerializer(serializers.ModelSerializer):
 
 
 class ProviderPlanViewSerializer(serializers.ModelSerializer):
-    price = serializers.SerializerMethodField()
-    billing_cycle = BillingCycleSerializer(
-        read_only=True, source="default_billing_cycle"
-    )
     access = serializers.SerializerMethodField()
 
     class Meta:
@@ -283,19 +214,11 @@ class ProviderPlanViewSerializer(serializers.ModelSerializer):
             "description",
             "features",
             "price",
+            "currency",
             "billing_cycle",
             "access",
             "is_active",
         ]
-
-    def get_price(self, obj):
-        price = obj.prices.filter(is_active=True).first()
-        if not price:
-            return None
-        return {
-            "amount": str(price.amount),
-            "currency": price.currency
-        }
 
     def get_access(self, obj):
         """
@@ -306,20 +229,6 @@ class ProviderPlanViewSerializer(serializers.ModelSerializer):
             "service", "category", "facility"
         ).order_by("service__display_name", "category__name")
 
-        # Structure:
-        # {
-        #   service_id: {
-        #       service_info: {...},
-        #       categories: {
-        #           category_id: {
-        #               category_info: {...},
-        #               permissions: {...},
-        #               facilities: [...]
-        #           }
-        #       }
-        #   }
-        # }
-        
         grouped = {}
 
         for cap in capabilities:
@@ -342,34 +251,22 @@ class ProviderPlanViewSerializer(serializers.ModelSerializer):
                     grouped[s_id]["categories"][c_id] = {
                         "id": c_id,
                         "name": cap.category.name,
-                        "permissions": {
-                            "can_view": False,
-                            "can_create": False,
-                            "can_edit": False,
-                            "can_delete": False,
-                        },
+                        "permissions": cap.permissions,
+                        "limits": cap.limits,
                         "facilities": []
                     }
                 
                 # If this capability is for the category itself (no facility), set permissions
                 if not cap.facility:
-                    grouped[s_id]["categories"][c_id]["permissions"] = {
-                        "can_view": cap.can_view,
-                        "can_create": cap.can_create,
-                        "can_edit": cap.can_edit,
-                        "can_delete": cap.can_delete,
-                    }
+                    grouped[s_id]["categories"][c_id]["permissions"] = cap.permissions
+                    grouped[s_id]["categories"][c_id]["limits"] = cap.limits
                 else:
                     # It's a facility capability
                     grouped[s_id]["categories"][c_id]["facilities"].append({
                         "id": str(cap.facility.id),
                         "name": cap.facility.name,
-                        "permissions": {
-                            "can_view": cap.can_view,
-                            "can_create": cap.can_create,
-                            "can_edit": cap.can_edit,
-                            "can_delete": cap.can_delete,
-                        }
+                        "permissions": cap.permissions,
+                        "limits": cap.limits
                     })
 
         # Convert to list format

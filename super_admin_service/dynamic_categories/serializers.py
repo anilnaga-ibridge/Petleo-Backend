@@ -13,7 +13,9 @@ class CategorySerializer(serializers.ModelSerializer):
             "name",
             "value",
             "description",
+            "linked_capability",
             "is_active",
+            "is_system",
             "created_at",
             "updated_at",
         ]

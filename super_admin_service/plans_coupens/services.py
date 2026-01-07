@@ -73,6 +73,7 @@ def purchase_plan_and_publish(user, plan, billing_cycle=None):
                 "category_name": getattr(p.category, "name", None),
                 "facility_id": str(p.facility.id) if p.facility else None,
                 "facility_name": getattr(p.facility, "name", None),
+                "linked_capability": getattr(p.category, "linked_capability", None) if p.category else None,
                 "can_view": bool(p.can_view),
                 "can_create": bool(p.can_create),
                 "can_edit": bool(p.can_edit),

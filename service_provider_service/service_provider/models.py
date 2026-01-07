@@ -128,6 +128,59 @@ class AllowedService(models.Model):
         return f"{self.verified_user.email} - {self.name}"
 
 
+class Capability(models.Model):
+    """
+    Human-readable labels and descriptions for technical capability keys.
+    """
+    key = models.CharField(max_length=100, primary_key=True) # e.g. VETERINARY_VITALS
+    label = models.CharField(max_length=100)
+    description = models.TextField(blank=True, null=True)
+    group = models.CharField(max_length=50, default="General") # e.g. Reception, Nursing, Doctor
+
+    def __str__(self):
+        return f"[{self.group}] {self.label}"
+
+
+class ProviderRole(models.Model):
+    """
+    Provider-scoped roles (e.g., "Senior Nurse").
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    provider = models.ForeignKey(
+        ServiceProvider,
+        on_delete=models.CASCADE,
+        related_name="custom_roles"
+    )
+    name = models.CharField(max_length=100)
+    description = models.TextField(blank=True, null=True)
+    is_system_role = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("provider", "name")
+
+    def __str__(self):
+        return f"{self.name} ({self.provider})"
+
+
+class ProviderRoleCapability(models.Model):
+    """
+    Maps ProviderRole to capability keys.
+    """
+    provider_role = models.ForeignKey(
+        ProviderRole,
+        on_delete=models.CASCADE,
+        related_name="capabilities"
+    )
+    capability_key = models.CharField(max_length=100) # e.g. VETERINARY_VITALS
+
+    class Meta:
+        unique_together = ("provider_role", "capability_key")
+
+    def __str__(self):
+        return f"{self.provider_role.name} - {self.capability_key}"
+
+
 class OrganizationEmployee(models.Model):
     """
     Represents an employee belonging to an organization.
@@ -141,11 +194,22 @@ class OrganizationEmployee(models.Model):
         related_name="employees"
     )
 
+    provider_role = models.ForeignKey(
+        ProviderRole,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="employees"
+    )
+
     # Denormalized fields for direct access
     full_name = models.CharField(max_length=100, blank=True, null=True)
     email = models.EmailField(blank=True, null=True)
     phone_number = models.CharField(max_length=15, blank=True, null=True)
     role = models.CharField(max_length=50, default="employee")
+    
+    # Computed + Override permissions
+    permissions_json = models.JSONField(default=dict, blank=True)
     
     status = models.CharField(
         max_length=20,
@@ -165,6 +229,55 @@ class OrganizationEmployee(models.Model):
 
     def __str__(self):
         return f"Employee {self.auth_user_id} of {self.organization}"
+
+    LEGACY_ROLE_MAP = {
+        "receptionist": ["VETERINARY_CORE", "VETERINARY_VISITS"],
+        "vitals staff": ["VETERINARY_CORE", "VETERINARY_VITALS"],
+        "doctor": ["VETERINARY_CORE", "VETERINARY_VISITS", "VETERINARY_VITALS", "VETERINARY_PRESCRIPTIONS", "VETERINARY_LABS"],
+        "lab tech": ["VETERINARY_CORE", "VETERINARY_LABS"],
+        "pharmacy": ["VETERINARY_CORE", "VETERINARY_MEDICINE_REMINDERS"],
+        "employee": ["VETERINARY_CORE"]
+    }
+
+    def get_final_permissions(self):
+        """
+        Dual-read permission logic:
+        1. Plan Capabilities (Base)
+        2. Provider Role Capabilities (Custom) OR Legacy Role Capabilities (Fallback)
+        3. Overrides (Final)
+        """
+        # 1. Plan Capabilities (from Organization's VerifiedUser)
+        plan_capabilities = set(self.organization.verified_user.permissions or [])
+
+        # 2. Role Capabilities (Custom Role takes precedence)
+        role_capabilities = set()
+        if self.provider_role:
+            role_capabilities = set(
+                self.provider_role.capabilities.values_list("capability_key", flat=True)
+            )
+        else:
+            # Fallback to legacy role mapping
+            legacy_key = (self.role or "employee").lower()
+            legacy_caps = self.LEGACY_ROLE_MAP.get(legacy_key, [])
+            role_capabilities = set(legacy_caps)
+        
+        # 3. Intersection: Only allow what the Plan allows
+        # EXCEPT for VETERINARY_CORE which is usually granted to all staff
+        final_permissions = plan_capabilities.intersection(role_capabilities)
+        
+        # Ensure VETERINARY_CORE is included if they have any role
+        if role_capabilities:
+            final_permissions.add("VETERINARY_CORE")
+
+        # 4. Apply Overrides (permissions_json)
+        overrides = self.permissions_json or {}
+        add_overrides = set(overrides.get("ADD", []))
+        remove_overrides = set(overrides.get("REMOVE", []))
+
+        final_permissions.update(add_overrides)
+        final_permissions.difference_update(remove_overrides)
+
+        return list(final_permissions)
 
 
 class ProviderSubscription(models.Model):

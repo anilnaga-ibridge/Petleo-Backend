@@ -1,7 +1,7 @@
 from rest_framework import serializers
-from .models import Pricing
+from .models import PricingRule
 
-class PricingSerializer(serializers.ModelSerializer):
+class PricingRuleSerializer(serializers.ModelSerializer):
     service_display = serializers.CharField(
         source="service.display_name", read_only=True
     )
@@ -13,7 +13,7 @@ class PricingSerializer(serializers.ModelSerializer):
     )
 
     class Meta:
-        model = Pricing
+        model = PricingRule
         fields = "__all__"  # This will NOT include display fields, so add below
         extra_fields = ["service_display", "category_display", "facility_display"]
 

@@ -1,20 +1,20 @@
 from rest_framework import viewsets, filters
-from .models import Pricing
-from .serializers import PricingSerializer
+from .models import PricingRule
+from .serializers import PricingRuleSerializer
 
 from rest_framework.permissions import IsAuthenticated
 from admin_core.permissions import HasServicePermission
 
-class PricingViewSet(viewsets.ModelViewSet):
+class PricingRuleViewSet(viewsets.ModelViewSet):
     """
-    Handles CRUD for Pricing dynamically per Service, Category, and Facility.
+    Handles CRUD for Pricing Rules dynamically per Service, Category, and Facility.
     """
-    queryset = Pricing.objects.all().order_by("id")
-    serializer_class = PricingSerializer
+    queryset = PricingRule.objects.all().order_by("id")
+    serializer_class = PricingRuleSerializer
     permission_classes = [IsAuthenticated, HasServicePermission]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ["service__display_name", "category__name", "facility__name"]
-    ordering_fields = ["price", "created_at", "updated_at"]
+    ordering_fields = ["base_price", "created_at", "updated_at"]
 
     def get_queryset(self):
         """

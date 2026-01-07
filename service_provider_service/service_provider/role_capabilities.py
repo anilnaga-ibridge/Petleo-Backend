@@ -6,19 +6,12 @@
 ROLE_DEFAULT_CAPABILITIES = {
     "doctor": [
         "VETERINARY_CORE",
-        "VETERINARY_VISITS",
         "VETERINARY_PRESCRIPTIONS",
-        "VETERINARY_LABS",
-        "VETERINARY_ONLINE_CONSULT",
-        "VETERINARY_OFFLINE_VISIT",
-        "VETERINARY_MEDICINE_REMINDERS",
-        "VETERINARY_SCHEDULE",
+        "VETERINARY_VISITS", # Often needs to see the visit list
     ],
     "receptionist": [
         "VETERINARY_CORE",
-        "VETERINARY_SCHEDULE",
-        "VETERINARY_VISITS", # Can view/manage visits but maybe restricted actions (handled by granular perms if needed)
-        "VETERINARY_OFFLINE_VISIT",
+        "VETERINARY_VISITS",
     ],
     "vitals staff": [
         "VETERINARY_CORE",
@@ -38,19 +31,26 @@ ROLE_DEFAULT_CAPABILITIES = {
     ],
     "pharmacy": [
         "VETERINARY_CORE",
-        "VETERINARY_PRESCRIPTIONS", # Can view prescriptions to dispense
         "VETERINARY_MEDICINE_REMINDERS",
     ],
     "employee": [
-        "VETERINARY_CORE", # Basic access
+        "VETERINARY_CORE", # Basic access, likely needs specific assignment
     ],
-    # Add new roles here as needed
     "nurse": [
         "VETERINARY_CORE",
         "VETERINARY_VITALS",
-        "VETERINARY_MEDICINE_REMINDERS",
+        "VETERINARY_MEDICINE_REMINDERS", # Maybe?
     ]
 }
+
+ALL_VETERINARY_CAPABILITIES = [
+    "VETERINARY_CORE",
+    "VETERINARY_VISITS",
+    "VETERINARY_VITALS",
+    "VETERINARY_PRESCRIPTIONS",
+    "VETERINARY_LABS",
+    "VETERINARY_MEDICINE_REMINDERS",
+]
 
 def get_default_capabilities(role_name):
     """
@@ -61,4 +61,9 @@ def get_default_capabilities(role_name):
         return []
     
     normalized_role = role_name.lower().strip()
+    
+    # Individual providers get ALL capabilities
+    if normalized_role == "individual":
+        return ALL_VETERINARY_CAPABILITIES
+
     return ROLE_DEFAULT_CAPABILITIES.get(normalized_role, [])

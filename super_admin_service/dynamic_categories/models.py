@@ -9,7 +9,9 @@ class Category(models.Model):
     name = models.CharField(max_length=255)
     value = models.CharField(max_length=255, blank=True)
     description = models.TextField(blank=True, null=True)
+    linked_capability = models.CharField(max_length=100, blank=True, null=True, help_text="Maps to a hardcoded capability e.g. VETERINARY_VITALS")
     is_active = models.BooleanField(default=True)
+    is_system = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

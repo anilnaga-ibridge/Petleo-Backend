@@ -4,7 +4,7 @@ from .models import (
     Clinic, PetOwner, Pet, Visit, 
     DynamicFieldDefinition, DynamicFieldValue,
     FormDefinition, FormField, FieldValidation, FormSubmission,
-    PharmacyDispense, MedicationReminder
+    PharmacyDispense, MedicationReminder, VisitInvoice, VisitCharge
 )
 from .services import DynamicEntityService
 
@@ -119,3 +119,20 @@ class VisitDetailSerializer(VisitSerializer):
     
     class Meta(VisitSerializer.Meta):
         fields = VisitSerializer.Meta.fields + ['submissions', 'dispenses', 'reminders']
+
+
+# ========================
+# PHASE 4: BILLING SERIALIZERS
+# ========================
+
+class VisitChargeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = VisitCharge
+        fields = '__all__'
+
+class VisitInvoiceSerializer(serializers.ModelSerializer):
+    charges = VisitChargeSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = VisitInvoice
+        fields = '__all__'

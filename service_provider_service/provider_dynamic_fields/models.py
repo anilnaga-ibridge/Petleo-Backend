@@ -377,6 +377,7 @@ class ProviderTemplateCategory(models.Model):
         related_name="categories"
     )
     name = models.CharField(max_length=255)
+    linked_capability = models.CharField(max_length=100, blank=True, null=True)
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

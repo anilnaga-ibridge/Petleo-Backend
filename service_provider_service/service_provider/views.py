@@ -12,9 +12,13 @@ from .models import (
     ServiceProvider, 
     VerifiedUser,
     AllowedService,
+    Capability,
+    ProviderRole,
 )
 from .serializers import (
     ServiceProviderSerializer, 
+    CapabilitySerializer,
+    ProviderRoleSerializer,
 )
 
 class ServiceProviderProfileView(APIView):
@@ -99,6 +103,16 @@ def get_my_permissions(request):
     subscription_owner = user
     try:
         employee = OrganizationEmployee.objects.get(auth_user_id=user.auth_user_id)
+        
+        # ✅ Check if employee is disabled
+        if employee.status == 'DISABLED':
+            print(f"DEBUG: Employee {user.email} is DISABLED. Revoking access.")
+            return Response({
+                "permissions": [], 
+                "plan": None, 
+                "error": "Your account has been disabled by your organization."
+            })
+            
         subscription_owner = employee.organization.verified_user
         print(f"DEBUG: User is employee. Checking Org subscription: {subscription_owner.email}")
     except OrganizationEmployee.DoesNotExist:
@@ -135,16 +149,20 @@ def get_my_permissions(request):
     # --- INJECT VETERINARY_CORE CAPABILITY ---
     # Veterinary staff must have access to the dashboard even without specific service assignments.
     user_role = getattr(user, 'role', '').upper()
-    vet_roles = ['RECEPTIONIST', 'DOCTOR', 'LAB_TECH', 'PHARMACY', 'VITALS_STAFF', 'NURSE']
+    vet_roles = ['RECEPTIONIST', 'DOCTOR', 'LAB_TECH', 'PHARMACY', 'VITALS_STAFF', 'NURSE', 'INDIVIDUAL']
     
-    if user_role in vet_roles:
+    # Check if user has ANY veterinary capability
+    has_any_vet_cap = any(p.get('service_key', '').startswith('VETERINARY_') for p in permissions_list)
+
+    if user_role in vet_roles or has_any_vet_cap:
         # Check if VETERINARY_CORE is already present (to avoid duplicates)
-        has_vet_core = any(p.get('service_name') == 'VETERINARY_CORE' for p in permissions_list)
+        has_vet_core = any(p.get('service_key') == 'VETERINARY_CORE' for p in permissions_list)
         
         if not has_vet_core:
             permissions_list.append({
                 "service_id": "VETERINARY_CORE",
-                "service_name": "VETERINARY_CORE",
+                "service_name": "Veterinary Core",
+                "service_key": "VETERINARY_CORE",
                 "icon": "tabler-stethoscope",
                 "categories": [],
                 "can_view": True,
@@ -355,12 +373,14 @@ def _build_permission_tree(user):
         # Get Service Info
         svc_obj = services_map.get(s_id)
         svc_name = svc_obj.display_name if svc_obj else "Unknown Service"
+        svc_key = svc_obj.name if svc_obj else "unknown_service"
         svc_icon = svc_obj.icon if svc_obj else "tabler-box"
 
         if s_id not in grouped:
             grouped[s_id] = {
                 "service_id": s_id,
                 "service_name": svc_name,
+                "service_key": svc_key,
                 "icon": svc_icon,
                 "permissions": {
                     "can_view": False, "can_create": False, "can_edit": False, "can_delete": False
@@ -384,11 +404,13 @@ def _build_permission_tree(user):
         # Get Category Info
         cat_obj = categories_map.get(c_id)
         cat_name = cat_obj.name if cat_obj else "Unknown Category"
+        cat_linked_cap = cat_obj.linked_capability if cat_obj else None
 
         if c_id not in grouped[s_id]["categories"]:
             grouped[s_id]["categories"][c_id] = {
                 "id": c_id,
                 "name": cat_name,
+                "linked_capability": cat_linked_cap,
                 "permissions": {
                     "can_view": False, "can_create": False, "can_edit": False, "can_delete": False
                 },
@@ -519,6 +541,7 @@ def _build_permission_tree(user):
             c_flat = {
                 "id": c["id"],
                 "name": c["name"],
+                "linked_capability": c.get("linked_capability"),
                 "facilities": c["facilities"],
                 "pricing": c["pricing"],
                 **c["permissions"],
@@ -540,6 +563,7 @@ def _build_permission_tree(user):
         permissions_list.append({
             "service_id": s_val["service_id"],
             "service_name": s_val["service_name"],
+            "service_key": s_val["service_key"],
             "icon": s_val["icon"],
             "categories": final_cats,
             "can_view": svc_can_view,
@@ -665,3 +689,29 @@ class EmployeeAssignmentViewSet(viewsets.ViewSet):
                 )
         
         return Response({"status": "updated", "permissions_count": created_count})
+class CapabilityViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    List all available capabilities with human-readable labels.
+    """
+    queryset = Capability.objects.all()
+    serializer_class = CapabilitySerializer
+    permission_classes = [IsAuthenticated]
+
+
+class ProviderRoleViewSet(viewsets.ModelViewSet):
+    """
+    Manage provider-scoped roles.
+    """
+    serializer_class = ProviderRoleSerializer
+    permission_classes = [IsAuthenticated, IsOrganizationAdmin]
+
+    def get_queryset(self):
+        try:
+            provider = ServiceProvider.objects.get(verified_user=self.request.user)
+            return ProviderRole.objects.filter(provider=provider)
+        except ServiceProvider.DoesNotExist:
+            return ProviderRole.objects.none()
+
+    def perform_create(self, serializer):
+        provider = ServiceProvider.objects.get(verified_user=self.request.user)
+        serializer.save(provider=provider)

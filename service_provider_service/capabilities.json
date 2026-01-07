@@ -1,0 +1,32 @@
+{
+    "VETERINARY_CORE": {
+        "label": "Veterinary Dashboard",
+        "group": "General",
+        "description": "Basic access to veterinary dashboard and search"
+    },
+    "VETERINARY_VISITS": {
+        "label": "Create & Check-in Visits",
+        "group": "Reception",
+        "description": "Register pets and manage the waiting room"
+    },
+    "VETERINARY_VITALS": {
+        "label": "Record Vitals",
+        "group": "Nursing",
+        "description": "Capture weight, temperature, and basic health data"
+    },
+    "VETERINARY_PRESCRIPTIONS": {
+        "label": "Prescribe Medicines",
+        "group": "Doctor",
+        "description": "Create and finalize prescriptions for patients"
+    },
+    "VETERINARY_LABS": {
+        "label": "Manage Lab Tests",
+        "group": "Laboratory",
+        "description": "Order lab tests and upload/review results"
+    },
+    "VETERINARY_MEDICINE_REMINDERS": {
+        "label": "Dispense Medicines",
+        "group": "Pharmacy",
+        "description": "Issue medicines and manage medication reminders"
+    }
+}

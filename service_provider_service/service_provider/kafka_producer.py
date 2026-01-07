@@ -75,13 +75,14 @@ def publish_employee_updated(employee):
 
     payload = {
         "event_type": "EMPLOYEE_UPDATED",
-        "role": "employee",
+        "role": employee.role or "employee",
         "data": {
             "auth_user_id": str(employee.auth_user_id),
             "organization_id": org_id,
             "full_name": employee.full_name,
             "email": employee.email,
-            "phone_number": employee.phone_number
+            "phone_number": employee.phone_number,
+            "role": employee.role or "employee"
         }
     }
     
@@ -114,3 +115,27 @@ def publish_employee_deleted(auth_user_id):
         logger.info(f"📤 Published EMPLOYEE_DELETED for {auth_user_id}")
     except Exception as e:
         logger.error(f"❌ Failed to publish employee deletion event: {e}")
+
+def publish_permissions_synced(auth_user_id, permissions):
+    producer = get_kafka_producer()
+    if not producer:
+        logger.warning(f"⚠️ Kafka not connected. Permission sync for '{auth_user_id}' skipped.")
+        return
+
+    topic = "service_provider_events"
+    
+    payload = {
+        "event_type": "USER_PERMISSIONS_SYNCED",
+        "role": "provider", # Generic role
+        "data": {
+            "auth_user_id": str(auth_user_id),
+            "permissions": permissions
+        }
+    }
+    
+    try:
+        producer.send(topic, payload)
+        producer.flush()
+        logger.info(f"📤 Published USER_PERMISSIONS_SYNCED for {auth_user_id}")
+    except Exception as e:
+        logger.error(f"❌ Failed to publish permission sync event: {e}")

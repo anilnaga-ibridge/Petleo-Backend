@@ -1,0 +1,51 @@
+[
+    {
+        "key": "VETERINARY_VISITS",
+        "label": "Reception & Check-in",
+        "description": "Register pets, create visits, and check patients in",
+        "group": "Reception",
+        "service": "VETERINARY"
+    },
+    {
+        "key": "VETERINARY_VITALS",
+        "label": "Record Vitals",
+        "description": "Record temperature, weight, and basic health indicators",
+        "group": "Nursing",
+        "service": "VETERINARY"
+    },
+    {
+        "key": "VETERINARY_PRESCRIPTIONS",
+        "label": "Doctor Consultation",
+        "description": "Diagnose patients and prescribe medications",
+        "group": "Doctor",
+        "service": "VETERINARY"
+    },
+    {
+        "key": "VETERINARY_LABS",
+        "label": "Lab Testing",
+        "description": "Order and upload lab test results",
+        "group": "Laboratory",
+        "service": "VETERINARY"
+    },
+    {
+        "key": "VETERINARY_MEDICINE_REMINDERS",
+        "label": "Pharmacy & Medicine Dispensing",
+        "description": "Dispense medicines and complete visits",
+        "group": "Pharmacy",
+        "service": "VETERINARY"
+    },
+    {
+        "key": "VETERINARY_ONLINE_CONSULT",
+        "label": "Online Consultation",
+        "description": "Provide video or chat-based consultations",
+        "group": "Doctor",
+        "service": "VETERINARY"
+    },
+    {
+        "key": "VETERINARY_OFFLINE_VISIT",
+        "label": "In-Clinic Consultation",
+        "description": "Handle physical in-clinic visits",
+        "group": "Doctor",
+        "service": "VETERINARY"
+    }
+]

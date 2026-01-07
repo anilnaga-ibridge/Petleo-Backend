@@ -7,14 +7,15 @@ from .models import (
     Clinic, PetOwner, Pet, Visit, 
     DynamicFieldDefinition, DynamicFieldValue,
     FormDefinition, FormField, FormSubmission,
-    PharmacyDispense, MedicationReminder
+    PharmacyDispense, MedicationReminder, VisitInvoice, VisitCharge
 )
 from .serializers import (
     ClinicSerializer, PetOwnerSerializer, PetSerializer, VisitSerializer, 
     DynamicFieldDefinitionSerializer, DynamicFieldValueSerializer,
     DynamicEntitySerializer,
     FormDefinitionSerializer, FormSubmissionSerializer, VisitDetailSerializer,
-    PharmacyDispenseSerializer, MedicationReminderSerializer
+    PharmacyDispenseSerializer, MedicationReminderSerializer,
+    VisitInvoiceSerializer, VisitChargeSerializer
 )
 from .services import (
     DynamicEntityService, WorkflowService, MetadataService, 
@@ -196,29 +197,83 @@ class PetOwnerClientViewSet(viewsets.ReadOnlyModelViewSet):
     """
     Read-only API for Pet Owners to view their own data.
     """
-    permission_classes = [permissions.IsAuthenticated] # Add IsPetOwner custom permission later
-    serializer_class = VisitSerializer
+    permission_classes = [permissions.IsAuthenticated] 
 
     def get_queryset(self):
         # Filter visits where the pet belongs to the logged-in user
-        # Assuming request.user.id matches Owner ID in Pet Service (or linked via Auth)
-        # For Phase 4, we assume request.user.id is the owner_id
-        user_id = self.request.user.id # Or usage of a specific claim
-        # We need to filter Visits where Visit.pet.owner.id == user_id
-        # Since Owner is a virtual entity or linked model, we might need to adjust.
-        # If Pet.owner is a foreign key to a User/Owner model:
-        return Visit.objects.filter(pet__owner__id=user_id).order_by('-created_at')
+        # In a real app, we'd link request.user.id to PetOwner.auth_user_id
+        return Visit.objects.filter(pet__owner__auth_user_id=self.request.user.id).order_by('-created_at')
+
+    @action(detail=False, methods=['get'])
+    def pets(self, request):
+        """
+        GET /veterinary/pet-owner/pets
+        """
+        pets = Pet.objects.filter(owner__auth_user_id=request.user.id)
+        return Response(PetSerializer(pets, many=True).data)
+
+    @action(detail=False, methods=['get'])
+    def visits(self, request):
+        """
+        GET /veterinary/pet-owner/visits
+        """
+        visits = self.get_queryset()
+        return Response(VisitSerializer(visits, many=True).data)
+
+    @action(detail=False, methods=['get'], url_path='visit/(?P<visit_id>[^/.]+)')
+    def visit_detail(self, request, visit_id=None):
+        """
+        GET /veterinary/pet-owner/visit/{id}
+        """
+        try:
+            visit = Visit.objects.get(id=visit_id, pet__owner__auth_user_id=request.user.id)
+            return Response(VisitDetailSerializer(visit).data)
+        except Visit.DoesNotExist:
+            return Response({'error': 'Visit not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    @action(detail=False, methods=['get'])
+    def invoices(self, request):
+        """
+        GET /veterinary/pet-owner/invoices
+        """
+        invoices = VisitInvoice.objects.filter(visit__pet__owner__auth_user_id=request.user.id)
+        return Response(VisitInvoiceSerializer(invoices, many=True).data)
+
+    @action(detail=False, methods=['post'], url_path='pay/(?P<invoice_id>[^/.]+)')
+    def pay(self, request, invoice_id=None):
+        """
+        POST /veterinary/pet-owner/pay/{invoice_id}
+        """
+        try:
+            invoice = VisitInvoice.objects.get(id=invoice_id, visit__pet__owner__auth_user_id=request.user.id)
+            invoice.status = 'PAID'
+            invoice.save()
+            return Response({'status': 'Payment successful'})
+        except VisitInvoice.DoesNotExist:
+            return Response({'error': 'Invoice not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    @action(detail=False, methods=['get'])
+    def labs(self, request):
+        """
+        GET /veterinary/pet-owner/labs
+        """
+        # Fetch lab results (FormSubmissions with code LAB_RESULT_FORM)
+        submissions = FormSubmission.objects.filter(
+            visit__pet__owner__auth_user_id=request.user.id,
+            form_definition__code='LAB_RESULT_FORM'
+        )
+        return Response(FormSubmissionSerializer(submissions, many=True).data)
 
     @action(detail=False, methods=['get'])
     def prescriptions(self, request):
         """
         GET /veterinary/pet-owner/prescriptions
         """
-        user_id = self.request.user.id
-        # Logic to fetch prescriptions for this owner
-        # This requires traversing Visit -> FormSubmission(Prescription) -> Pet -> Owner
-        # Simplified for now:
-        return Response([])
+        submissions = FormSubmission.objects.filter(
+            visit__pet__owner__auth_user_id=request.user.id,
+            form_definition__code='PRESCRIPTION_FORM'
+        )
+        return Response(FormSubmissionSerializer(submissions, many=True).data)
 
 class FormDefinitionViewSet(viewsets.ModelViewSet):
     queryset = FormDefinition.objects.all()

@@ -101,4 +101,17 @@ def publish_permissions_revoked(auth_user_id: str, purchase_id: str = None):
         },
     }
 
-    publish_permissions_event("provider.permissions.revoked", payload)
+# -------------------------------------------
+#  Plan Status Changed Event
+# -------------------------------------------
+def publish_plan_status_changed(plan_id: str, is_active: bool):
+    payload = {
+        "event_type": "plan.status.changed",
+        "occurred_at": timezone.now().isoformat(),
+        "data": {
+            "plan_id": str(plan_id),
+            "is_active": is_active,
+        },
+    }
+
+    publish_permissions_event("plan.status.changed", payload)

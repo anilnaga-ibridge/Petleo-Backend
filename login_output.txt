@@ -1,0 +1,34 @@
+Note: Unnecessary use of -X or --request, POST is already inferred.
+*   Trying ::1...
+* TCP_NODELAY set
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0* Connection failed
+* connect to ::1 port 8000 failed: Connection refused
+*   Trying 127.0.0.1...
+* TCP_NODELAY set
+* Connected to localhost (127.0.0.1) port 8000 (#0)
+> POST /api/v1/auth/api/auth/login-with-pin/ HTTP/1.1
+> Host: localhost:8000
+> User-Agent: curl/7.53.1
+> Accept: */*
+> Content-Type: application/json
+> Content-Length: 45
+> 
+} [45 bytes data]
+* upload completely sent off: 45 out of 45 bytes
+< HTTP/1.1 200 OK
+< Date: Tue, 06 Jan 2026 09:35:19 GMT
+< Server: WSGIServer/0.2 CPython/3.13.5
+< Content-Type: application/json
+< Vary: Accept, origin
+< Allow: POST, OPTIONS
+< Content-Length: 2078
+< X-Content-Type-Options: nosniff
+< Referrer-Policy: same-origin
+< Cross-Origin-Opener-Policy: same-origin
+< 
+{ [2078 bytes data]
+100  2123  100  2078  100    45   2548     55 --:--:-- --:--:-- --:--:--  2559
+* Connection #0 to host localhost left intact
+{"userAbilityRules":[{"action":"manage","subject":"all"}],"accessToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzcwMjg0MTE5LCJpYXQiOjE3Njc2OTIxMTksImp0aSI6IjI5OGQ5Yzc5ZGU4NDQwNTdiOTYwMGE1YzgyOTViMWRmIiwidXNlcl9pZCI6IjU1YmRmNjk5LWQyMWYtNGNjMy1hN2I0LTY1YmMzN2MzMzk0YiIsInJvbGUiOiJzdXBlcmFkbWluIiwicGhvbmVfbnVtYmVyIjoiOTg3NjU0MzIxMCIsImZ1bGxfbmFtZSI6IlN1cGVyIEFkbWluIiwiaXNfc3VwZXJ1c2VyIjp0cnVlLCJpc3MiOiJkamFuZ29faXNzdWVyIiwicGVybWlzc2lvbnMiOlsibWFuYWdlX3Byb3ZpZGVycyIsIm1hbmFnZV91c2VycyIsIm1hbmFnZV9yb2xlcyIsIm1hbmFnZV9wZXJtaXNzaW9ucyIsIm1hbmFnZV9zZXJ2aWNlcyIsInZpZXdfcmVwb3J0cyIsInVzZXJzLmNyZWF0ZSIsInVzZXJzLnVwZGF0ZSJdfQ.0kVnWmcQJq2QFEqIAS2dtZKQaG9sJE-grQlfv9kazpU","refreshToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoicmVmcmVzaCIsImV4cCI6MTc2ODI5NjkxOSwiaWF0IjoxNzY3NjkyMTE5LCJqdGkiOiJkMzQ0YjkwNjBhMTY0MTVmOTk3NjRjNmYyM2U0MjE1MyIsInVzZXJfaWQiOiI1NWJkZjY5OS1kMjFmLTRjYzMtYTdiNC02NWJjMzdjMzM5NGIiLCJyb2xlIjoic3VwZXJhZG1pbiIsInBob25lX251bWJlciI6Ijk4NzY1NDMyMTAiLCJmdWxsX25hbWUiOiJTdXBlciBBZG1pbiIsImlzX3N1cGVydXNlciI6dHJ1ZSwiaXNzIjoiZGphbmdvX2lzc3VlciIsInBlcm1pc3Npb25zIjpbIm1hbmFnZV9wcm92aWRlcnMiLCJtYW5hZ2VfdXNlcnMiLCJtYW5hZ2Vfcm9sZXMiLCJtYW5hZ2VfcGVybWlzc2lvbnMiLCJtYW5hZ2Vfc2VydmljZXMiLCJ2aWV3X3JlcG9ydHMiLCJ1c2Vycy5jcmVhdGUiLCJ1c2Vycy51cGRhdGUiXX0.qJQ-7EvH0TXajb9uub4X4PH8JPq33GeO_wwV8O5OOmI","auth_user_id":"55bdf699-d21f-4cc3-a7b4-65bc37c3394b","userData":{"id":"55bdf699-d21f-4cc3-a7b4-65bc37c3394b","auth_user_id":"55bdf699-d21f-4cc3-a7b4-65bc37c3394b","fullName":"Super Admin","username":"Super Admin","avatar":"/images/avatars/avatar-1.png","email":"superadmin@example.com","role":"SUPERADMIN","permissions":["manage_providers","manage_users","manage_roles","manage_permissions","manage_services","view_reports","users.create","users.update"],"phoneNumber":"9876543210","provider_id":"55bdf699-d21f-4cc3-a7b4-65bc37c3394b","capabilities":[],"provider_type":null},"has_pin":true,"pin_valid_today":true,"require_set_pin":false,"message":"PIN verified. Login successful.","remember_me":false,"is_reverify":false}
