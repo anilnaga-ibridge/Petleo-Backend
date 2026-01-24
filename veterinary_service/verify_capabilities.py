@@ -19,7 +19,7 @@ def verify_capability_enforcement():
 
     # 1. Setup Mock Data
     auth_user_id = str(uuid.uuid4())
-    clinic = Clinic.objects.create(name="Test Clinic", provider_id=str(uuid.uuid4()))
+    clinic = Clinic.objects.create(name="Test Clinic", organization_id=str(uuid.uuid4()))
     
     # Create Staff with specific capabilities
     staff = VeterinaryStaff.objects.create(

@@ -26,6 +26,26 @@ class VerifiedUser(models.Model):
         """Required for Django/DRF authentication."""
         return True
 
+    def get_all_plan_capabilities(self):
+        """
+        Returns ALL capability keys derived from the user's purchased plan.
+        This corresponds to the 'Upper Bound' of access.
+        """
+        # Avoid circular imports
+        from provider_dynamic_fields.models import ProviderCapabilityAccess, ProviderTemplateCategory
+        
+        # 1. Get Categories assigned in ProviderCapabilityAccess (The Plan)
+        cat_ids = self.capabilities.filter(category_id__isnull=False).values_list('category_id', flat=True)
+        
+        # 2. Resolve to Linked Capabilities (e.g., 'Category: Pharmacy' -> 'VETERINARY_PHARMACY')
+        linked_caps = ProviderTemplateCategory.objects.filter(
+            super_admin_category_id__in=cat_ids
+        ).exclude(linked_capability__isnull=True).values_list('linked_capability', flat=True)
+        
+        return set(linked_caps).union(
+            set(self.dynamic_capabilities.filter(is_active=True).values_list('capability__key', flat=True))
+        )
+
 
 # service_provider/models.py
 
@@ -230,6 +250,7 @@ class OrganizationEmployee(models.Model):
     def __str__(self):
         return f"Employee {self.auth_user_id} of {self.organization}"
 
+    # @deprecated - prevent new usage
     LEGACY_ROLE_MAP = {
         "receptionist": ["VETERINARY_CORE", "VETERINARY_VISITS"],
         "vitals staff": ["VETERINARY_CORE", "VETERINARY_VITALS"],
@@ -241,39 +262,48 @@ class OrganizationEmployee(models.Model):
 
     def get_final_permissions(self):
         """
-        Dual-read permission logic:
-        1. Plan Capabilities (Base)
-        2. Provider Role Capabilities (Custom) OR Legacy Role Capabilities (Fallback)
-        3. Overrides (Final)
+        Calculate Employee Permissions.
+        Rule: Effective Access = (Organization Plan Capabilities) ∩ (Employee Assigned Role)
+        
+        We STRICTLY enforce that an employee cannot have a permission that the Organization does not possess.
         """
-        # 1. Plan Capabilities (from Organization's VerifiedUser)
-        plan_capabilities = set(self.organization.verified_user.permissions or [])
+        import logging
+        logger = logging.getLogger(__name__)
 
-        # 2. Role Capabilities (Custom Role takes precedence)
+        # 1. The Ceiling: Organization's Purchases (Upper Bound)
+        org_caps = self.organization.verified_user.get_all_plan_capabilities()
+        
+        # 2. The Selection: Employee's Assigned Role
         role_capabilities = set()
+        
         if self.provider_role:
+            # Modern Path: Custom DB Role
             role_capabilities = set(
                 self.provider_role.capabilities.values_list("capability_key", flat=True)
             )
         else:
-            # Fallback to legacy role mapping
+            # Deprecated Path: Legacy Map
+            # TODO: Migration script to create ProviderRoles for all employees
             legacy_key = (self.role or "employee").lower()
-            legacy_caps = self.LEGACY_ROLE_MAP.get(legacy_key, [])
-            role_capabilities = set(legacy_caps)
-        
-        # 3. Intersection: Only allow what the Plan allows
-        # EXCEPT for VETERINARY_CORE which is usually granted to all staff
-        final_permissions = plan_capabilities.intersection(role_capabilities)
-        
-        # Ensure VETERINARY_CORE is included if they have any role
-        if role_capabilities:
-            final_permissions.add("VETERINARY_CORE")
+            role_capabilities = set(self.LEGACY_ROLE_MAP.get(legacy_key, []))
+            
+            # Log warning only if they are actually using capabilities beyond CORE
+            if len(role_capabilities) > 1: 
+                logger.warning(f"[DEPRECATION] Employee {self.auth_user_id} using LEGACY_ROLE_MAP for role '{legacy_key}'")
 
-        # 4. Apply Overrides (permissions_json)
+        # 3. The Intersection: Only allow what the Plan allows
+        final_permissions = org_caps.intersection(role_capabilities)
+        
+        # 4. Core Access (Always Granted for valid employees)
+        final_permissions.add("VETERINARY_CORE")
+
+        # 5. Apply Overrides (permissions_json) - RARE case
         overrides = self.permissions_json or {}
         add_overrides = set(overrides.get("ADD", []))
         remove_overrides = set(overrides.get("REMOVE", []))
 
+        # IMPORTANT: Even 'ADD' overrides should technically be checked against Plan,
+        # but for now we trust specific manual overrides.
         final_permissions.update(add_overrides)
         final_permissions.difference_update(remove_overrides)
 
@@ -306,3 +336,39 @@ class ProviderSubscription(models.Model):
 
     def __str__(self):
         return f"{self.verified_user.email} - {self.plan_id} ({'Active' if self.is_active else 'Inactive'})"
+
+
+class FeatureModule(models.Model):
+    """
+    Synced from Super Admin. Controls UI modules.
+    """
+    key = models.CharField(max_length=100, unique=True)
+    capability = models.ForeignKey(Capability, on_delete=models.CASCADE, related_name="modules")
+    
+    name = models.CharField(max_length=255)
+    route = models.CharField(max_length=255)
+    api_pattern = models.CharField(max_length=255, blank=True, null=True)
+    icon = models.CharField(max_length=100, default="tabler-box")
+    sequence = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"{self.name} ({self.key})"
+
+
+class ProviderCapability(models.Model):
+    """
+    The source of truth for dynamic permissions.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(VerifiedUser, on_delete=models.CASCADE, related_name="dynamic_capabilities")
+    capability = models.ForeignKey(Capability, on_delete=models.CASCADE)
+    
+    granted_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        unique_together = ('user', 'capability')
+        
+    def __str__(self):
+        return f"{self.user} -> {self.capability.key}"

@@ -6,14 +6,15 @@ from .views import (
     DynamicFieldDefinitionViewSet, DynamicEntityViewSet,
     FormDefinitionViewSet,
     LabViewSet, PharmacyViewSet, ReminderViewSet,
-    VisitQueueViewSet, AnalyticsViewSet, PetOwnerClientViewSet
+    VisitQueueViewSet, AnalyticsViewSet, PetOwnerClientViewSet,
+    LabTestTemplateViewSet, LabOrderViewSet
 )
 
 router = DefaultRouter()
-router.register(r'clinics', ClinicViewSet)
-router.register(r'owners', PetOwnerViewSet)
-router.register(r'pets', PetViewSet)
-router.register(r'visits', VisitViewSet)
+router.register(r'clinics', ClinicViewSet, basename='clinics')
+router.register(r'owners', PetOwnerViewSet, basename='owners')
+router.register(r'pets', PetViewSet, basename='pets')
+router.register(r'visits', VisitViewSet, basename='visits')
 router.register(r'visits/queues', VisitQueueViewSet, basename='visit-queues')
 router.register(r'analytics', AnalyticsViewSet, basename='analytics')
 router.register(r'pet-owner', PetOwnerClientViewSet, basename='pet-owner-app')
@@ -24,8 +25,17 @@ router.register(r'lab', LabViewSet, basename='lab')
 router.register(r'pharmacy', PharmacyViewSet, basename='pharmacy')
 router.register(r'reminders', ReminderViewSet, basename='reminders')
 
+# Professional Lab Routes
+router.register(r'lab-templates', LabTestTemplateViewSet)
+router.register(r'lab-orders', LabOrderViewSet)
+
 # Custom route for generic dynamic entities
 dynamic_entity_list = DynamicEntityViewSet.as_view({'post': 'create'})
+
+# Staff Assignment Routes
+from .views import StaffAssignmentViewSet
+router.register(r'assignments', StaffAssignmentViewSet, basename='assignments')
+
 
 urlpatterns = [
     path('', include(router.urls)),

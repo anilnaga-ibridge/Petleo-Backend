@@ -149,24 +149,8 @@ for message in consumer:
                     except OrganizationEmployee.DoesNotExist:
                         logger.warning(f"⚠️ Employee {auth_user_id} not found for activation")
 
-        elif event_type == "EMPLOYEE_UPDATED":
-            auth_user_id = data.get("auth_user_id")
-            if auth_user_id:
-                updated_count = OrganizationEmployee.objects.filter(auth_user_id=auth_user_id).update(
-                    full_name=data.get("full_name"),
-                    email=data.get("email"),
-                    phone_number=data.get("phone_number"),
-                    role=role or data.get("role")
-                )
-                if updated_count:
-                    logger.info(f"🆙 Updated OrganizationEmployee {auth_user_id}")
-                else:
-                    logger.warning(f"⚠️ OrganizationEmployee {auth_user_id} not found for update")
-
-                # continue  # 🚨 REMOVED: We NEED VerifiedUser for employees too!
-            
             # ==========================
-            # VERIFIED USER CREATION (ALL ROLES)
+            # VERIFIED USER SYNC (ALL ROLES)
             # ==========================
             if role in ["individual", "organization", "serviceprovider", "pet_owner", "employee", "receptionist", "veterinarian", "groomer", "doctor", "labtech", "lab tech", "pharmacy", "vitalsstaff", "vitals staff"]:
                 with transaction.atomic():
@@ -189,6 +173,20 @@ for message in consumer:
                         provider, p_created = ServiceProvider.objects.get_or_create(verified_user=user)
                         if p_created:
                             logger.info(f"✅ Auto-created ServiceProvider profile for {user.email}")
+
+        elif event_type == "EMPLOYEE_UPDATED":
+            auth_user_id = data.get("auth_user_id")
+            if auth_user_id:
+                updated_count = OrganizationEmployee.objects.filter(auth_user_id=auth_user_id).update(
+                    full_name=data.get("full_name"),
+                    email=data.get("email"),
+                    phone_number=data.get("phone_number"),
+                    role=role or data.get("role")
+                )
+                if updated_count:
+                    logger.info(f"🆙 Updated OrganizationEmployee {auth_user_id}")
+                else:
+                    logger.warning(f"⚠️ OrganizationEmployee {auth_user_id} not found for update")
 
         # ==========================
         # USER UPDATED (NON-EMPLOYEE ONLY)
@@ -281,6 +279,10 @@ for message in consumer:
                 try:
                     user = VerifiedUser.objects.get(auth_user_id=auth_user_id)
                     
+                    logger.info(f"DEBUG: [KAFKA RECV] provider.permissions.updated | User: {auth_user_id}")
+                    if templates:
+                        logger.info(f"DEBUG: Templates Received - Services: {len(templates.get('services', []))}, Cats: {len(templates.get('categories', []))}")
+                    
                     # Import models here to avoid circular imports
 
                     from provider_dynamic_fields.models import (
@@ -290,6 +292,7 @@ for message in consumer:
                         ProviderTemplatePricing,
                         ProviderCapabilityAccess
                     )
+                    from service_provider.models import AllowedService
                     
                     with transaction.atomic():
                         # 1. SYNC TEMPLATES (If provided)
@@ -326,7 +329,12 @@ for message in consumer:
                             # Facilities
                             for fac in templates.get("facilities", []):
                                 try:
-                                    cat_obj = ProviderTemplateCategory.objects.get(super_admin_category_id=fac["category_id"])
+                                    cat_id = fac.get("category_id")
+                                    if not cat_id:
+                                        logger.warning(f"⏭️ Skipping facility {fac.get('name')} - missing category_id")
+                                        continue
+                                        
+                                    cat_obj = ProviderTemplateCategory.objects.get(super_admin_category_id=cat_id)
                                     ProviderTemplateFacility.objects.update_or_create(
                                         super_admin_facility_id=fac["id"],
                                         defaults={
@@ -336,7 +344,7 @@ for message in consumer:
                                         }
                                     )
                                 except ProviderTemplateCategory.DoesNotExist:
-                                    logger.warning(f"⚠️ Category {fac['category_id']} not found for facility {fac['name']}")
+                                    logger.warning(f"⚠️ Category {fac.get('category_id')} not found for facility {fac['name']}")
 
                             # Pricing
                             for price in templates.get("pricing", []):
@@ -370,12 +378,14 @@ for message in consumer:
                         # 2. SYNC PERMISSIONS (ProviderCapabilityAccess)
                         plan_id = data.get("purchased_plan", {}).get("plan_id")
                         
-                        if plan_id:
-                            # Only clear permissions for this specific plan
-                            ProviderCapabilityAccess.objects.filter(user=user, plan_id=plan_id).delete()
-                        else:
-                            # Fallback: Clear all if no plan_id provided
-                            ProviderCapabilityAccess.objects.filter(user=user).delete()
+                        # 🛡️ CRITICAL FIX: ALWAYS CLEAR EXISTING PERMISSIONS
+                        # This ensures the new plan replaces the old one entirely.
+                        ProviderCapabilityAccess.objects.filter(user=user).delete()
+                        AllowedService.objects.filter(verified_user=user).delete()
+                        # Reset user permissions to base state
+                        user.permissions = ["VETERINARY_CORE"]
+                        
+                        logger.info(f"🧹 Cleared old permissions for user {auth_user_id}")
                         
                         # Dictionary to track unique permissions: (service, category, facility, pricing) -> dict
                         perms_map = {}
@@ -389,7 +399,7 @@ for message in consumer:
                                     "category_id": c_id,
                                     "facility_id": f_id,
                                     "pricing_id": p_id,
-                                    "can_view": True, # Default to True for templates
+                                    "can_view": True, 
                                     "can_create": False,
                                     "can_edit": False,
                                     "can_delete": False
@@ -397,24 +407,23 @@ for message in consumer:
                             perms_map[key].update(kwargs)
 
                         # A. Auto-generate from Templates (Robust Sync)
-                        # ---------------------------------------------
                         # 1. Services
                         for svc in templates.get("services", []):
                             add_perm(svc["id"], None, None, None)
                             
                         # 2. Categories
-                        cat_service_map = {} # Map category_id -> service_id for facilities lookup
+                        cat_service_map = {} 
                         for cat in templates.get("categories", []):
                             cat_service_map[cat["id"]] = cat["service_id"]
                             add_perm(cat["service_id"], cat["id"], None, None)
                             
                         # 3. Facilities
                         for fac in templates.get("facilities", []):
-                            s_id = cat_service_map.get(fac["category_id"])
-                            if s_id:
-                                add_perm(s_id, fac["category_id"], fac["id"], None)
-                            else:
-                                logger.warning(f"⚠️ Could not resolve Service ID for facility {fac['name']}")
+                            cat_id = fac.get("category_id")
+                            if cat_id:
+                                s_id = cat_service_map.get(cat_id)
+                                if s_id:
+                                    add_perm(s_id, cat_id, fac["id"], None)
 
                         # 4. Pricing
                         for price in templates.get("pricing", []):
@@ -426,7 +435,6 @@ for message in consumer:
                             )
 
                         # B. Apply Explicit Permissions (Overrides)
-                        # -----------------------------------------
                         for perm in permissions_list:
                             add_perm(
                                 perm.get("service_id"),
@@ -457,26 +465,42 @@ for message in consumer:
                         
                         if new_perms:
                             ProviderCapabilityAccess.objects.bulk_create(new_perms)
+                        
+                        # REBUILD AllowedService from current plan
+                        unique_allowed = {}
+                        for svc_data in templates.get("services", []):
+                            unique_allowed[svc_data["id"]] = {
+                                "name": svc_data["display_name"],
+                                "icon": svc_data.get("icon", "tabler-box")
+                            }
+                            
+                        for s_id, s_meta in unique_allowed.items():
+                            AllowedService.objects.update_or_create(
+                                verified_user=user,
+                                service_id=s_id,
+                                defaults=s_meta
+                            )
                             
                     logger.info(f"✅ Updated {len(new_perms)} capabilities for user {auth_user_id}")
 
-                    # C. Update VerifiedUser Permissions (Linked Capabilities)
-                    # ------------------------------------------------------
-                    linked_caps = set()
-                    for perm in permissions_list:
-                        cap = perm.get("linked_capability")
-                        if cap:
-                            linked_caps.add(cap)
-                    
+                    # 3. Calculate Linked Capabilities (e.g. VETERINARY_DOCTOR)
+                    cat_ids = [c["id"] for c in templates.get("categories", [])]
+                    linked_caps = ProviderTemplateCategory.objects.filter(
+                        super_admin_category_id__in=cat_ids
+                    ).values_list("linked_capability", flat=True)
+                    linked_caps = [lc for lc in linked_caps if lc]
+
                     if linked_caps:
-                        # Ensure user.permissions is a list
-                        current_perms = set(user.permissions) if isinstance(user.permissions, list) else set()
-                        updated_perms = list(current_perms.union(linked_caps))
+                        # 🛡️ REPLACE permissions to remove old ones
+                        updated_perms = list(set(linked_caps))
+                        if "VETERINARY_CORE" not in updated_perms:
+                            updated_perms.append("VETERINARY_CORE")
+                            
                         user.permissions = updated_perms
                         user.save()
-                        logger.info(f"✅ Added linked capabilities to user {auth_user_id}: {linked_caps}")
+                        logger.info(f"✅ Replaced user capabilities: {updated_perms}")
                     
-                    # 3. SYNC SUBSCRIPTION (Dynamic Validation)
+                    # 4. SYNC SUBSCRIPTION
                     purchased_plan_info = data.get("purchased_plan", {})
                     if purchased_plan_info and plan_id:
                         from service_provider.models import ProviderSubscription
@@ -485,11 +509,6 @@ for message in consumer:
                         start_date = parse_datetime(purchased_plan_info.get("start_date")) if purchased_plan_info.get("start_date") else timezone.now()
                         end_date = parse_datetime(purchased_plan_info.get("end_date")) if purchased_plan_info.get("end_date") else None
                         
-                        # Check if active based on dates
-                        is_active = True
-                        if end_date and end_date < timezone.now():
-                            is_active = False
-                            
                         ProviderSubscription.objects.update_or_create(
                             verified_user=user,
                             defaults={
@@ -497,10 +516,54 @@ for message in consumer:
                                 "billing_cycle_id": purchased_plan_info.get("billing_cycle_id"),
                                 "start_date": start_date,
                                 "end_date": end_date,
-                                "is_active": is_active
+                                "is_active": True
                             }
                         )
-                        logger.info(f"✅ Synced Subscription for user {auth_user_id} (Active: {is_active})")
+                        logger.info(f"✅ Synced Subscription for user {auth_user_id}")
+
+                    # 5. DYNAMIC CAPABILITIES (NEW System)
+                    dynamic_caps = data.get("dynamic_capabilities") or data.get("data", {}).get("dynamic_capabilities")
+                    logger.info(f"DEBUG: dynamic_caps raw: {dynamic_caps}")
+                    if dynamic_caps:
+                        from service_provider.models import Capability, FeatureModule, ProviderCapability
+                        
+                        # Clear old dynamic capabilities
+                        ProviderCapability.objects.filter(user=user).delete()
+                        
+                        for cap_data in dynamic_caps:
+                            cap_key = cap_data["capability_key"]
+                            modules_list = cap_data.get("modules", [])
+                            
+                            # Ensure Capability exists
+                            capability_obj, _ = Capability.objects.get_or_create(
+                                key=cap_key,
+                                defaults={
+                                    "label": cap_key.replace("_", " ").title(),
+                                    "group": "Generated"
+                                }
+                            )
+                            
+                            # Assign to User
+                            ProviderCapability.objects.create(
+                                user=user,
+                                capability=capability_obj,
+                                is_active=True
+                            )
+                            
+                            # Sync Modules
+                            for mod_data in modules_list:
+                                FeatureModule.objects.update_or_create(
+                                    key=mod_data["key"],
+                                    defaults={
+                                        "capability": capability_obj,
+                                        "name": mod_data["name"],
+                                        "route": mod_data["route"],
+                                        "icon": mod_data.get("icon", "tabler-box"),
+                                        "sequence": mod_data.get("sequence", 0),
+                                        "is_active": True
+                                    }
+                                )
+                        logger.info(f"✅ Synced {len(dynamic_caps)} Dynamic Capabilities for user {auth_user_id}")
 
                 except VerifiedUser.DoesNotExist:
                     logger.warning(f"⚠️ User {auth_user_id} not found for permission update")

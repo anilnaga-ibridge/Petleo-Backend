@@ -34,4 +34,9 @@ class PurchasedPlanSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = PurchasedPlan
-        fields = "__all__"
+        fields = [
+            "id", "verified_user", "auth_user_id", "plan_id", "plan_title",
+            "billing_cycle_id", "billing_cycle_name", "price_amount", "price_currency",
+            "start_date", "end_date", "is_active", "created_at",
+            "days_left", "is_expiring_soon"
+        ]

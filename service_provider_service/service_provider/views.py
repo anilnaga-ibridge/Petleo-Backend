@@ -6,6 +6,10 @@ import requests
 from django.conf import settings
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from django.db import transaction
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 from .models import (
@@ -14,6 +18,7 @@ from .models import (
     AllowedService,
     Capability,
     ProviderRole,
+    OrganizationEmployee,
 )
 from .serializers import (
     ServiceProviderSerializer, 
@@ -88,6 +93,7 @@ from provider_dynamic_fields.models import (
     ProviderTemplateFacility,
     ProviderTemplatePricing
 )
+from .utils import _build_permission_tree
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
@@ -98,31 +104,46 @@ def get_my_permissions(request):
     """
     user = request.user
     
+    # Helper to get display role - Calculate EARLY to ensure it's available for error responses
+    display_role = getattr(user, 'role', 'User')
+    try:
+        emp_record = OrganizationEmployee.objects.get(auth_user_id=user.auth_user_id)
+        if emp_record.provider_role:
+             display_role = emp_record.provider_role.name
+    except OrganizationEmployee.DoesNotExist:
+        pass
+
+    user_profile = {
+        "fullName": user.full_name,
+        "email": user.email,
+        "role": display_role
+    }
+
     # 1. Determine the "Subscription Owner"
     # If it's an employee, we check the Organization's subscription.
     subscription_owner = user
     try:
-        employee = OrganizationEmployee.objects.get(auth_user_id=user.auth_user_id)
-        
-        # ✅ Check if employee is disabled
-        if employee.status == 'DISABLED':
-            print(f"DEBUG: Employee {user.email} is DISABLED. Revoking access.")
-            return Response({
-                "permissions": [], 
-                "plan": None, 
-                "error": "Your account has been disabled by your organization."
-            })
+        try:
+            employee = OrganizationEmployee.objects.get(auth_user_id=user.auth_user_id)
             
-        subscription_owner = employee.organization.verified_user
-        print(f"DEBUG: User is employee. Checking Org subscription: {subscription_owner.email}")
-    except OrganizationEmployee.DoesNotExist:
-        pass
+            # ✅ Check if employee is disabled
+            if employee.status == 'DISABLED':
+                print(f"DEBUG: Employee {user.email} is DISABLED. Revoking access.")
+                return Response({
+                    "permissions": [], 
+                    "plan": None, 
+                    "error": "Your account has been disabled by your organization.",
+                    "user_profile": user_profile
+                })
+                
+            subscription_owner = employee.organization.verified_user
+            print(f"DEBUG: User is employee. Checking Org subscription: {subscription_owner.email}")
+        except OrganizationEmployee.DoesNotExist:
+            pass
 
-    # 2. Dynamic Plan Validation
-    # 2. Dynamic Plan Validation
-    try:
+        # 2. Dynamic Plan Validation
         # Check for ANY active subscription
-        active_subs = subscription_owner.subscription.filter(is_active=True)
+        active_subs = subscription_owner.purchased_plans.filter(is_active=True)
         
         # Filter out expired ones in Python if needed, or use exclude
         valid_sub = None
@@ -133,56 +154,120 @@ def get_my_permissions(request):
         
         if not valid_sub:
             print(f"DEBUG: No valid active subscription found for {subscription_owner.email}")
-            return Response({"permissions": [], "plan": None})
+            return Response({"permissions": [], "plan": None, "user_profile": user_profile})
 
         print(f"DEBUG: Found valid subscription: {valid_sub.plan_id}")
             
     except Exception as e:
         print(f"Subscription check failed: {e}")
-        # In case of error, we might want to fail safe or allow? 
-        # For now, let's fail safe (no permissions)
-        return Response({"permissions": [], "plan": None})
+        # In case of error, we fail safe but RETURN USER PROFILE so navbar works
+        return Response({"permissions": [], "plan": None, "user_profile": user_profile})
 
     # 3. Fetch Capabilities using the robust helper
     permissions_list = _build_permission_tree(user)
-
-    # --- INJECT VETERINARY_CORE CAPABILITY ---
-    # Veterinary staff must have access to the dashboard even without specific service assignments.
-    user_role = getattr(user, 'role', '').upper()
-    vet_roles = ['RECEPTIONIST', 'DOCTOR', 'LAB_TECH', 'PHARMACY', 'VITALS_STAFF', 'NURSE', 'INDIVIDUAL']
     
-    # Check if user has ANY veterinary capability
-    has_any_vet_cap = any(p.get('service_key', '').startswith('VETERINARY_') for p in permissions_list)
+    with open("debug_perms.log", "a") as f:
+        f.write(f"\\n[{timezone.now()}] get_my_permissions | User: {user.email} ({user.auth_user_id})\\n")
+        f.write(f"Tree Count: {len(permissions_list)}\\n")
+        for p in permissions_list:
+            f.write(f" - {p.get('service_key')} ({p.get('service_name')})\\n")
 
-    if user_role in vet_roles or has_any_vet_cap:
-        # Check if VETERINARY_CORE is already present (to avoid duplicates)
-        has_vet_core = any(p.get('service_key') == 'VETERINARY_CORE' for p in permissions_list)
+    # --- INJECT DYNAMIC CAPABILITIES (Grooming, Daycare, etc.) ---
+    # These might be simple capability keys not yet linked to full Service Templates
+    
+    # 1. Get all capability keys for the user
+    user_caps = set()
+    try:
+        emp = OrganizationEmployee.objects.get(auth_user_id=user.auth_user_id)
+        # CASE A: Employee
+        # Access = Organization Plan ∩ Employee Role
+        user_caps = set(emp.get_final_permissions())
+        print(f"DEBUG: Employee {user.email} permissions: {len(user_caps)}")
         
-        if not has_vet_core:
-            permissions_list.append({
-                "service_id": "VETERINARY_CORE",
-                "service_name": "Veterinary Core",
-                "service_key": "VETERINARY_CORE",
-                "icon": "tabler-stethoscope",
-                "categories": [],
-                "can_view": True,
-                "can_create": False,
-                "can_edit": False,
-                "can_delete": False
-            })
+    except OrganizationEmployee.DoesNotExist:
+        # CASE B: Provider (Org or Individual)
+        # Access = Purchased Plan (Upper Bound)
+        # We do NOT intersect with "role defaults" anymore.
+        
+        user_caps = user.get_all_plan_capabilities()
+        
+        # Ensure CORE access is always present
+        user_caps.add("VETERINARY_CORE")
+        
+        print(f"DEBUG: Provider {user.email} Plan Caps: {len(user_caps)}")
+
+    simple_services = {
+        "GROOMING": {"name": "Grooming", "icon": "tabler-cut"},
+        "DAYCARE": {"name": "Daycare", "icon": "tabler-bone"},
+        "TRAINING": {"name": "Training", "icon": "tabler-school"},
+        "BOARDING": {"name": "Boarding", "icon": "tabler-home"},
+        "VETERINARY_VISITS": {"name": "Visits", "icon": "tabler-calendar"},
+        "VETERINARY_VITALS": {"name": "Vitals", "icon": "tabler-activity"},
+        "VETERINARY_PRESCRIPTIONS": {"name": "Prescriptions", "icon": "tabler-pill"},
+        "VETERINARY_LABS": {"name": "Lab Orders", "icon": "tabler-microscope"},
+        "VETERINARY_MEDICINE_REMINDERS": {"name": "Medicine", "icon": "tabler-alarm"},
+        "VETERINARY_DOCTOR": {"name": "Doctor Queue", "icon": "tabler-stethoscope"},
+        "VETERINARY_PHARMACY": {"name": "Pharmacy", "icon": "tabler-band-aid"},
+        "VETERINARY_CORE": {"name": "Veterinary", "icon": "tabler-stethoscope"}
+    }
+
+    for key, meta in simple_services.items():
+        # Check if user has this capability key
+        if key in user_caps:
+            # Skip VETERINARY_CORE if we already have a real Veterinary service from a plan
+            if key == "VETERINARY_CORE" and any("VETERINARY" in (p.get("service_key") or "").upper() for p in permissions_list):
+                continue
+
+            # Check if already present to avoid duplicates
+            if not any(p.get('service_key') == key for p in permissions_list):
+                permissions_list.append({
+                    "service_id": key, # Use Key as ID for simple services
+                    "service_name": meta["name"],
+                    "service_key": key,
+                    "icon": meta["icon"],
+                    "categories": [],
+                    "can_view": True,
+                    "can_create": True,
+                    "can_edit": True,
+                    "can_delete": True
+                })
+    # -----------------------------------------
     # -----------------------------------------
     
     # Construct response
+    plan_data = None
+    if valid_sub:
+        plan_data = {
+            "title": valid_sub.plan_title,
+            "subtitle": f"{valid_sub.billing_cycle_name} Plan",
+            "start_date": valid_sub.start_date,
+            "end_date": valid_sub.end_date,
+            "days_left": getattr(valid_sub, 'days_left', None),
+            "is_expiring_soon": getattr(valid_sub, 'is_expiring_soon', False)
+        }
+
     response_data = {
         "permissions": permissions_list,
-        "plan": {
-            "title": "Active Plan", 
-            "subtitle": "Standard Provider Plan",
-            "end_date": timezone.now() + timezone.timedelta(days=30) 
-        }
+        "plan": plan_data,
+        "user_profile": user_profile
     }
     
     return Response(response_data)
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_provider_role_templates(request):
+    """
+    Returns standard role templates and feature definitions.
+    """
+    try:
+        from .role_templates import get_role_templates
+        data = get_role_templates()
+        return Response(data)
+    except Exception as e:
+        import traceback
+        print(f"Error fetching role templates: {e}")
+        return Response({"error": str(e), "trace": traceback.format_exc()}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @api_view(["GET"])
@@ -346,233 +431,6 @@ class EmployeeViewSet(viewsets.ModelViewSet):
 
 from .models import AllowedService
 
-# Helper for building permission tree
-def _build_permission_tree(user):
-    if not hasattr(user, 'capabilities'):
-        return []
-
-    # Fetch all permissions
-    perms = user.capabilities.all()
-    
-    # Pre-fetch templates for names lookup
-    services_map = {s.super_admin_service_id: s for s in ProviderTemplateService.objects.all()}
-    categories_map = {c.super_admin_category_id: c for c in ProviderTemplateCategory.objects.all()}
-    facilities_map = {f.super_admin_facility_id: f for f in ProviderTemplateFacility.objects.all()}
-    pricing_map = {p.super_admin_pricing_id: p for p in ProviderTemplatePricing.objects.all()}
-
-    # Group permissions by service -> category
-    grouped = {}
-    print(f"DEBUG: Processing {len(perms)} permissions")
-    for perm in perms:
-        if not perm.service_id: 
-            print("DEBUG: Skipping perm with no service_id")
-            continue
-        s_id = str(perm.service_id)
-        print(f"DEBUG: Processing perm for service {s_id} (Cat: {perm.category_id})")
-        
-        # Get Service Info
-        svc_obj = services_map.get(s_id)
-        svc_name = svc_obj.display_name if svc_obj else "Unknown Service"
-        svc_key = svc_obj.name if svc_obj else "unknown_service"
-        svc_icon = svc_obj.icon if svc_obj else "tabler-box"
-
-        if s_id not in grouped:
-            grouped[s_id] = {
-                "service_id": s_id,
-                "service_name": svc_name,
-                "service_key": svc_key,
-                "icon": svc_icon,
-                "permissions": {
-                    "can_view": False, "can_create": False, "can_edit": False, "can_delete": False
-                },
-                "categories": {}
-            }
-        
-        # If category is NOT present, it's service-level permission
-        if not perm.category_id:
-            grouped[s_id]["permissions"] = {
-                "can_view": perm.can_view,
-                "can_create": perm.can_create,
-                "can_edit": perm.can_edit,
-                "can_delete": perm.can_delete,
-            }
-            continue
-
-        # If category is present
-        c_id = str(perm.category_id)
-        
-        # Get Category Info
-        cat_obj = categories_map.get(c_id)
-        cat_name = cat_obj.name if cat_obj else "Unknown Category"
-        cat_linked_cap = cat_obj.linked_capability if cat_obj else None
-
-        if c_id not in grouped[s_id]["categories"]:
-            grouped[s_id]["categories"][c_id] = {
-                "id": c_id,
-                "name": cat_name,
-                "linked_capability": cat_linked_cap,
-                "permissions": {
-                    "can_view": False, "can_create": False, "can_edit": False, "can_delete": False
-                },
-                "facilities": [],
-                "pricing": [] # Category-level pricing
-            }
-        
-        # If facility is NOT present, it's category-level permission
-        if not perm.facility_id:
-            # Check if it's a pricing-level permission
-            if hasattr(perm, 'pricing_id') and perm.pricing_id:
-                 p_id = str(perm.pricing_id)
-                 p_obj = pricing_map.get(p_id)
-                 if p_obj:
-                     grouped[s_id]["categories"][c_id]["pricing"].append({
-                         "id": p_id,
-                         "price": str(p_obj.price),
-                         "duration": p_obj.duration,
-                         "description": p_obj.description,
-                         "can_view": perm.can_view
-                     })
-            else:
-                grouped[s_id]["categories"][c_id]["permissions"] = {
-                    "can_view": perm.can_view,
-                    "can_create": perm.can_create,
-                    "can_edit": perm.can_edit,
-                    "can_delete": perm.can_delete,
-                }
-        else:
-            # Facility-level permission
-            f_id = str(perm.facility_id)
-            fac_obj = facilities_map.get(f_id)
-            fac_name = fac_obj.name if fac_obj else "Unknown Facility"
-            
-            # Find existing facility entry
-            fac_entry = next((f for f in grouped[s_id]["categories"][c_id]["facilities"] if f["id"] == f_id), None)
-            if not fac_entry:
-                fac_entry = {
-                    "id": f_id,
-                    "name": fac_name,
-                    "permissions": {
-                        "can_view": False, "can_create": False, "can_edit": False, "can_delete": False
-                    },
-                    "pricing": []
-                }
-                grouped[s_id]["categories"][c_id]["facilities"].append(fac_entry)
-            
-            # Check if it's a pricing-level permission
-            if hasattr(perm, 'pricing_id') and perm.pricing_id:
-                 p_id = str(perm.pricing_id)
-                 p_obj = pricing_map.get(p_id)
-                 if p_obj:
-                     fac_entry["pricing"].append({
-                         "id": p_id,
-                         "price": str(p_obj.price),
-                         "duration": p_obj.duration,
-                         "description": p_obj.description,
-                         "can_view": perm.can_view
-                     })
-            else:
-                fac_entry["permissions"] = {
-                    "can_view": perm.can_view,
-                    "can_create": perm.can_create,
-                    "can_edit": perm.can_edit,
-                    "can_delete": perm.can_delete,
-                }
-
-    # Now, we need to populate "Available" pricing options even if not explicitly assigned yet?
-    # The _build_permission_tree is used for BOTH "available" (Org's permissions) and "assigned" (Employee's).
-    # If it's "available", we want to show ALL pricing rules under the facilities the Org has access to.
-    
-    # Iterate again to populate pricing for facilities/categories that have access
-    for s_val in grouped.values():
-        for c_val in s_val["categories"].values():
-            # 1. Populate Category-level pricing
-            cat_pricing = [p for p in pricing_map.values() if str(p.category_id) == c_val["id"] and not p.facility_id]
-            
-            if c_val["permissions"]["can_view"]:
-                existing_ids = [p["id"] for p in c_val["pricing"]]
-                for p in cat_pricing:
-                    if p.super_admin_pricing_id not in existing_ids:
-                        c_val["pricing"].append({
-                            "id": p.super_admin_pricing_id,
-                            "price": str(p.price),
-                            "duration": p.duration,
-                            "description": p.description,
-                            "can_view": True # Available to assign
-                        })
-
-            # 2. Populate Facility-level pricing
-            for f_val in c_val["facilities"]:
-                fac_pricing = [p for p in pricing_map.values() if str(p.facility_id) == f_val["id"]]
-                
-                if f_val["permissions"]["can_view"]:
-                    existing_ids = [p["id"] for p in f_val["pricing"]]
-                    for p in fac_pricing:
-                        if p.super_admin_pricing_id not in existing_ids:
-                            f_val["pricing"].append({
-                                "id": p.super_admin_pricing_id,
-                                "price": str(p.price),
-                                "duration": p.duration,
-                                "description": p.description,
-                                "can_view": True
-                            })
-
-    # Flatten structure for response
-    permissions_list = []
-    for s_val in grouped.values():
-        cats_list = []
-        for c_val in s_val["categories"].values():
-            cats_list.append(c_val)
-        
-        final_cats = []
-        
-        # Aggregate service-level permissions
-        svc_can_view = s_val["permissions"]["can_view"]
-        svc_can_create = s_val["permissions"]["can_create"]
-        svc_can_edit = s_val["permissions"]["can_edit"]
-        svc_can_delete = s_val["permissions"]["can_delete"]
-
-        for c in cats_list:
-            # Calculate effective can_view for category (bubble up from facilities)
-            cat_effective_view = c["permissions"]["can_view"]
-            for fac in c.get("facilities", []):
-                if fac["permissions"]["can_view"]:
-                    cat_effective_view = True
-
-            c_flat = {
-                "id": c["id"],
-                "name": c["name"],
-                "linked_capability": c.get("linked_capability"),
-                "facilities": c["facilities"],
-                "pricing": c["pricing"],
-                **c["permissions"],
-                "can_view": cat_effective_view # Override with effective view
-            }
-            final_cats.append(c_flat)
-            
-            if c_flat["can_view"]: svc_can_view = True
-            if c_flat["can_create"]: svc_can_create = True
-            if c_flat["can_edit"]: svc_can_edit = True
-            if c_flat["can_delete"]: svc_can_delete = True
-            
-            for fac in c.get("facilities", []):
-                if fac["permissions"]["can_view"]: svc_can_view = True
-                if fac["permissions"]["can_create"]: svc_can_create = True
-                if fac["permissions"]["can_edit"]: svc_can_edit = True
-                if fac["permissions"]["can_delete"]: svc_can_delete = True
-
-        permissions_list.append({
-            "service_id": s_val["service_id"],
-            "service_name": s_val["service_name"],
-            "service_key": s_val["service_key"],
-            "icon": s_val["icon"],
-            "categories": final_cats,
-            "can_view": svc_can_view,
-            "can_create": svc_can_create,
-            "can_edit": svc_can_edit,
-            "can_delete": svc_can_delete
-        })
-    
-    return permissions_list
 
 class EmployeeAssignmentViewSet(viewsets.ViewSet):
     """
@@ -687,6 +545,8 @@ class EmployeeAssignmentViewSet(viewsets.ViewSet):
                     name=tmpl.display_name,
                     icon=tmpl.icon
                 )
+            else:
+                print(f"⚠️ Warning: Template not found for service {sid} during assignment for {emp_user.email}")
         
         return Response({"status": "updated", "permissions_count": created_count})
 class CapabilityViewSet(viewsets.ReadOnlyModelViewSet):
@@ -715,3 +575,57 @@ class ProviderRoleViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         provider = ServiceProvider.objects.get(verified_user=self.request.user)
         serializer.save(provider=provider)
+
+    @transaction.atomic
+    def perform_destroy(self, instance):
+        role_name = instance.name
+        role_id = instance.id
+        logger.info(f"🗑️ Attempting to delete ProviderRole: {role_name} ({role_id})")
+
+        # 1. Explicit Model-based Cleanup of Capabilities
+        # Avoids reverse-manager ambiguity
+        caps_qs = ProviderRoleCapability.objects.filter(provider_role=instance)
+        caps_count = caps_qs.count()
+        caps_qs.delete()
+        logger.info(f"   ↳ Deleted {caps_count} capabilities (via explicit filter).")
+        
+        # 2. Explicit Model-based Cleanup of Employees
+        emps_qs = OrganizationEmployee.objects.filter(provider_role=instance)
+        emps_count = emps_qs.count()
+        emps_qs.update(provider_role=None)
+        logger.info(f"   ↳ Unlinked role from {emps_count} employees (via explicit filter).")
+        
+        # 3. Delete the role
+        instance.delete()
+        logger.info(f"✅ Successfully deleted ProviderRole: {role_name}")
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_my_access(request):
+    """
+    Returns allowed modules for the dynamic sidebar.
+    GET /api/provider/permissions/my-access/
+    """
+    user = request.user
+    
+    # 1. Get Effective Capability Keys
+    capability_keys = set()
+    try:
+        emp = OrganizationEmployee.objects.get(auth_user_id=user.auth_user_id)
+        capability_keys = set(emp.get_final_permissions())
+    except OrganizationEmployee.DoesNotExist:
+        # Organization/Individual Owner
+        # Fetch from ProviderCapability table (New Dynamic System)
+        capability_keys = set(user.dynamic_capabilities.filter(is_active=True).values_list('capability__key', flat=True))
+        
+    # 2. Fetch Modules for these keys
+    from .models import FeatureModule
+    modules = FeatureModule.objects.filter(capability__key__in=capability_keys, is_active=True).values(
+        'name', 'route', 'icon', 'sequence', 'key'
+    ).order_by('sequence')
+    
+    return Response({
+        "capabilities": list(capability_keys),
+        "modules": list(modules)
+    })

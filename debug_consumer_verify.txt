@@ -1,0 +1,20 @@
+2026-01-22 07:40:25,332 [INFO] 🚀 Starting Service Provider Unified Kafka Consumer...
+2026-01-22 07:40:25,344 [INFO] ✅ Connected to Kafka broker.
+2026-01-22 07:41:19,765 [INFO] 🔥 Event: PROVIDER.PERMISSIONS.UPDATED | Role:  | Service: None
+2026-01-22 07:41:19,812 [ERROR] ❌ Error updating permissions for 11111111-1111-1111-1111-111111111111: null value in column "icon" of relation "provider_dynamic_fields_providertemplateservice" violates not-null constraint
+DETAIL:  Failing row contains (f57f8f35-270b-411b-82cd-734f78f92bff, 500529d8-add4-4ef4-89b8-72a20d6949d1, Veterinary, Veterinary Services, null, 2026-01-22 07:41:19.808676+00, 2026-01-22 07:41:19.809161+00).
+
+2026-01-22 07:41:19,935 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-01-22 07:41:19,935 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-01-22 07:41:19,935 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-01-22 07:41:19,936 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-01-22 07:42:45,417 [INFO] 🔥 Event: PROVIDER.PERMISSIONS.UPDATED | Role:  | Service: None
+2026-01-22 07:42:45,434 [INFO] ✅ Synced Templates for user 11111111-1111-1111-1111-111111111111
+2026-01-22 07:42:45,440 [INFO] 🧹 Cleared old permissions for user 11111111-1111-1111-1111-111111111111
+2026-01-22 07:42:45,454 [INFO] ✅ Updated 2 capabilities and AllowedServices for user 11111111-1111-1111-1111-111111111111
+2026-01-22 07:42:45,459 [INFO] ✅ Replaced linked capabilities for user 11111111-1111-1111-1111-111111111111: ['VETERINARY_DOCTOR']
+2026-01-22 07:42:45,464 [INFO] ✅ Synced Subscription for user 11111111-1111-1111-1111-111111111111 (Active: True)
+2026-01-22 07:42:45,472 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-01-22 07:42:45,473 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-01-22 07:42:45,473 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-01-22 07:42:45,473 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.

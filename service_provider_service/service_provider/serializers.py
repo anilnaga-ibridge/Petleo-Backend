@@ -39,11 +39,10 @@ class ProviderRoleCapabilitySerializer(serializers.ModelSerializer):
 
 
 class ProviderRoleSerializer(serializers.ModelSerializer):
-    capabilities = serializers.SlugRelatedField(
-        many=True,
-        read_only=False,
-        slug_field='capability_key',
-        queryset=ProviderRoleCapability.objects.none() # Handled in __init__ or view
+    capabilities = serializers.ListField(
+        child=serializers.CharField(),
+        write_only=True,
+        required=False
     )
 
     class Meta:
@@ -51,28 +50,31 @@ class ProviderRoleSerializer(serializers.ModelSerializer):
         fields = ['id', 'provider', 'name', 'description', 'is_system_role', 'capabilities', 'employees', 'created_at']
         read_only_fields = ['provider', 'is_system_role', 'employees', 'created_at']
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # We don't actually need the queryset for SlugRelatedField if we handle saving manually
-        # or if we just want to list them. For saving, we'll override create/update.
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        # Serialize related capability keys
+        ret['capabilities'] = instance.capabilities.values_list('capability_key', flat=True)
+        return ret
 
     def create(self, validated_data):
-        capabilities_data = self.initial_data.get('capabilities', [])
+        capabilities_data = list(set(validated_data.pop('capabilities', [])))
         role = ProviderRole.objects.create(**validated_data)
         for cap_key in capabilities_data:
             ProviderRoleCapability.objects.create(provider_role=role, capability_key=cap_key)
         return role
 
     def update(self, instance, validated_data):
-        capabilities_data = self.initial_data.get('capabilities', [])
+        capabilities_data = validated_data.pop('capabilities', [])
         instance.name = validated_data.get('name', instance.name)
         instance.description = validated_data.get('description', instance.description)
         instance.save()
-
-        # Update capabilities
-        instance.capabilities.all().delete()
-        for cap_key in capabilities_data:
-            ProviderRoleCapability.objects.create(provider_role=instance, capability_key=cap_key)
+        
+        # Update capabilities if provided
+        if capabilities_data is not None:
+             capabilities_data = list(set(capabilities_data))
+             instance.capabilities.all().delete()
+             for cap_key in capabilities_data:
+                 ProviderRoleCapability.objects.create(provider_role=instance, capability_key=cap_key)
         
         return instance
 

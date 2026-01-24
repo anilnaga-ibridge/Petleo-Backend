@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'provider_home',
     'dynamic_fields',
+    'dynamic_permissions',
 ]
 
 AUTH_USER_MODEL = "admin_core.SuperAdmin"

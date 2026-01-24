@@ -153,6 +153,21 @@ def checkout_cart(request):
     with transaction.atomic():
 
         for item in cart.items.all():
+            # Calculate end date based on billing cycle name
+            from datetime import timedelta
+            start_date = timezone.now()
+            end_date = None
+            
+            cycle_name = (item.billing_cycle_name or "").upper()
+            if "MONTH" in cycle_name:
+                end_date = start_date + timedelta(days=30)
+            elif "YEAR" in cycle_name:
+                end_date = start_date + timedelta(days=365)
+            elif "WEEK" in cycle_name:
+                end_date = start_date + timedelta(days=7)
+            elif "DAY" in cycle_name:
+                end_date = start_date + timedelta(days=1)
+
             # Create local purchase record
             PurchasedPlan.objects.create(
                 verified_user=verified_user,
@@ -162,11 +177,13 @@ def checkout_cart(request):
                 billing_cycle_name=item.billing_cycle_name,
                 price_amount=item.price_amount,
                 price_currency=item.price_currency,
-                start_date=timezone.now(),
+                start_date=start_date,
+                end_date=end_date,
                 is_active=True
             )
             
             # ✅ Sync Permissions from Super Admin
+            sa_data = {}
             try:
                 import requests
                 # Assuming Super Admin is on port 8003
@@ -194,7 +211,9 @@ def checkout_cart(request):
                 with open("checkout_debug.log", "a") as f:
                     f.write(f"SA Response: {purchase_response.status_code} - {purchase_response.text}\n")
 
-                if purchase_response.status_code != 201:
+                if purchase_response.status_code == 201:
+                    sa_data = purchase_response.json()
+                else:
                     print(f"Super Admin Purchase Failed: {purchase_response.text}")
                 
                 # We rely on Kafka to sync permissions to ProviderCapabilityAccess
@@ -206,7 +225,10 @@ def checkout_cart(request):
         cart.status = "checked_out"
         cart.save()
 
-    return Response({"detail": "Payment successful. Plans activated."})
+    return Response({
+        "detail": "Payment successful. Plans activated.",
+        "sa_data": sa_data
+    })
 
 
 # ✅ Get Purchased Plans
@@ -220,3 +242,30 @@ def get_purchased_plans(request):
     plans = PurchasedPlan.objects.filter(verified_user=verified_user).order_by("-created_at")
     
     return Response(PurchasedPlanSerializer(plans, many=True).data)
+
+# ✅ Get Active Subscription + All Permissions
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_active_subscription(request):
+    from .models import PurchasedPlan
+    from .serializers import PurchasedPlanSerializer
+    from service_provider.utils import _build_permission_tree
+    from service_provider.models import AllowedService
+
+    verified_user = get_verified_user(request)
+    
+    # 1. Get current active plan
+    active_plan = PurchasedPlan.objects.filter(verified_user=verified_user, is_active=True).order_by("-created_at").first()
+    
+    if not active_plan:
+        return Response({"detail": "No active subscription found"}, status=404)
+
+    # 2. Get Permissions & Services using the robust helper
+    permissions_list = _build_permission_tree(verified_user)
+    services = AllowedService.objects.filter(verified_user=verified_user)
+
+    return Response({
+        "plan": PurchasedPlanSerializer(active_plan).data,
+        "permissions": permissions_list,
+        "allowed_services": services.values("service_id", "name", "icon")
+    })

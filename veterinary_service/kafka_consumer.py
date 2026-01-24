@@ -14,7 +14,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "veterinary_service.settings")
 django.setup()
 
-from veterinary.models import PetOwner
+from veterinary.models import PetOwner, VeterinaryStaff, Clinic, StaffClinicAssignment
 
 # Logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
@@ -51,59 +51,98 @@ for message in consumer:
         if event_type in ["USER_CREATED", "USER_UPDATED", "USER_VERIFIED"]:
             auth_user_id = data.get("auth_user_id") or data.get("id")
             role = (data.get("role") or "").lower()
+            org_id = data.get("organization_id")
+
+            # 1. Explicit Clinic Onboarding for Providers (Org or Individual)
+            if role in ["organization", "individual"] and (event_type == "USER_CREATED" or event_type == "USER_VERIFIED"):
+                clinic, created = Clinic.objects.get_or_create(
+                    organization_id=auth_user_id,
+                    defaults={
+                        "name": f"Clinic - {data.get('full_name', auth_user_id)}",
+                        "is_primary": True
+                    }
+                )
+                if created:
+                    logger.info(f"✨ Explicitly created Primary Clinic for {role} {auth_user_id}")
+                elif not clinic.is_primary:
+                    clinic.is_primary = True
+                    clinic.save()
             
-            # Sync PetOwner (existing logic)
-            if auth_user_id and event_type == "USER_UPDATED":
+            # 2. Sync PetOwner (existing logic)
+            if auth_user_id and event_type == "USER_UPDATED" and role == "customer":
                 owners = PetOwner.objects.filter(auth_user_id=auth_user_id)
                 for owner in owners:
-                    owner.first_name = data.get("first_name", owner.first_name)
-                    owner.last_name = data.get("last_name", owner.last_name)
+                    owner.name = data.get("full_name", owner.name)
                     owner.email = data.get("email", owner.email)
-                    owner.phone = data.get("phone", owner.phone)
+                    owner.phone = data.get("phone_number", owner.phone)
                     owner.save()
                     logger.info(f"✅ Updated PetOwner {owner.id} from Auth User {auth_user_id}")
 
-            # Sync VeterinaryStaff (NEW)
-            if auth_user_id:
-                from veterinary.models import VeterinaryStaff, Clinic
-                
-                # Try to link clinic if organization_id is present
-                clinic = None
-                org_id = data.get("organization_id")
-                if org_id:
-                     clinic = Clinic.objects.filter(provider_id=org_id).first()
-                
-                # If individual, they are their own clinic (provider_id = auth_user_id)
-                if role == "individual":
-                     clinic = Clinic.objects.filter(provider_id=auth_user_id).first()
+            # 3. Sync VeterinaryStaff & Assignments
+            if auth_user_id and role not in ["customer", "organization"]:
+                # Extract permissions from payload if present
 
-                VeterinaryStaff.objects.update_or_create(
+                permissions = data.get("permissions", [])
+                
+                clinic = None
+                if org_id:
+                     # Find the primary clinic for the organization
+                     clinic = Clinic.objects.filter(organization_id=org_id, is_primary=True).first()
+                elif role == "individual":
+                     # For individuals, they are their own organization
+                     clinic = Clinic.objects.filter(organization_id=auth_user_id, is_primary=True).first()
+                
+                staff, _ = VeterinaryStaff.objects.update_or_create(
                     auth_user_id=auth_user_id,
                     defaults={
                         "role": role,
-                        "clinic": clinic
+                        "clinic": clinic,
+                        "permissions": permissions  # [FIX] Save permissions to Staff
                     }
                 )
+
+                # Auto-create assignment to the primary clinic
+                if clinic:
+                    assignment, a_created = StaffClinicAssignment.objects.get_or_create(
+                        staff=staff,
+                        clinic=clinic,
+                        defaults={
+                            "role": role,
+                            "permissions": permissions,  # [FIX] Use payload permissions explicitly
+                            "is_primary": True,
+                            "is_active": True
+                        }
+                    )
+                    
+                    # Ensure is_active is set
+                    if not a_created and not assignment.is_active:
+                         assignment.is_active = True
+                         assignment.save()
+
+                    if a_created:
+                        logger.info(f"🔗 Created StaffClinicAssignment for {auth_user_id} @ {clinic.name} with {len(permissions)} perms")
+                    if a_created:
+                        logger.info(f"🔗 Created StaffClinicAssignment for {auth_user_id} @ {clinic.name}")
+
                 logger.info(f"✅ Synced VeterinaryStaff {auth_user_id} ({role})")
 
         elif event_type == "PROVIDER_CAPABILITY_UPDATED":
             provider_id = data.get("provider_id")
             capabilities = data.get("capabilities", {})
             if provider_id:
-                try:
-                    clinic = Clinic.objects.get(provider_id=provider_id)
-                    clinic.capabilities = capabilities
-                    clinic.save()
-                    logger.info(f"✅ Updated Capabilities for Clinic {clinic.id} (Provider {provider_id})")
-                except Clinic.DoesNotExist:
-                    logger.warning(f"⚠️ Clinic not found for Provider {provider_id} - Skipping capability update")
+                # Update all clinics belonging to this organization
+                clinics = Clinic.objects.filter(organization_id=provider_id)
+                count = clinics.update(capabilities=capabilities)
+                if count > 0:
+                    logger.info(f"✅ Updated Capabilities for {count} Clinics of Provider {provider_id}")
+                else:
+                    logger.warning(f"⚠️ No Clinics found for Provider {provider_id} - Skipping capability update")
 
         elif event_type == "PROVIDER.PERMISSIONS.UPDATED":
             auth_user_id = data.get("auth_user_id")
             permissions_list = data.get("permissions", [])
             
             if auth_user_id:
-                from veterinary.models import VeterinaryStaff
                 
                 # Extract capability strings from the complex permission objects
                 capability_keys = set()
@@ -115,6 +154,12 @@ for message in consumer:
                     
                     # 2. Fallback: Check for service_key or other identifiers if needed
                     # (For now, we rely on linked_capability being populated by Super Admin)
+
+                # NEW: Extract Dynamic Capabilities
+                dynamic_caps = data.get("dynamic_capabilities") or data.get("data", {}).get("dynamic_capabilities", [])
+                for dc in dynamic_caps:
+                     if dc.get("capability_key"):
+                         capability_keys.add(dc.get("capability_key"))
 
                 if capability_keys:
                     # Update VeterinaryStaff permissions
@@ -128,15 +173,19 @@ for message in consumer:
                             "permissions": list(capability_keys)
                         }
                     )
+                    
+                    # Sync to assignments
+                    StaffClinicAssignment.objects.filter(staff=staff, is_primary=True).update(permissions=list(capability_keys))
+                    
                     logger.info(f"✅ Synced VeterinaryStaff Permissions for {auth_user_id}: {capability_keys}")
                 else:
                     logger.info(f"ℹ️ No linked capabilities found for {auth_user_id}")
+                    
         elif event_type == "USER_PERMISSIONS_SYNCED":
             auth_user_id = data.get("auth_user_id")
             permissions_list = data.get("permissions", [])
             
             if auth_user_id:
-                from veterinary.models import VeterinaryStaff
                 
                 # permissions_list is a list of dicts: [{ "service_key": "VETERINARY_VITALS", ... }]
                 # We need to extract the keys (slugs) to store in VeterinaryStaff.permissions
@@ -150,12 +199,24 @@ for message in consumer:
                         
                 # Update VeterinaryStaff
                 # We use update_or_create to ensure it exists
-                VeterinaryStaff.objects.update_or_create(
+                staff, _ = VeterinaryStaff.objects.update_or_create(
                     auth_user_id=auth_user_id,
                     defaults={
                         "permissions": capability_keys
                     }
                 )
+                
+                # Sync to assignments
+                StaffClinicAssignment.objects.filter(staff=staff, is_primary=True).update(permissions=capability_keys)
+                
+                # [FIX] Sync to Clinic Capabilities if user is an Organization Owner
+                # This ensures the sidebar (which reads from Clinic.capabilities) works for the admin
+                role = (data.get("role") or "").lower()
+                if role in ["organization", "individual", "provider", "organization_provider"]:
+                    clinics = Clinic.objects.filter(organization_id=auth_user_id)
+                    clinics.update(capabilities={"permissions": capability_keys})
+                    logger.info(f"🏥 Synced Clinic Capabilities for Org Owner {auth_user_id}")
+
                 logger.info(f"✅ Synced Permissions for {auth_user_id}: {len(capability_keys)} capabilities")
 
     except Exception as e:

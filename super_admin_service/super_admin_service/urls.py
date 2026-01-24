@@ -43,6 +43,8 @@ urlpatterns = [
       
     path("api/superadmin/", include("dynamic_fields.urls")),   # protected CRUD
     path("api/public/provider/", include("dynamic_fields.urls")), 
+    
+    path("api/superadmin/", include("dynamic_permissions.urls")), 
       
       
 

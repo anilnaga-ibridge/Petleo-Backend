@@ -14,7 +14,7 @@
         "group": "Nursing",
         "description": "Capture weight, temperature, and basic health data"
     },
-    "VETERINARY_PRESCRIPTIONS": {
+    "VETERINARY_DOCTOR": {
         "label": "Prescribe Medicines",
         "group": "Doctor",
         "description": "Create and finalize prescriptions for patients"
@@ -24,7 +24,7 @@
         "group": "Laboratory",
         "description": "Order lab tests and upload/review results"
     },
-    "VETERINARY_MEDICINE_REMINDERS": {
+    "VETERINARY_PHARMACY": {
         "label": "Dispense Medicines",
         "group": "Pharmacy",
         "description": "Issue medicines and manage medication reminders"

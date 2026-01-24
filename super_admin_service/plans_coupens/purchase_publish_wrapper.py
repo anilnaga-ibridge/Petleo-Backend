@@ -1,17 +1,19 @@
-# superadmin/purchase_publish_wrapper.py
 from django.utils import timezone
 from django.db import transaction
 from .models import PurchasedPlan, ProviderPlanCapability
 from .kafka_producer import publish_permissions_updated
-# make sure assign_plan_permissions_to_user is imported where available
 from .services import assign_plan_permissions_to_user
 
-def purchase_plan_and_publish(user, plan, billing_cycle=None):
+def purchase_plan_and_publish(user, plan, billing_cycle="MONTHLY"):
     """
     Creates PurchasedPlan, assigns permissions (DB), and publishes Kafka event.
     Use this instead of directly calling PurchasedPlan.objects.create(...) in the view.
     """
     with transaction.atomic():
+        # Ensure billing_cycle is a string
+        if hasattr(billing_cycle, 'code'):
+             billing_cycle = billing_cycle.code
+             
         purchased = PurchasedPlan.objects.create(user=user, plan=plan, billing_cycle=billing_cycle)
         # assign permissions in DB (your existing function)
         assign_plan_permissions_to_user(user, plan)
@@ -20,6 +22,12 @@ def purchase_plan_and_publish(user, plan, billing_cycle=None):
         perms = ProviderPlanCapability.objects.filter(user=user, plan=plan)
         perms_payload = []
         for p in perms:
+            # Safely get booleans from JSON field
+            can_view = p.permissions.get("can_view", False) if p.permissions else False
+            can_create = p.permissions.get("can_create", False) if p.permissions else False
+            can_edit = p.permissions.get("can_edit", False) if p.permissions else False
+            can_delete = p.permissions.get("can_delete", False) if p.permissions else False
+
             perms_payload.append({
                 "plan_id": str(p.plan.id),
                 "service_id": str(p.service.id) if p.service else None,
@@ -28,10 +36,11 @@ def purchase_plan_and_publish(user, plan, billing_cycle=None):
                 "category_name": getattr(p.category, "name", None),
                 "facility_id": str(p.facility.id) if p.facility else None,
                 "facility_name": getattr(p.facility, "name", None),
-                "can_view": bool(p.can_view),
-                "can_create": bool(p.can_create),
-                "can_edit": bool(p.can_edit),
-                "can_delete": bool(p.can_delete),
+                "linked_capability": getattr(p.category, "linked_capability", None) if p.category else None,
+                "can_view": can_view,
+                "can_create": can_create,
+                "can_edit": can_edit,
+                "can_delete": can_delete,
             })
 
         # Collect templates
@@ -58,11 +67,7 @@ def purchase_plan_and_publish(user, plan, billing_cycle=None):
                 })
                 seen_services.add(p.service.id)
             
-            # We still collect explicit categories/facilities if they exist in perms
-            # But we will ALSO fetch all children of seen_services below
-            
         # 1.5 Fetch ALL Categories and Facilities for the seen services
-        # This ensures that even if permission is Service-level, we send the full template structure
         from dynamic_categories.models import Category
         from dynamic_facilities.models import Facility
         
@@ -73,43 +78,53 @@ def purchase_plan_and_publish(user, plan, billing_cycle=None):
                 templates["categories"].append({
                     "id": str(cat.id),
                     "service_id": str(cat.service.id),
-                    "name": cat.name
+                    "name": cat.name,
+                    "linked_capability": cat.linked_capability,
+                    "is_template": True
                 })
                 seen_categories.add(cat.id)
         
-        # Fetch all facilities for these categories
-        all_facs = Facility.objects.filter(category__id__in=seen_categories)
+        # Fetch all facilities for these services
+        all_facs = Facility.objects.filter(service__id__in=seen_services)
+        
+        # Build map of service_id -> list of category_ids
+        service_to_cat_map = {}
+        for cat_data in templates["categories"]:
+            s_id = cat_data["service_id"]
+            if s_id not in service_to_cat_map:
+                service_to_cat_map[s_id] = []
+            service_to_cat_map[s_id].append(cat_data["id"])
+            
         for fac in all_facs:
+            s_id = str(fac.service.id)
+            # Find a category to attach to
+            cats = service_to_cat_map.get(s_id, [])
+            if not cats:
+                # No categories for this service, cannot attach facility in current Consumer logic
+                continue
+                
+            # Attach to the first category found
+            target_cat_id = cats[0]
+            
+            # Check for duplicates or just add?
+            # Since we attach to only one category, simple check is enough
             if fac.id not in seen_facilities:
                 templates["facilities"].append({
                     "id": str(fac.id),
-                    "category_id": str(fac.category.id),
+                    "category_id": target_cat_id,
                     "name": fac.name,
                     "description": getattr(fac, "description", "")
                 })
                 seen_facilities.add(fac.id)
 
         # 2. Collect Pricing (Pricing model)
-        from dynamic_pricing.models import Pricing
+        from dynamic_pricing.models import PricingRule
         
-        # Fetch pricing for all involved services
-        # We can filter by service__in=seen_services
-        # But we also need to respect category/facility if they are set.
-        # Let's just fetch all pricing for these services and filter in loop or let the consumer handle it.
-        # Better: Fetch pricing that matches the services/categories/facilities we are sending.
-        
-        pricing_qs = Pricing.objects.filter(service__id__in=seen_services, is_active=True)
+        pricing_qs = PricingRule.objects.filter(service__id__in=seen_services, is_active=True)
         
         for price in pricing_qs:
-            # Only include if category/facility matches what we are sending (or is None)
-            
             p_cat_id = str(price.category.id) if price.category else None
             p_fac_id = str(price.facility.id) if price.facility else None
-            
-            # Check if this pricing rule is relevant to the templates we are sending
-            # If it's a service-level price (no cat, no fac), send it.
-            # If it has cat, check if cat is in seen_categories.
-            # If it has fac, check if fac is in seen_facilities.
             
             include_price = False
             if not p_cat_id and not p_fac_id:
@@ -127,26 +142,57 @@ def purchase_plan_and_publish(user, plan, billing_cycle=None):
                     "service_id": str(price.service.id),
                     "category_id": p_cat_id,
                     "facility_id": p_fac_id,
-                    "price": str(price.price),
-                    "duration": price.duration,
+                    "price": str(price.base_price), # PricingRule has base_price, not price
+                    "duration": price.duration_minutes or 0, # Handle None
                     "description": f"Default pricing for {price.service.display_name}"
                 })
 
         purchased_plan_info = {
             "id": str(purchased.id),
             "plan_id": str(plan.id),
-            "billing_cycle_id": purchased.billing_cycle.id if purchased.billing_cycle else None,
+            "billing_cycle_id": None, 
             "start_date": purchased.start_date.isoformat(),
             "end_date": purchased.end_date.isoformat() if purchased.end_date else None,
         }
 
         # auth_user_id: use the ID ServiceProvider expects.
-        # SuperAdmin model has auth_user_id field which matches Auth Service ID.
         if hasattr(user, 'auth_user_id') and user.auth_user_id:
             auth_user_id = str(user.auth_user_id)
         else:
             auth_user_id = str(user.id)
 
-        publish_permissions_updated(auth_user_id, str(purchased.id), perms_payload, purchased_plan_info, templates=templates)
+        # -------------------------------------------
+        # DYNAMIC PERMISSIONS SYNC
+        # -------------------------------------------
+        from dynamic_permissions.models import PlanCapability as DynPlanCapability, ProviderCapability as DynProviderCapability
+        from admin_core.models import VerifiedUser
+
+        dynamic_caps_payload = []
+        
+        # Resolve VerifiedUser instance
+        verified_user_instance = VerifiedUser.objects.filter(auth_user_id=auth_user_id).first()
+        print(f"DEBUG: VerifiedUser lookup for {auth_user_id} -> {verified_user_instance}")
+        
+        if verified_user_instance:
+             # Find DB Plan Capabilities
+             dyn_caps = DynPlanCapability.objects.filter(plan=plan)
+             print(f"DEBUG: DynPlanCapability count for plan {plan.id}: {dyn_caps.count()}")
+             for dc in dyn_caps:
+                 DynProviderCapability.objects.update_or_create(
+                     user=verified_user_instance,
+                     capability=dc.capability,
+                     defaults={'is_active': True}
+                 )
+                 
+                 # Add to payload
+                 modules = dc.capability.modules.filter(is_active=True).values('key', 'name', 'route', 'icon', 'sequence')
+                 dynamic_caps_payload.append({
+                     "capability_key": dc.capability.key,
+                     "modules": list(modules)
+                 })
+        
+        print(f"DEBUG: Dynamic Caps Payload Size: {len(dynamic_caps_payload)}")
+                 
+        publish_permissions_updated(auth_user_id, str(purchased.id), perms_payload, purchased_plan_info, templates=templates, dynamic_capabilities=dynamic_caps_payload)
 
     return purchased

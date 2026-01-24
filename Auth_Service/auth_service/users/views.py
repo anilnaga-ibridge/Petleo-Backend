@@ -76,10 +76,25 @@ def is_pin_valid_today(user):
     """
     Return True if the user's PIN is valid (not expired).
     """
+    with open("auth_debug_live.log", "a") as f:
+        f.write(f"\\n[{timezone.now()}] Checking PIN validity for {user.email}\\n")
+        f.write(f"  pin_expires_at: {user.pin_expires_at}\\n")
+    
     if not user.pin_expires_at:
+        with open("auth_debug_live.log", "a") as f:
+            f.write("  RESULT: False (No Check set)\\n")
+        print(f"DEBUG: PIN check failed. No pin_expires_at for user {user.username}")
         return False
     
-    return timezone.now() < user.pin_expires_at
+    now = timezone.now()
+    is_valid = now < user.pin_expires_at
+    
+    with open("auth_debug_live.log", "a") as f:
+        f.write(f"  Now: {now}\\n")
+        f.write(f"  RESULT: {is_valid}\\n")
+
+    print(f"DEBUG: PIN Validity Check | User: {user.username} | Now: {now} | Expires: {user.pin_expires_at} | Valid: {is_valid}")
+    return is_valid
 
 
 # ---------------------- REGISTER ----------------------
@@ -796,7 +811,14 @@ class CheckSessionView(APIView):
         # If last active time older than timeout
         timeout = timedelta(minutes=settings.PIN_REVERIFY_TIMEOUT_MINUTES)
         if timezone.now() - user.last_active_at > timeout:
-            return Response({"require_pin": True})
+            return Response({"require_pin": True, "reason": "inactivity"})
+
+        # 🔥 NEW: Check strict PIN expiration
+        if not is_pin_valid_today(user):
+            print(f"DEBUG: Session check - user {user.id} PIN expired.")
+            return Response({"require_pin": True, "reason": "expired"})
+            
+        return Response({"require_pin": False})
 
         return Response({"require_pin": False})
 # ---------------------- REGISTER USER (ADMIN + SERVICE PROVIDER) ----------------------
@@ -1156,7 +1178,7 @@ def transform_for_frontend(tokens, user, require_set_pin=False):
         role_name = user.role.name.upper()
         if role_name in ['DOCTOR', 'RECEPTIONIST', 'VITALS_STAFF', 'LAB_TECH', 'PHARMACY']:
             capabilities.append('VETERINARY_MODULE')
-        elif role_name == 'ORGANIZATION':
+        elif role_name in ['ORGANIZATION', 'INDIVIDUAL', 'PROVIDER', 'SERVICE_PROVIDER', 'SERVICEPROVIDER']:
             capabilities.append('PROVIDER_MODULE')
 
     return {
@@ -1177,8 +1199,8 @@ def transform_for_frontend(tokens, user, require_set_pin=False):
             "provider_id": str(user.organization_id) if user.organization_id else str(user.id),
             "capabilities": capabilities,
             "provider_type": (
-                user.role.name 
-                if (user.role and user.role.name in ["individual", "organization"]) 
+                user.role.name.lower()
+                if (user.role and user.role.name.lower() in ["individual", "organization", "service_provider", "provider"]) 
                 else None
             ),
         },

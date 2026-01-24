@@ -19,7 +19,7 @@ class SimplePlanSerializer(serializers.ModelSerializer):
 class SimpleServiceSerializer(serializers.ModelSerializer):
     class Meta:
         model = Service
-        fields = ["id", "display_name"]
+        fields = ["id", "name", "display_name"]
 
 
 class SimpleCategorySerializer(serializers.ModelSerializer):
@@ -203,6 +203,7 @@ class ProviderPlanCapabilitySerializer(serializers.ModelSerializer):
 
 
 class ProviderPlanViewSerializer(serializers.ModelSerializer):
+    billing_cycle = serializers.SerializerMethodField()
     access = serializers.SerializerMethodField()
 
     class Meta:
@@ -210,6 +211,8 @@ class ProviderPlanViewSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "title",
+            "slug",
+            "target_type",
             "subtitle",
             "description",
             "features",
@@ -219,6 +222,23 @@ class ProviderPlanViewSerializer(serializers.ModelSerializer):
             "access",
             "is_active",
         ]
+
+    def get_billing_cycle(self, obj):
+        """
+        Returns full billing cycle object including ID and Name
+        """
+        config = BillingCycleConfig.objects.filter(code=obj.billing_cycle).first()
+        if config:
+            return {
+                "id": str(config.id), # Use ID for selection
+                "code": config.code,
+                "name": config.display_name
+            }
+        return {
+            "id": obj.billing_cycle,
+            "code": obj.billing_cycle,
+            "name": obj.billing_cycle.capitalize()
+        }
 
     def get_access(self, obj):
         """
@@ -240,12 +260,17 @@ class ProviderPlanViewSerializer(serializers.ModelSerializer):
                 grouped[s_id] = {
                     "service": {
                         "id": s_id,
-                        "name": cap.service.display_name,
+                        "name": cap.service.name, # Technical name for frontend logic (e.g. VETERINARY)
+                        "display_name": cap.service.display_name,
                     },
+                    "permissions": {}, # Service-level permissions
                     "categories": {}
                 }
             
-            if cap.category:
+            if not cap.category:
+                # Service-level permissions (e.g. for Veterinary role-based grouping)
+                grouped[s_id]["permissions"] = cap.permissions
+            else:
                 c_id = str(cap.category.id)
                 if c_id not in grouped[s_id]["categories"]:
                     grouped[s_id]["categories"][c_id] = {
@@ -278,6 +303,7 @@ class ProviderPlanViewSerializer(serializers.ModelSerializer):
             
             result.append({
                 "service": s_val["service"],
+                "permissions": s_val["permissions"],
                 "categories": cats_list
             })
             

@@ -16,7 +16,7 @@ def seed_demo_data():
 
     # 1. Ensure Clinic Exists (Mocking Provider Service sync)
     clinic, created = Clinic.objects.get_or_create(
-        provider_id="demo-provider-id",
+        organization_id="demo-provider-id",
         defaults={
             "name": "PetLeo Demo Clinic",
             "capabilities": {"VETERINARY_MODULE": True}

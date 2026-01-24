@@ -91,5 +91,17 @@ class PurchasedPlan(models.Model):
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(default=timezone.now)
 
+    @property
+    def days_left(self):
+        if not self.end_date:
+            return None
+        delta = self.end_date - timezone.now()
+        return max(0, delta.days)
+
+    @property
+    def is_expiring_soon(self):
+        left = self.days_left
+        return left is not None and left <= 10
+
     def __str__(self):
         return f"{self.plan_title} - {self.verified_user.full_name}"

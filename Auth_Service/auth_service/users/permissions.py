@@ -13,6 +13,10 @@ class IsOwnerOrOrgAdmin(BasePermission):
     Custom permission to only allow owners of an object or organization admins to edit it.
     """
     def has_object_permission(self, request, view, obj):
+        # Allow Super Admin
+        if getattr(request.user, 'is_superuser', False) or getattr(request.user, 'is_super_admin', False):
+            return True
+
         # Allow if user is updating themselves
         if obj == request.user:
             return True

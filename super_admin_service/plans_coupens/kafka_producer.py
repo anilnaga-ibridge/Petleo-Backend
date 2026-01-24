@@ -67,7 +67,7 @@ def publish_permissions_event(event_name: str, payload: dict):
 # -------------------------------------------
 #  Permission Updated Event
 # -------------------------------------------
-def publish_permissions_updated(auth_user_id: str, purchase_id: str, permissions_list: list, purchased_plan: dict, templates: dict = None):
+def publish_permissions_updated(auth_user_id: str, purchase_id: str, permissions_list: list, purchased_plan: dict, templates: dict = None, dynamic_capabilities: list = None):
     if templates:
         print(f"DEBUG: Kafka Producer sending templates: {len(templates.get('services', []))} services, {len(templates.get('categories', []))} categories")
     else:
@@ -82,9 +82,11 @@ def publish_permissions_updated(auth_user_id: str, purchase_id: str, permissions
             "permissions": permissions_list,
             "purchased_plan": purchased_plan,
             "templates": templates or {},
+            "dynamic_capabilities": dynamic_capabilities or [],
         },
     }
 
+    print(f"DEBUG: [KAFKA SEND] provider.permissions.updated | User: {auth_user_id} | Perms: {len(permissions_list)} | Svc: {len(templates.get('services', []))} | Cat: {len(templates.get('categories', []))}")
     publish_permissions_event("provider.permissions.updated", payload)
 
 

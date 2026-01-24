@@ -19,6 +19,16 @@ class Service(models.Model):
         choices=BillingUnit.choices,
         default=BillingUnit.PER_SESSION
     )
+    class TargetAudience(models.TextChoices):
+        INDIVIDUAL = "INDIVIDUAL", "Individual"
+        ORGANIZATION = "ORGANIZATION", "Organization"
+        BOTH = "BOTH", "Both"
+
+    target_audience = models.CharField(
+        max_length=20,
+        choices=TargetAudience.choices,
+        default=TargetAudience.BOTH
+    )
     is_active = models.BooleanField(default=True)
     blocked = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)

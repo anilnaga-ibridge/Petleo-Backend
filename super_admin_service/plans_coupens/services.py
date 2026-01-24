@@ -37,10 +37,12 @@ def assign_plan_permissions_to_user(user, plan):
                 service=cap.service,
                 category=cap.category,
                 facility=cap.facility,
-                can_view=cap.can_view,
-                can_create=cap.can_create,
-                can_edit=cap.can_edit,
-                can_delete=cap.can_delete,
+                permissions={
+                    "can_view": cap.permissions.get("can_view", False),
+                    "can_create": cap.permissions.get("can_create", False),
+                    "can_edit": cap.permissions.get("can_edit", False),
+                    "can_delete": cap.permissions.get("can_delete", False),
+                }
             )
 
 

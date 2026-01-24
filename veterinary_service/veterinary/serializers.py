@@ -4,14 +4,59 @@ from .models import (
     Clinic, PetOwner, Pet, Visit, 
     DynamicFieldDefinition, DynamicFieldValue,
     FormDefinition, FormField, FieldValidation, FormSubmission,
-    PharmacyDispense, MedicationReminder, VisitInvoice, VisitCharge
+    PharmacyDispense, MedicationReminder, VisitInvoice, VisitCharge,
+    LabTestTemplate, LabTestField, LabOrder, LabResult
 )
 from .services import DynamicEntityService
 
 class ClinicSerializer(serializers.ModelSerializer):
+    permissions = serializers.SerializerMethodField()
+
     class Meta:
         model = Clinic
         fields = '__all__'
+        read_only_fields = ['organization_id', 'is_primary']
+
+    def get_permissions(self, obj):
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            return []
+        
+        user = request.user
+        role = str(getattr(user, 'role', '')).upper()
+
+        if role in ['ORGANIZATION', 'INDIVIDUAL', 'PROVIDER', 'ORGANIZATION_PROVIDER', 'ORGANIZATION_ADMIN']:
+            raw_perms = obj.capabilities or {}
+            if isinstance(raw_perms, list):
+                perms = list(raw_perms)
+            else:
+                perms = list(raw_perms.get('permissions', []))
+            
+            if "VETERINARY_CORE" not in perms:
+                perms.append("VETERINARY_CORE")
+            return perms
+        
+        # 2. Staff get assigned permissions
+        # Use auth_user_id (UUID)
+        req_user_id = str(user.id)
+        if hasattr(request.auth, 'get'):
+             req_user_id = request.auth.get('user_id') or req_user_id
+
+        # Ideally optimize this to avoid N+1 queries, but strictly scoped is safe
+        try:
+            from .models import StaffClinicAssignment
+            assignment = StaffClinicAssignment.objects.filter(
+                clinic=obj, 
+                staff__auth_user_id=req_user_id,
+                is_active=True
+            ).first()
+            if assignment:
+                return assignment.permissions or []
+        except Exception as e:
+            # Fallback
+            pass
+            
+        return []
 
 class PetOwnerSerializer(serializers.ModelSerializer):
     class Meta:
@@ -19,11 +64,26 @@ class PetOwnerSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class PetSerializer(serializers.ModelSerializer):
+    owner = serializers.PrimaryKeyRelatedField(queryset=PetOwner.objects.all(), required=False)
     dynamic_data = serializers.SerializerMethodField()
 
     class Meta:
         model = Pet
-        fields = ['id', 'owner', 'name', 'species', 'breed', 'created_at', 'updated_at', 'dynamic_data']
+        fields = ['id', 'owner', 'name', 'species', 'breed', 'sex', 'dob', 'color', 'weight', 'notes', 'tag', 'is_active', 'created_at', 'updated_at', 'dynamic_data']
+        read_only_fields = ['id', 'owner', 'created_at', 'updated_at', 'dynamic_data']
+
+    def update(self, instance, validated_data):
+        from .permissions import log
+        log(f"PetSerializer.update: Instance: {instance.id}, Validated Data: {validated_data}")
+        # Ensure owner is NEVER changed via serializer update
+        validated_data.pop('owner', None)
+        return super().update(instance, validated_data)
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        if instance.owner:
+            representation['owner'] = PetOwnerSerializer(instance.owner).data
+        return representation
 
     def get_dynamic_data(self, obj):
         return DynamicEntityService.get_entity_data(obj.id, 'PET')
@@ -42,13 +102,37 @@ class VisitSerializer(serializers.ModelSerializer):
     pet = PetSerializer(read_only=True)
     pet_id = serializers.UUIDField(write_only=True)
     vitals = serializers.SerializerMethodField()
+    latest_lab_order = serializers.SerializerMethodField()
     
     class Meta:
         model = Visit
-        fields = ['id', 'clinic', 'pet', 'pet_id', 'status', 'created_at', 'updated_at', 'vitals']
+        fields = ['id', 'clinic', 'pet', 'pet_id', 'status', 'visit_type', 'reason', 'created_at', 'updated_at', 'vitals', 'latest_lab_order']
+        extra_kwargs = {
+            'clinic': {'required': False}
+        }
 
     def get_vitals(self, obj):
+        # 1. Try latest VITALS form submission first (New Engine)
+        last_submission = FormSubmission.objects.filter(
+            visit=obj, 
+            form_definition__code='VITALS'
+        ).order_by('-created_at').first()
+        
+        if last_submission:
+            return last_submission.data
+            
+        # 2. Fallback: Legacy dynamic entity data
         return DynamicEntityService.get_entity_data(obj.id, 'VITALS')
+
+    def get_latest_lab_order(self, obj):
+        last_submission = FormSubmission.objects.filter(
+            visit=obj, 
+            form_definition__code='LAB_ORDER'
+        ).order_by('-created_at').first()
+        
+        if last_submission:
+            return last_submission.data
+        return {}
 
 class DynamicEntitySerializer(serializers.Serializer):
     """
@@ -75,13 +159,52 @@ class FormFieldSerializer(serializers.ModelSerializer):
     class Meta:
         model = FormField
         fields = '__all__'
+        extra_kwargs = {
+            'form_definition': {'required': False}
+        }
+        validators = [] # Remove UniqueTogetherValidator to allow nested UPSERT logic in parent
 
 class FormDefinitionSerializer(serializers.ModelSerializer):
-    fields = FormFieldSerializer(many=True, read_only=True)
+    fields = FormFieldSerializer(many=True, required=False) # Changed from read_only=True
 
     class Meta:
         model = FormDefinition
         fields = '__all__'
+
+    def update(self, instance, validated_data):
+        fields_data = validated_data.pop('fields', None)
+        
+        # Update FormDefinition itself
+        instance = super().update(instance, validated_data)
+        
+        # Update or Create nested fields
+        if fields_data is not None:
+            incoming_keys = [f.get('field_key') for f in fields_data if f.get('field_key')]
+            
+            # 1. Delete fields not in incoming payload
+            # Important: Only delete if they belong to this form definition
+            instance.fields.exclude(field_key__in=incoming_keys).delete()
+
+            # 2. Update or Create remaining fields
+            for field_item in fields_data:
+                field_key = field_item.get('field_key')
+                if not field_key:
+                    continue
+                
+                field_obj, created = FormField.objects.update_or_create(
+                    form_definition=instance,
+                    field_key=field_key,
+                    defaults={
+                        'label': field_item.get('label', ''),
+                        'field_type': field_item.get('field_type', 'TEXT'),
+                        'unit': field_item.get('unit'),
+                        'is_required': field_item.get('is_required', False),
+                        'order': field_item.get('order', 0),
+                        'metadata': field_item.get('metadata', {})
+                    }
+                )
+        instance.refresh_from_db()
+        return instance
 
 class FormSubmissionSerializer(serializers.ModelSerializer):
     form_name = serializers.CharField(source='form_definition.name', read_only=True)
@@ -136,3 +259,93 @@ class VisitInvoiceSerializer(serializers.ModelSerializer):
     class Meta:
         model = VisitInvoice
         fields = '__all__'
+
+# ========================
+# PHASE 3.5: PROFESSIONAL LAB SERIALIZERS
+# ========================
+
+class LabTestFieldSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LabTestField
+        fields = '__all__'
+        read_only_fields = ['template']
+
+class LabTestTemplateSerializer(serializers.ModelSerializer):
+    fields = LabTestFieldSerializer(many=True, read_only=True)
+    
+    class Meta:
+        model = LabTestTemplate
+        fields = '__all__'
+
+class LabResultSerializer(serializers.ModelSerializer):
+    field_name = serializers.CharField(source='test_field.field_name', read_only=True)
+    unit = serializers.CharField(source='test_field.unit', read_only=True)
+    min_value = serializers.FloatField(source='test_field.min_value', read_only=True)
+    max_value = serializers.FloatField(source='test_field.max_value', read_only=True)
+
+    class Meta:
+        model = LabResult
+        fields = '__all__'
+        read_only_fields = ['flag'] # Flag is calculated by backend usually
+
+class LabOrderSerializer(serializers.ModelSerializer):
+    template_name = serializers.CharField(source='template.name', read_only=True)
+    results = LabResultSerializer(many=True, read_only=True)
+    pet_name = serializers.CharField(source='visit.pet.name', read_only=True)
+    owner_name = serializers.CharField(source='visit.pet.owner.name', read_only=True)
+
+    class Meta:
+        model = LabOrder
+        fields = '__all__'
+
+class StaffClinicAssignmentSerializer(serializers.ModelSerializer):
+    staff_name = serializers.CharField(source='staff.auth_user_id', read_only=True)
+    clinic_name = serializers.CharField(source='clinic.name', read_only=True)
+    staff_auth_id = serializers.CharField(write_only=True, required=False) # Frontend passes this
+    
+    class Meta:
+        from .models import StaffClinicAssignment
+        model = StaffClinicAssignment
+        fields = '__all__'
+        extra_kwargs = {
+            'permissions': {'required': False},
+            'staff': {'required': False} # We derive this from staff_auth_id
+        }
+        # Disable default unique_together validator to allow manual upsert handling
+        validators = []
+
+    def validate(self, attrs):
+        # 1. Resolve Staff
+        staff_auth_id = attrs.get('staff_auth_id')
+        staff = attrs.get('staff')
+        
+        if not staff and staff_auth_id:
+            from .models import VeterinaryStaff
+            staff_obj, created = VeterinaryStaff.objects.get_or_create(auth_user_id=staff_auth_id)
+            attrs['staff'] = staff_obj
+            
+        if not attrs.get('staff'):
+             raise serializers.ValidationError({"staff": "Staff ID or Auth ID is required."})
+
+        # 2. Auto-populate permissions based on role
+        role = attrs.get('role')
+        if role and not attrs.get('permissions'):
+            from .services import RolePermissionService
+            attrs['permissions'] = RolePermissionService.get_permissions_for_role(role)
+            
+        return attrs
+
+    def create(self, validated_data):
+        from .models import StaffClinicAssignment
+        
+        # Remove write-only fields
+        if 'staff_auth_id' in validated_data:
+            validated_data.pop('staff_auth_id')
+            
+        # Upsert Logic
+        assignment, created = StaffClinicAssignment.objects.update_or_create(
+            staff=validated_data['staff'],
+            clinic=validated_data['clinic'],
+            defaults=validated_data
+        )
+        return assignment

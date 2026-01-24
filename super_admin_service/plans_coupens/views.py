@@ -140,6 +140,10 @@ class PlanCapabilityViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         qs = super().get_queryset()
 
+        plan_id = self.request.query_params.get("plan")
+        if plan_id:
+            qs = qs.filter(plan_id=plan_id)
+
         search = self.request.query_params.get("search")
         if search:
             qs = qs.filter(
@@ -271,9 +275,9 @@ def purchase_plan(request):
         end_date = None
         
         # Simple duration calculation based on billing_cycle enum
-        if plan.billing_cycle == Plan.BillingCycle.MONTHLY:
+        if plan.billing_cycle == "MONTHLY":
             end_date = start_date + timezone.timedelta(days=30)
-        elif plan.billing_cycle == Plan.BillingCycle.YEARLY:
+        elif plan.billing_cycle == "YEARLY":
             end_date = start_date + timezone.timedelta(days=365)
 
         # Create or Update purchase record
@@ -356,6 +360,7 @@ def purchase_plan(request):
                         "id": str(p.category.id),
                         "service_id": str(p.category.service.id),
                         "name": p.category.name,
+                        "linked_capability": p.category.linked_capability,
                         "is_template": True
                     })
                     seen_categories.add(p.category.id)
@@ -415,20 +420,53 @@ def purchase_plan(request):
             "is_active": purchased.is_active
         }
 
+        # -------------------------------------------
+        # DYNAMIC PERMISSIONS SYNC
+        # -------------------------------------------
+        from dynamic_permissions.models import PlanCapability as DynPlanCapability, ProviderCapability as DynProviderCapability
+        from admin_core.models import VerifiedUser
+
+        dynamic_caps_payload = []
+        auth_user_id_str = str(user.auth_user_id) if hasattr(user, 'auth_user_id') else str(user.id)
+        
+        # Resolve VerifiedUser instance
+        verified_user_instance = VerifiedUser.objects.filter(auth_user_id=auth_user_id_str).first()
+        
+        if verified_user_instance:
+             # Find DB Plan Capabilities
+             dyn_caps = DynPlanCapability.objects.filter(plan=plan)
+             for dc in dyn_caps:
+                 DynProviderCapability.objects.update_or_create(
+                     user=verified_user_instance,
+                     capability=dc.capability,
+                     defaults={'is_active': True}
+                 )
+                 
+                 # Add to payload
+                 modules = dc.capability.modules.filter(is_active=True).values('key', 'name', 'route', 'icon', 'sequence')
+                 dynamic_caps_payload.append({
+                     "capability_key": dc.capability.key,
+                     "modules": list(modules)
+                 })
+
         # Publish Kafka Event
         print("DEBUG: Kafka Producer sending templates...")
         publish_permissions_updated(
-            auth_user_id=str(user.auth_user_id),
+            auth_user_id=auth_user_id_str,
             purchase_id=str(purchased.id),
             permissions_list=permissions_list,
             purchased_plan=purchased_plan_data,
-            templates=templates_payload
+            templates=templates_payload,
+            dynamic_capabilities=dynamic_caps_payload
         )
 
     return Response(
         {
             "detail": "Plan purchased and permissions assigned",
-            "purchase_id": str(purchased.id)
+            "purchase_id": str(purchased.id),
+            "permissions": permissions_list,
+            "templates": templates_payload,
+            "purchased_plan": purchased_plan_data
         },
         status=status.HTTP_201_CREATED
     )

@@ -4,13 +4,17 @@ from .views import (
     ServiceProviderDetailView,
     get_my_permissions,
     get_allowed_services,
+    get_provider_role_templates,
+    get_my_access,
 )
 
 urlpatterns = [
     path("profile/", ServiceProviderProfileView.as_view(), name="provider_profile"),
     path("profile/<str:auth_user_id>/", ServiceProviderDetailView.as_view(), name="provider_profile_detail"),
     path("permissions/", get_my_permissions, name="provider_permissions"),
+    path("permissions/my-access/", get_my_access, name="provider_my_access"),
     path("allowed-services/", get_allowed_services, name="provider_allowed_services"),
+    path("role-templates/", get_provider_role_templates, name="role_templates"),
 ]
 
 from rest_framework.routers import DefaultRouter

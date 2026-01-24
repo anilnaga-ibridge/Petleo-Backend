@@ -17,7 +17,15 @@ class TimeStampedModel(models.Model):
 class Clinic(TimeStampedModel):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=255)
-    provider_id = models.CharField(max_length=255, unique=True, help_text="ID from Auth Service")
+    address = models.TextField(blank=True, null=True)
+    phone = models.CharField(max_length=50, blank=True, null=True)
+    organization_id = models.CharField(
+        max_length=255, 
+        db_column='provider_id', 
+        db_index=True,
+        help_text="ID from Auth Service (Organization Owner ID)"
+    )
+    is_primary = models.BooleanField(default=True)
     capabilities = models.JSONField(default=dict, blank=True, help_text="Synced from Provider Service")
     
     def __str__(self):
@@ -26,12 +34,27 @@ class Clinic(TimeStampedModel):
 class VeterinaryStaff(TimeStampedModel):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     auth_user_id = models.CharField(max_length=255, unique=True, help_text="ID from Auth Service")
-    clinic = models.ForeignKey(Clinic, on_delete=models.SET_NULL, related_name='staff', null=True, blank=True)
+    clinic = models.ForeignKey(Clinic, on_delete=models.SET_NULL, related_name='staff', null=True, blank=True, help_text="DEPRECATED: Use StaffClinicAssignment for multi-clinic support")
     role = models.CharField(max_length=50, blank=True, null=True)
     permissions = models.JSONField(default=list, blank=True)
     
     def __str__(self):
         return f"Staff {self.auth_user_id} ({self.role})"
+
+class StaffClinicAssignment(TimeStampedModel):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    staff = models.ForeignKey(VeterinaryStaff, on_delete=models.CASCADE, related_name='clinic_assignments')
+    clinic = models.ForeignKey(Clinic, on_delete=models.CASCADE, related_name='staff_assignments')
+    role = models.CharField(max_length=50, blank=True, null=True)
+    permissions = models.JSONField(default=list, blank=True)
+    is_active = models.BooleanField(default=True)
+    is_primary = models.BooleanField(default=False)
+
+    class Meta:
+        unique_together = ('staff', 'clinic')
+
+    def __str__(self):
+        return f"{self.staff.auth_user_id} @ {self.clinic.name}"
 
 class PetOwner(TimeStampedModel):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -54,6 +77,13 @@ class Pet(TimeStampedModel):
     name = models.CharField(max_length=255, default="Unknown Pet")
     species = models.CharField(max_length=100, blank=True, null=True)
     breed = models.CharField(max_length=100, blank=True, null=True)
+    sex = models.CharField(max_length=20, blank=True, null=True, help_text="Male, Female, etc.")
+    dob = models.DateField(blank=True, null=True)
+    color = models.CharField(max_length=50, blank=True, null=True)
+    weight = models.FloatField(blank=True, null=True, help_text="Weight in kg")
+    notes = models.TextField(blank=True, null=True)
+    tag = models.CharField(max_length=100, blank=True, null=True)
+    is_active = models.BooleanField(default=True)
     
     def __str__(self):
         return f"{self.name} ({self.species})"
@@ -63,10 +93,12 @@ class Visit(TimeStampedModel):
         ('CREATED', 'Created'),
         ('CHECKED_IN', 'Checked In'),
         ('VITALS_RECORDED', 'Vitals Recorded'),
-        ('LAB_ORDERED', 'Lab Ordered'),
-        ('LAB_RESULTS_READY', 'Lab Results Ready'),
+        ('DOCTOR_ASSIGNED', 'Doctor Assigned'),
+        ('LAB_REQUESTED', 'Lab Requested'),
+        ('LAB_COMPLETED', 'Lab Completed'),
         ('PRESCRIPTION_FINALIZED', 'Prescription Finalized'),
         ('MEDICINES_DISPENSED', 'Medicines Dispensed'),
+        ('TREATMENT_COMPLETED', 'Treatment Completed'),
         ('CLOSED', 'Closed'),
     ]
 
@@ -80,6 +112,7 @@ class Visit(TimeStampedModel):
     pet = models.ForeignKey(Pet, on_delete=models.CASCADE, related_name='visits')
     status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='CREATED')
     visit_type = models.CharField(max_length=20, choices=VISIT_TYPE_CHOICES, default='OFFLINE')
+    reason = models.TextField(blank=True, null=True, help_text="Reason for the visit / Chief Complaint")
     
     # SLA / Timeline Fields
     checked_in_at = models.DateTimeField(null=True, blank=True)
@@ -330,3 +363,65 @@ class VisitCharge(TimeStampedModel):
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
         self.visit_invoice.recalculate_totals()
+
+# ========================
+# PHASE 3.5: PROFESSIONAL LAB SYSTEM
+# ========================
+
+class LabTestTemplate(TimeStampedModel):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField(max_length=255, help_text="e.g. CBC, LFT")
+    description = models.TextField(blank=True, null=True)
+    is_active = models.BooleanField(default=True)
+    
+    def __str__(self):
+        return self.name
+
+class LabTestField(TimeStampedModel):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    template = models.ForeignKey(LabTestTemplate, on_delete=models.CASCADE, related_name='fields')
+    field_name = models.CharField(max_length=255, help_text="e.g. Hemoglobin")
+    unit = models.CharField(max_length=50, blank=True, null=True, help_text="e.g. g/dL")
+    min_value = models.FloatField(null=True, blank=True)
+    max_value = models.FloatField(null=True, blank=True)
+    order = models.IntegerField(default=0)
+    
+    class Meta:
+        ordering = ['order']
+
+    def __str__(self):
+        return f"{self.field_name} ({self.template.name})"
+
+class LabOrder(TimeStampedModel):
+    STATUS_CHOICES = [
+        ('LAB_REQUESTED', 'Requested'),
+        ('IN_PROGRESS', 'In Progress'),
+        ('LAB_COMPLETED', 'Completed'),
+        ('CANCELLED', 'Cancelled'),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    visit = models.ForeignKey(Visit, on_delete=models.CASCADE, related_name='lab_orders')
+    template = models.ForeignKey(LabTestTemplate, on_delete=models.PROTECT, related_name='orders')
+    status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='LAB_REQUESTED')
+    requested_by = models.CharField(max_length=255, help_text="Doctor Auth ID", blank=True, null=True)
+    performed_by = models.CharField(max_length=255, help_text="Lab Tech Auth ID", blank=True, null=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    notes = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return f"{self.template.name} for Visit {self.visit.id}"
+
+class LabResult(TimeStampedModel):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    lab_order = models.ForeignKey(LabOrder, on_delete=models.CASCADE, related_name='results')
+    test_field = models.ForeignKey(LabTestField, on_delete=models.PROTECT) # Link to specific definition
+    value = models.CharField(max_length=255, help_text="Measured Value")
+    flag = models.CharField(max_length=20, blank=True, null=True, help_text="LOW, HIGH, NORMAL (Calculated)")
+    notes = models.TextField(blank=True, null=True)
+
+    class Meta:
+        unique_together = ('lab_order', 'test_field')
+
+    def __str__(self):
+        return f"{self.test_field.field_name}: {self.value}"
