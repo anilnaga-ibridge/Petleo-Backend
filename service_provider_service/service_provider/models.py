@@ -32,17 +32,45 @@ class VerifiedUser(models.Model):
         This corresponds to the 'Upper Bound' of access.
         """
         # Avoid circular imports
-        from provider_dynamic_fields.models import ProviderCapabilityAccess, ProviderTemplateCategory
+        from provider_dynamic_fields.models import ProviderCapabilityAccess, ProviderTemplateCategory, ProviderTemplateService
         
         # 1. Get Categories assigned in ProviderCapabilityAccess (The Plan)
         cat_ids = self.capabilities.filter(category_id__isnull=False).values_list('category_id', flat=True)
         
         # 2. Resolve to Linked Capabilities (e.g., 'Category: Pharmacy' -> 'VETERINARY_PHARMACY')
-        linked_caps = ProviderTemplateCategory.objects.filter(
+        linked_caps = set(ProviderTemplateCategory.objects.filter(
             super_admin_category_id__in=cat_ids
-        ).exclude(linked_capability__isnull=True).values_list('linked_capability', flat=True)
+        ).exclude(linked_capability__isnull=True).values_list('linked_capability', flat=True))
+
+        # 3. [FIX] Resolve Simple Services (Grooming, Daycare, etc.)
+        # These services don't have categories, so we check for service-level access.
+        service_ids = self.capabilities.filter(
+            service_id__isnull=False, 
+            category_id__isnull=True,
+            can_view=True
+        ).values_list('service_id', flat=True)
         
-        return set(linked_caps).union(
+        SERVICE_CAPABILITY_MAP = {
+            "Grooming": "GROOMING",
+            "Daycare": "DAYCARE",
+            "Training": "TRAINING",
+            "Boarding": "BOARDING",
+            "Walking": "WALKING",
+            "Aquamation": "AQUAMATION",
+            "Adoption": "ADOPTION",
+        }
+        
+        if service_ids:
+             # Look up service names
+             service_names = ProviderTemplateService.objects.filter(
+                 super_admin_service_id__in=service_ids
+             ).values_list('display_name', flat=True)
+             
+             for name in service_names:
+                 if name in SERVICE_CAPABILITY_MAP:
+                     linked_caps.add(SERVICE_CAPABILITY_MAP[name])
+        
+        return linked_caps.union(
             set(self.dynamic_capabilities.filter(is_active=True).values_list('capability__key', flat=True))
         )
 
@@ -294,8 +322,15 @@ class OrganizationEmployee(models.Model):
         # 3. The Intersection: Only allow what the Plan allows
         final_permissions = org_caps.intersection(role_capabilities)
         
-        # 4. Core Access (Always Granted for valid employees)
-        final_permissions.add("VETERINARY_CORE")
+        # 4. Core Access (Conditional)
+        # Only grant VETERINARY_CORE if the user has other VETERINARY_* permissions
+        # OR if it was explicitly captured in the intersection.
+        has_vet_capabilities = any(cap.startswith("VETERINARY_") for cap in final_permissions)
+        
+        if has_vet_capabilities:
+            final_permissions.add("VETERINARY_CORE")
+            
+        # Ensure basic provider access if needed, but do NOT force VETERINARY_CORE for Groomers.
 
         # 5. Apply Overrides (permissions_json) - RARE case
         overrides = self.permissions_json or {}

@@ -55,7 +55,8 @@ for message in consumer:
         data = event.get("data") or {}
         role = (event.get("role") or data.get("role") or "").lower()
         service = event.get("service")
-
+        perms_map = {} # Initialize early
+        
         logger.info(f"🔥 Event: {event_type} | Role: {role} | Service: {service}")
 
         # -----------------------------
@@ -366,7 +367,7 @@ for message in consumer:
                                             "category": cat_obj,
                                             "facility": fac_obj,
                                             "price": price["price"],
-                                            "duration": price["duration"],
+                                            "duration": price.get("duration") or price.get("duration_minutes"),  # FIX: Handle mismatched key
                                             "description": price.get("description", "")
                                         }
                                     )
@@ -571,10 +572,34 @@ for message in consumer:
                     logger.error(f"❌ Error updating permissions for {auth_user_id}: {e}")
                 
                 # Publish Sync Event
+                # Publish Sync Event
                 try:
+                    # Enrich payload with Technical Keys (from Templates)
+                    service_lookup = {s["id"]: s for s in templates.get("services", [])}
+                    category_lookup = {c["id"]: c for c in templates.get("categories", [])}
+                    
+                    final_sync_payload = []
+                    
+                    for p in perms_map.values():
+                        s_id = p["service_id"]
+                        c_id = p["category_id"]
+                        
+                        s_meta = service_lookup.get(s_id, {})
+                        c_meta = category_lookup.get(c_id, {}) if c_id else {}
+                        
+                        payload_item = {
+                            **p,
+                            "service_key": s_meta.get("name"),       # e.g. VETERINARY_CORE
+                            "service_name": s_meta.get("display_name"),
+                            "category_key": c_meta.get("name"),      # e.g. Doctor Consultation
+                            "linked_capability": c_meta.get("linked_capability"), # e.g. VETERINARY_DOCTOR
+                        }
+                        final_sync_payload.append(payload_item)
+                        
+                    logger.info(f"📤 Publishing Permissions Sync: {len(final_sync_payload)} items enriched")
+
                     from service_provider.kafka_producer import publish_permissions_synced
-                    # We send the raw permissions list. The consumer (Veterinary Service) must interpret it.
-                    publish_permissions_synced(auth_user_id, permissions_list)
+                    publish_permissions_synced(auth_user_id, final_sync_payload)
                 except Exception as e:
                     logger.error(f"❌ Failed to publish sync event: {e}")
 

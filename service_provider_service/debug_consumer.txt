@@ -1,194 +1,392 @@
-2026-01-24 04:43:55,915 [INFO] 🚀 Starting Service Provider Unified Kafka Consumer...
-2026-01-24 04:43:55,928 [INFO] ✅ Connected to Kafka broker.
-2026-01-24 05:30:12,795 [INFO] 🔥 Event: PROVIDER.PERMISSIONS.UPDATED | Role:  | Service: None
-2026-01-24 05:30:12,796 [ERROR] ❌ Error updating permissions for test-provider-dyn-001: ['“test-provider-dyn-001” is not a valid UUID.']
-2026-01-24 05:30:12,929 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
-2026-01-24 05:30:12,929 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
-2026-01-24 05:31:19,938 [INFO] 🔥 Event: PROVIDER.PERMISSIONS.UPDATED | Role:  | Service: None
-2026-01-24 05:31:19,969 [WARNING] ⚠️ User 68172874-2b3c-488b-819a-cea4d909a196 not found for permission update
-2026-01-24 05:31:19,977 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
-2026-01-24 05:31:19,977 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
-2026-01-24 05:33:08,974 [INFO] 🔥 Event: PROVIDER.PERMISSIONS.UPDATED | Role:  | Service: None
-2026-01-24 05:33:08,976 [WARNING] ⚠️ User e2dc672d-cc00-4700-82bf-186bbb12bf86 not found for permission update
-2026-01-24 05:33:08,983 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
-2026-01-24 05:33:08,983 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
-2026-01-24 05:34:27,986 [INFO] 🔥 Event: USER_CREATED | Role: organization | Service: super_admin
-2026-01-24 05:34:27,986 [INFO] DEBUG: Checking role 'organization' against employee list...
-2026-01-24 05:34:27,992 [INFO] ✅ Created VerifiedUser test.provider.7df67e39@check.com
-2026-01-24 05:34:27,997 [INFO] ✅ Auto-created ServiceProvider profile for test.provider.7df67e39@check.com
-2026-01-24 05:34:30,133 [INFO] 🔥 Event: PROVIDER.PERMISSIONS.UPDATED | Role:  | Service: None
-2026-01-24 05:34:30,134 [INFO] DEBUG: [KAFKA RECV] provider.permissions.updated | User: 7df67e39-e814-4ecb-bc97-9e950f06c9ba
-2026-01-24 05:34:30,134 [INFO] DEBUG: Templates Received - Services: 0, Cats: 0
-2026-01-24 05:34:30,135 [INFO] ✅ Synced Templates for user 7df67e39-e814-4ecb-bc97-9e950f06c9ba
-2026-01-24 05:34:30,144 [INFO] 🧹 Cleared old permissions for user 7df67e39-e814-4ecb-bc97-9e950f06c9ba
-2026-01-24 05:34:30,145 [INFO] ✅ Updated 0 capabilities for user 7df67e39-e814-4ecb-bc97-9e950f06c9ba
-2026-01-24 05:34:30,152 [INFO] ✅ Synced Subscription for user 7df67e39-e814-4ecb-bc97-9e950f06c9ba
-2026-01-24 05:34:30,159 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
-2026-01-24 05:34:30,159 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
-2026-01-24 05:36:00,665 [INFO] 🔥 Event: USER_CREATED | Role: organization | Service: super_admin
-2026-01-24 05:36:00,666 [INFO] DEBUG: Checking role 'organization' against employee list...
-2026-01-24 05:36:00,668 [INFO] ✅ Created VerifiedUser test.provider.5fb9dae5@check.com
-2026-01-24 05:36:00,670 [INFO] ✅ Auto-created ServiceProvider profile for test.provider.5fb9dae5@check.com
-2026-01-24 05:36:02,813 [INFO] 🔥 Event: PROVIDER.PERMISSIONS.UPDATED | Role:  | Service: None
-2026-01-24 05:36:02,814 [INFO] DEBUG: [KAFKA RECV] provider.permissions.updated | User: 5fb9dae5-6a87-4d75-b650-ecb76a958c6a
-2026-01-24 05:36:02,815 [INFO] DEBUG: Templates Received - Services: 0, Cats: 0
-2026-01-24 05:36:02,815 [INFO] ✅ Synced Templates for user 5fb9dae5-6a87-4d75-b650-ecb76a958c6a
-2026-01-24 05:36:02,817 [INFO] 🧹 Cleared old permissions for user 5fb9dae5-6a87-4d75-b650-ecb76a958c6a
-2026-01-24 05:36:02,817 [INFO] ✅ Updated 0 capabilities for user 5fb9dae5-6a87-4d75-b650-ecb76a958c6a
-2026-01-24 05:36:02,820 [INFO] ✅ Synced Subscription for user 5fb9dae5-6a87-4d75-b650-ecb76a958c6a
-2026-01-24 05:36:02,827 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
-2026-01-24 05:36:02,827 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
-2026-01-24 05:37:26,583 [INFO] 🔥 Event: USER_CREATED | Role: organization | Service: super_admin
-2026-01-24 05:37:26,583 [INFO] DEBUG: Checking role 'organization' against employee list...
-2026-01-24 05:37:26,585 [INFO] ✅ Created VerifiedUser test.provider.74e553e4@check.com
-2026-01-24 05:37:26,587 [INFO] ✅ Auto-created ServiceProvider profile for test.provider.74e553e4@check.com
-2026-01-24 05:37:28,728 [INFO] 🔥 Event: PROVIDER.PERMISSIONS.UPDATED | Role:  | Service: None
-2026-01-24 05:37:28,729 [INFO] DEBUG: [KAFKA RECV] provider.permissions.updated | User: 74e553e4-55d6-4bf4-a72f-5fe1412d319f
-2026-01-24 05:37:28,729 [INFO] DEBUG: Templates Received - Services: 0, Cats: 0
-2026-01-24 05:37:28,730 [INFO] ✅ Synced Templates for user 74e553e4-55d6-4bf4-a72f-5fe1412d319f
-2026-01-24 05:37:28,731 [INFO] 🧹 Cleared old permissions for user 74e553e4-55d6-4bf4-a72f-5fe1412d319f
-2026-01-24 05:37:28,732 [INFO] ✅ Updated 0 capabilities for user 74e553e4-55d6-4bf4-a72f-5fe1412d319f
-2026-01-24 05:37:28,737 [INFO] ✅ Synced Subscription for user 74e553e4-55d6-4bf4-a72f-5fe1412d319f
-2026-01-24 05:37:28,745 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
-2026-01-24 05:37:28,745 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
-2026-01-24 05:39:02,510 [INFO] 🚀 Starting Service Provider Unified Kafka Consumer...
-2026-01-24 05:39:02,521 [INFO] ✅ Connected to Kafka broker (VERIFY MODE).
-2026-01-24 05:39:11,335 [INFO] 🔥 Event: USER_CREATED | Role: organization | Service: super_admin
-2026-01-24 05:39:11,335 [INFO] 🔥 Event: USER_CREATED | Role: organization | Service: super_admin
-2026-01-24 05:39:11,335 [INFO] DEBUG: Checking role 'organization' against employee list...
-2026-01-24 05:39:11,335 [INFO] DEBUG: Checking role 'organization' against employee list...
-2026-01-24 05:39:11,343 [INFO] ✅ Created VerifiedUser test.provider.c0a3bd62@check.com
-2026-01-24 05:39:11,347 [INFO] ✅ Auto-created ServiceProvider profile for test.provider.c0a3bd62@check.com
-2026-01-24 05:39:11,376 [INFO] 🔄 Updated VerifiedUser test.provider.c0a3bd62@check.com
-2026-01-24 05:39:13,475 [INFO] 🔥 Event: PROVIDER.PERMISSIONS.UPDATED | Role:  | Service: None
-2026-01-24 05:39:13,476 [INFO] 🔥 Event: PROVIDER.PERMISSIONS.UPDATED | Role:  | Service: None
-2026-01-24 05:39:13,477 [INFO] DEBUG: [KAFKA RECV] provider.permissions.updated | User: c0a3bd62-6544-407e-86d6-f269cd832220
-2026-01-24 05:39:13,477 [INFO] DEBUG: [KAFKA RECV] provider.permissions.updated | User: c0a3bd62-6544-407e-86d6-f269cd832220
-2026-01-24 05:39:13,477 [INFO] DEBUG: Templates Received - Services: 0, Cats: 0
-2026-01-24 05:39:13,477 [INFO] DEBUG: Templates Received - Services: 0, Cats: 0
-2026-01-24 05:39:13,477 [INFO] ✅ Synced Templates for user c0a3bd62-6544-407e-86d6-f269cd832220
-2026-01-24 05:39:13,478 [INFO] ✅ Synced Templates for user c0a3bd62-6544-407e-86d6-f269cd832220
-2026-01-24 05:39:13,479 [INFO] 🧹 Cleared old permissions for user c0a3bd62-6544-407e-86d6-f269cd832220
-2026-01-24 05:39:13,480 [INFO] ✅ Updated 0 capabilities for user c0a3bd62-6544-407e-86d6-f269cd832220
-2026-01-24 05:39:13,482 [INFO] 🧹 Cleared old permissions for user c0a3bd62-6544-407e-86d6-f269cd832220
-2026-01-24 05:39:13,482 [INFO] ✅ Updated 0 capabilities for user c0a3bd62-6544-407e-86d6-f269cd832220
-2026-01-24 05:39:13,483 [INFO] ✅ Synced Subscription for user c0a3bd62-6544-407e-86d6-f269cd832220
-2026-01-24 05:39:13,488 [INFO] ✅ Synced Subscription for user c0a3bd62-6544-407e-86d6-f269cd832220
-2026-01-24 05:39:13,488 [INFO] DEBUG: dynamic_caps raw: [{'capability_key': 'VETERINARY_TEST_DYN', 'modules': [{'key': 'test_module_dyn', 'name': 'Dynamic Test Module', 'route': 'test-dynamic-route', 'icon': 'tabler-flask', 'sequence': 0}]}]
-2026-01-24 05:39:13,490 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
-2026-01-24 05:39:13,490 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
-2026-01-24 05:39:13,502 [INFO] ✅ Synced 1 Dynamic Capabilities for user c0a3bd62-6544-407e-86d6-f269cd832220
-2026-01-24 05:39:13,621 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
-2026-01-24 05:39:13,621 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
-2026-01-24 05:39:13,623 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
-2026-01-24 05:39:13,623 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
-2026-01-24 05:39:13,623 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
-2026-01-24 05:39:13,623 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
-2026-01-24 06:55:37,842 [INFO] 🔥 Event: USER_CREATED | Role: organization | Service: super_admin
-2026-01-24 06:55:37,842 [INFO] DEBUG: Checking role 'organization' against employee list...
-2026-01-24 06:55:37,845 [INFO] ✅ Created VerifiedUser user.a.2e04@test.com
-2026-01-24 06:55:37,847 [INFO] ✅ Auto-created ServiceProvider profile for user.a.2e04@test.com
-2026-01-24 06:55:38,985 [INFO] 🔥 Event: PROVIDER.PERMISSIONS.UPDATED | Role:  | Service: None
-2026-01-24 06:55:38,986 [INFO] DEBUG: [KAFKA RECV] provider.permissions.updated | User: 2e042be2-4540-45bc-96cb-d62bc48eb582
-2026-01-24 06:55:38,986 [INFO] DEBUG: Templates Received - Services: 0, Cats: 0
-2026-01-24 06:55:38,986 [INFO] ✅ Synced Templates for user 2e042be2-4540-45bc-96cb-d62bc48eb582
-2026-01-24 06:55:38,988 [INFO] 🧹 Cleared old permissions for user 2e042be2-4540-45bc-96cb-d62bc48eb582
-2026-01-24 06:55:38,988 [INFO] ✅ Updated 0 capabilities for user 2e042be2-4540-45bc-96cb-d62bc48eb582
-2026-01-24 06:55:38,991 [INFO] ✅ Synced Subscription for user 2e042be2-4540-45bc-96cb-d62bc48eb582
-2026-01-24 06:55:38,998 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
-2026-01-24 06:55:38,998 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
-2026-01-24 06:55:39,644 [INFO] 🔥 Event: USER_CREATED | Role: organization | Service: super_admin
-2026-01-24 06:55:39,644 [INFO] DEBUG: Checking role 'organization' against employee list...
-2026-01-24 06:55:39,647 [INFO] ✅ Created VerifiedUser user.b.ced2@test.com
-2026-01-24 06:55:39,649 [INFO] ✅ Auto-created ServiceProvider profile for user.b.ced2@test.com
-2026-01-24 06:55:40,675 [INFO] 🔥 Event: PROVIDER.PERMISSIONS.UPDATED | Role:  | Service: None
-2026-01-24 06:55:40,677 [INFO] DEBUG: [KAFKA RECV] provider.permissions.updated | User: ced2289b-db80-436b-91cb-30dd09537752
-2026-01-24 06:55:40,677 [INFO] DEBUG: Templates Received - Services: 0, Cats: 0
-2026-01-24 06:55:40,677 [INFO] ✅ Synced Templates for user ced2289b-db80-436b-91cb-30dd09537752
-2026-01-24 06:55:40,679 [INFO] 🧹 Cleared old permissions for user ced2289b-db80-436b-91cb-30dd09537752
-2026-01-24 06:55:40,679 [INFO] ✅ Updated 0 capabilities for user ced2289b-db80-436b-91cb-30dd09537752
-2026-01-24 06:55:40,684 [INFO] ✅ Synced Subscription for user ced2289b-db80-436b-91cb-30dd09537752
-2026-01-24 06:55:40,691 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
-2026-01-24 06:55:40,691 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
-2026-01-24 06:57:01,602 [INFO] 🚀 Starting Service Provider Unified Kafka Consumer...
-2026-01-24 06:57:01,614 [INFO] ✅ Connected to Kafka broker (VERIFY MODE).
-2026-01-24 06:57:05,055 [INFO] 🔥 Event: USER_CREATED | Role: organization | Service: super_admin
-2026-01-24 06:57:05,055 [INFO] DEBUG: Checking role 'organization' against employee list...
-2026-01-24 06:57:05,087 [INFO] 🔄 Updated VerifiedUser user.a.2e04@test.com
-2026-01-24 06:57:05,089 [INFO] 🔥 Event: USER_CREATED | Role: organization | Service: super_admin
-2026-01-24 06:57:05,089 [INFO] DEBUG: Checking role 'organization' against employee list...
-2026-01-24 06:57:05,092 [INFO] 🔄 Updated VerifiedUser user.b.ced2@test.com
-2026-01-24 06:57:05,093 [INFO] 🔥 Event: PROVIDER.PERMISSIONS.UPDATED | Role:  | Service: None
-2026-01-24 06:57:05,094 [INFO] DEBUG: [KAFKA RECV] provider.permissions.updated | User: 2e042be2-4540-45bc-96cb-d62bc48eb582
-2026-01-24 06:57:05,094 [INFO] DEBUG: Templates Received - Services: 0, Cats: 0
-2026-01-24 06:57:05,094 [INFO] ✅ Synced Templates for user 2e042be2-4540-45bc-96cb-d62bc48eb582
-2026-01-24 06:57:05,098 [INFO] 🧹 Cleared old permissions for user 2e042be2-4540-45bc-96cb-d62bc48eb582
-2026-01-24 06:57:05,098 [INFO] ✅ Updated 0 capabilities for user 2e042be2-4540-45bc-96cb-d62bc48eb582
-2026-01-24 06:57:05,102 [INFO] ✅ Synced Subscription for user 2e042be2-4540-45bc-96cb-d62bc48eb582
-2026-01-24 06:57:05,102 [INFO] DEBUG: dynamic_caps raw: [{'capability_key': 'CAP_GOLD', 'modules': [{'key': 'MOD_GOLD', 'name': 'Gold Board', 'route': 'gold-board', 'icon': 'tabler-box', 'sequence': 0}]}]
-2026-01-24 06:57:05,111 [INFO] ✅ Synced 1 Dynamic Capabilities for user 2e042be2-4540-45bc-96cb-d62bc48eb582
-2026-01-24 06:57:05,227 [INFO] 🔥 Event: PROVIDER.PERMISSIONS.UPDATED | Role:  | Service: None
-2026-01-24 06:57:05,229 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
-2026-01-24 06:57:05,229 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
-2026-01-24 06:57:05,229 [INFO] DEBUG: [KAFKA RECV] provider.permissions.updated | User: ced2289b-db80-436b-91cb-30dd09537752
-2026-01-24 06:57:05,229 [INFO] DEBUG: Templates Received - Services: 0, Cats: 0
-2026-01-24 06:57:05,230 [INFO] ✅ Synced Templates for user ced2289b-db80-436b-91cb-30dd09537752
-2026-01-24 06:57:05,232 [INFO] 🧹 Cleared old permissions for user ced2289b-db80-436b-91cb-30dd09537752
-2026-01-24 06:57:05,232 [INFO] ✅ Updated 0 capabilities for user ced2289b-db80-436b-91cb-30dd09537752
-2026-01-24 06:57:05,235 [INFO] ✅ Synced Subscription for user ced2289b-db80-436b-91cb-30dd09537752
-2026-01-24 06:57:05,235 [INFO] DEBUG: dynamic_caps raw: [{'capability_key': 'CAP_SILVER', 'modules': [{'key': 'MOD_SILVER', 'name': 'Silver Board', 'route': 'silver-board', 'icon': 'tabler-box', 'sequence': 0}]}]
-2026-01-24 06:57:05,242 [INFO] ✅ Synced 1 Dynamic Capabilities for user ced2289b-db80-436b-91cb-30dd09537752
-2026-01-24 06:57:05,245 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
-2026-01-24 06:57:05,246 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
-2026-01-24 06:57:05,246 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
-2026-01-24 06:57:05,246 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
-2026-01-24 06:57:05,247 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
-2026-01-24 06:57:05,247 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
-2026-01-24 06:57:05,250 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
-2026-01-24 06:57:05,250 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
-2026-01-24 06:57:05,250 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
-2026-01-24 06:57:05,250 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
-2026-01-24 07:04:53,412 [INFO] 🔥 Event: PROVIDER.PERMISSIONS.UPDATED | Role:  | Service: None
-2026-01-24 07:04:53,413 [INFO] 🔥 Event: PROVIDER.PERMISSIONS.UPDATED | Role:  | Service: None
-2026-01-24 07:04:53,414 [INFO] DEBUG: [KAFKA RECV] provider.permissions.updated | User: ec23848f-dd25-4701-805d-010cbc9e10fc
-2026-01-24 07:04:53,414 [INFO] DEBUG: [KAFKA RECV] provider.permissions.updated | User: ec23848f-dd25-4701-805d-010cbc9e10fc
-2026-01-24 07:04:53,414 [INFO] DEBUG: Templates Received - Services: 2, Cats: 8
-2026-01-24 07:04:53,415 [INFO] DEBUG: Templates Received - Services: 2, Cats: 8
-2026-01-24 07:04:53,449 [WARNING] ⏭️ Skipping facility Outdoor Play Area - missing category_id
-2026-01-24 07:04:53,449 [WARNING] ⏭️ Skipping facility Indoor Play Area - missing category_id
-2026-01-24 07:04:53,457 [ERROR] ❌ Error updating permissions for ec23848f-dd25-4701-805d-010cbc9e10fc: 'duration'
-2026-01-24 07:04:53,469 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
-2026-01-24 07:04:53,470 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
-2026-01-24 07:04:53,498 [WARNING] ⏭️ Skipping facility Outdoor Play Area - missing category_id
-2026-01-24 07:04:53,498 [WARNING] ⏭️ Skipping facility Indoor Play Area - missing category_id
-2026-01-24 07:04:53,503 [ERROR] ❌ Error updating permissions for ec23848f-dd25-4701-805d-010cbc9e10fc: 'duration'
-2026-01-24 07:04:53,510 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
-2026-01-24 07:04:53,510 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
-2026-01-24 07:04:53,514 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
-2026-01-24 07:04:53,514 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
-2026-01-24 07:04:53,514 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
-2026-01-24 07:04:53,514 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
-2026-01-24 07:22:50,182 [INFO] 🔥 Event: PROVIDER.PERMISSIONS.UPDATED | Role:  | Service: None
-2026-01-24 07:22:50,183 [INFO] 🔥 Event: PROVIDER.PERMISSIONS.UPDATED | Role:  | Service: None
-2026-01-24 07:22:50,185 [INFO] DEBUG: [KAFKA RECV] provider.permissions.updated | User: 5d560f6b-a1cb-4025-b7bb-87ef212f8a1c
-2026-01-24 07:22:50,185 [INFO] DEBUG: [KAFKA RECV] provider.permissions.updated | User: 5d560f6b-a1cb-4025-b7bb-87ef212f8a1c
-2026-01-24 07:22:50,185 [INFO] DEBUG: Templates Received - Services: 3, Cats: 6
-2026-01-24 07:22:50,185 [INFO] DEBUG: Templates Received - Services: 3, Cats: 6
-2026-01-24 07:22:50,214 [INFO] ✅ Synced Templates for user 5d560f6b-a1cb-4025-b7bb-87ef212f8a1c
-2026-01-24 07:22:50,216 [INFO] 🧹 Cleared old permissions for user 5d560f6b-a1cb-4025-b7bb-87ef212f8a1c
-2026-01-24 07:22:50,233 [INFO] ✅ Updated 9 capabilities for user 5d560f6b-a1cb-4025-b7bb-87ef212f8a1c
-2026-01-24 07:22:50,237 [INFO] ✅ Replaced user capabilities: ['VETERINARY_VITALS', 'VETERINARY_VISITS', 'VETERINARY_CORE']
-2026-01-24 07:22:50,240 [ERROR] ❌ Error updating permissions for 5d560f6b-a1cb-4025-b7bb-87ef212f8a1c: get() returned more than one ProviderSubscription -- it returned 2!
-2026-01-24 07:22:50,251 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
-2026-01-24 07:22:50,252 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
-2026-01-24 07:22:50,270 [INFO] ✅ Synced Templates for user 5d560f6b-a1cb-4025-b7bb-87ef212f8a1c
-2026-01-24 07:22:50,272 [INFO] 🧹 Cleared old permissions for user 5d560f6b-a1cb-4025-b7bb-87ef212f8a1c
-2026-01-24 07:22:50,286 [INFO] ✅ Updated 9 capabilities for user 5d560f6b-a1cb-4025-b7bb-87ef212f8a1c
-2026-01-24 07:22:50,288 [INFO] ✅ Replaced user capabilities: ['VETERINARY_VISITS', 'VETERINARY_VITALS', 'VETERINARY_CORE']
-2026-01-24 07:22:50,290 [ERROR] ❌ Error updating permissions for 5d560f6b-a1cb-4025-b7bb-87ef212f8a1c: get() returned more than one ProviderSubscription -- it returned 2!
-2026-01-24 07:22:50,297 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
-2026-01-24 07:22:50,297 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
-2026-01-24 07:22:50,301 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
-2026-01-24 07:22:50,301 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
-2026-01-24 07:22:50,301 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
-2026-01-24 07:22:50,301 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-01-27 10:50:44,797 [INFO] 🚀 Starting Service Provider Unified Kafka Consumer...
+2026-01-27 10:50:44,808 [INFO] ✅ Connected to Kafka broker.
+2026-01-27 10:51:19,905 [INFO] 🔥 Event: PROVIDER.PERMISSIONS.UPDATED | Role:  | Service: None
+2026-01-27 10:51:19,935 [INFO] DEBUG: [KAFKA RECV] provider.permissions.updated | User: 5d560f6b-a1cb-4025-b7bb-87ef212f8a1c
+2026-01-27 10:51:19,935 [INFO] DEBUG: Templates Received - Services: 2, Cats: 8
+2026-01-27 10:51:19,965 [WARNING] ⏭️ Skipping facility Indoor Play Area - missing category_id
+2026-01-27 10:51:19,965 [WARNING] ⏭️ Skipping facility Outdoor Play Area - missing category_id
+2026-01-27 10:51:19,977 [INFO] ✅ Synced Templates for user 5d560f6b-a1cb-4025-b7bb-87ef212f8a1c
+2026-01-27 10:51:19,981 [INFO] 🧹 Cleared old permissions for user 5d560f6b-a1cb-4025-b7bb-87ef212f8a1c
+2026-01-27 10:51:19,981 [INFO] 📋 Processing 7 explicit permissions from plan
+2026-01-27 10:51:19,981 [INFO]   ✅ Granting: Service=2170653c-9de5-4f61-b1ca-35b1a0439b17, Category=None, Facility=None, Pricing=None
+2026-01-27 10:51:19,981 [INFO]   ✅ Granting: Service=2170653c-9de5-4f61-b1ca-35b1a0439b17, Category=2e9da8d4-9747-41a7-8bf4-96e4df658070, Facility=None, Pricing=None
+2026-01-27 10:51:19,981 [INFO]   ✅ Granting: Service=2170653c-9de5-4f61-b1ca-35b1a0439b17, Category=None, Facility=95a3a4ce-b503-49e9-8531-d5b28e01a173, Pricing=None
+2026-01-27 10:51:19,981 [INFO]   ✅ Granting: Service=2dff446f-c95f-4310-ba4d-05e3395dd7eb, Category=None, Facility=None, Pricing=None
+2026-01-27 10:51:19,981 [INFO]   ✅ Granting: Service=2dff446f-c95f-4310-ba4d-05e3395dd7eb, Category=34857c1d-7f37-4c16-b989-378ddb127ad5, Facility=None, Pricing=None
+2026-01-27 10:51:19,981 [INFO]   ✅ Granting: Service=2dff446f-c95f-4310-ba4d-05e3395dd7eb, Category=bf255bf5-ffe7-4d27-a4ad-0d5c39a04bee, Facility=None, Pricing=None
+2026-01-27 10:51:19,982 [INFO]   ✅ Granting: Service=2dff446f-c95f-4310-ba4d-05e3395dd7eb, Category=7f29f495-d3af-447c-ad03-b51a82940133, Facility=None, Pricing=None
+2026-01-27 10:51:19,991 [INFO] ✅ Updated 7 capabilities for user 5d560f6b-a1cb-4025-b7bb-87ef212f8a1c
+2026-01-27 10:51:19,994 [INFO] ✅ Replaced user capabilities: ['VETERINARY_PHARMACY', 'VETERINARY_DOCTOR', 'VETERINARY_LABS', 'VETERINARY_CORE']
+2026-01-27 10:51:19,997 [INFO] ✅ Synced Subscription for user 5d560f6b-a1cb-4025-b7bb-87ef212f8a1c | Plan: d105f8e4-d511-4f87-a1a8-95837bef3d24
+2026-01-27 10:51:19,998 [INFO] DEBUG: dynamic_caps raw: None
+2026-01-27 10:51:20,005 [INFO] ✅ Service Provider Kafka Producer Connected
+2026-01-27 10:51:20,114 [INFO] 📤 Published USER_PERMISSIONS_SYNCED for 5d560f6b-a1cb-4025-b7bb-87ef212f8a1c
+2026-01-27 10:51:20,117 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-01-27 10:51:20,118 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-01-27 10:51:21,031 [INFO] 🔥 Event: PROVIDER.PERMISSIONS.UPDATED | Role:  | Service: None
+2026-01-27 10:51:21,032 [INFO] DEBUG: [KAFKA RECV] provider.permissions.updated | User: 06d98c0e-a9c1-41b3-9740-2830abc03778
+2026-01-27 10:51:21,032 [INFO] DEBUG: Templates Received - Services: 2, Cats: 8
+2026-01-27 10:51:21,059 [WARNING] ⏭️ Skipping facility Indoor Play Area - missing category_id
+2026-01-27 10:51:21,059 [WARNING] ⏭️ Skipping facility Outdoor Play Area - missing category_id
+2026-01-27 10:51:21,072 [INFO] ✅ Synced Templates for user 06d98c0e-a9c1-41b3-9740-2830abc03778
+2026-01-27 10:51:21,073 [INFO] 🧹 Cleared old permissions for user 06d98c0e-a9c1-41b3-9740-2830abc03778
+2026-01-27 10:51:21,073 [INFO] 📋 Processing 12 explicit permissions from plan
+2026-01-27 10:51:21,074 [INFO]   ✅ Granting: Service=2170653c-9de5-4f61-b1ca-35b1a0439b17, Category=None, Facility=None, Pricing=None
+2026-01-27 10:51:21,074 [INFO]   ✅ Granting: Service=2170653c-9de5-4f61-b1ca-35b1a0439b17, Category=2e9da8d4-9747-41a7-8bf4-96e4df658070, Facility=None, Pricing=None
+2026-01-27 10:51:21,074 [INFO]   ✅ Granting: Service=2170653c-9de5-4f61-b1ca-35b1a0439b17, Category=2e3ace4c-ed69-4be2-84e1-4a302ef1c411, Facility=None, Pricing=None
+2026-01-27 10:51:21,074 [INFO]   ✅ Granting: Service=2170653c-9de5-4f61-b1ca-35b1a0439b17, Category=None, Facility=95a3a4ce-b503-49e9-8531-d5b28e01a173, Pricing=None
+2026-01-27 10:51:21,074 [INFO]   ✅ Granting: Service=2170653c-9de5-4f61-b1ca-35b1a0439b17, Category=None, Facility=abd39092-5a5a-4816-a7cb-e2bf535c61c5, Pricing=None
+2026-01-27 10:51:21,074 [INFO]   ✅ Granting: Service=2dff446f-c95f-4310-ba4d-05e3395dd7eb, Category=None, Facility=None, Pricing=None
+2026-01-27 10:51:21,074 [INFO]   ✅ Granting: Service=2dff446f-c95f-4310-ba4d-05e3395dd7eb, Category=f0e16151-1dd9-409e-9f62-832c1d455cae, Facility=None, Pricing=None
+2026-01-27 10:51:21,074 [INFO]   ✅ Granting: Service=2dff446f-c95f-4310-ba4d-05e3395dd7eb, Category=7dae55eb-1bbe-4249-bb35-cb8a201e2f67, Facility=None, Pricing=None
+2026-01-27 10:51:21,074 [INFO]   ✅ Granting: Service=2dff446f-c95f-4310-ba4d-05e3395dd7eb, Category=34857c1d-7f37-4c16-b989-378ddb127ad5, Facility=None, Pricing=None
+2026-01-27 10:51:21,075 [INFO]   ✅ Granting: Service=2dff446f-c95f-4310-ba4d-05e3395dd7eb, Category=bf255bf5-ffe7-4d27-a4ad-0d5c39a04bee, Facility=None, Pricing=None
+2026-01-27 10:51:21,075 [INFO]   ✅ Granting: Service=2dff446f-c95f-4310-ba4d-05e3395dd7eb, Category=7f29f495-d3af-447c-ad03-b51a82940133, Facility=None, Pricing=None
+2026-01-27 10:51:21,075 [INFO]   ✅ Granting: Service=2dff446f-c95f-4310-ba4d-05e3395dd7eb, Category=6a2f2625-c277-43ae-b5d3-ac9e67974d27, Facility=None, Pricing=None
+2026-01-27 10:51:21,083 [INFO] ✅ Updated 12 capabilities for user 06d98c0e-a9c1-41b3-9740-2830abc03778
+2026-01-27 10:51:21,085 [INFO] ✅ Replaced user capabilities: ['VETERINARY_DOCTOR', 'VETERINARY_LABS', 'VETERINARY_VITALS', 'VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_VISITS', 'VETERINARY_PHARMACY', 'VETERINARY_CORE']
+2026-01-27 10:51:21,088 [INFO] ✅ Synced Subscription for user 06d98c0e-a9c1-41b3-9740-2830abc03778 | Plan: 1b9f630f-eb6f-4377-84e5-a6fa7ead828a
+2026-01-27 10:51:21,088 [INFO] DEBUG: dynamic_caps raw: None
+2026-01-27 10:51:21,092 [INFO] 📤 Published USER_PERMISSIONS_SYNCED for 06d98c0e-a9c1-41b3-9740-2830abc03778
+2026-01-27 10:51:21,096 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-01-27 10:51:21,096 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-01-27 10:54:07,969 [INFO] 🔥 Event: USER_DELETED | Role: organization | Service: auth_service
+2026-01-27 10:54:08,010 [INFO] 🗑️ Deleted user records for ee1d781f-312d-4a79-b027-746bf89dc019
+2026-01-27 10:54:11,292 [INFO] 🔥 Event: USER_DELETED | Role: organization | Service: auth_service
+2026-01-27 10:54:11,318 [INFO] 🗑️ Deleted user records for 06d98c0e-a9c1-41b3-9740-2830abc03778
+2026-01-27 10:54:14,474 [INFO] 🔥 Event: USER_DELETED | Role: organization | Service: auth_service
+2026-01-27 10:54:14,512 [INFO] 🗑️ Deleted user records for 1431597c-72be-4565-a051-9cd8a9dea66c
+2026-01-27 10:54:17,392 [INFO] 🔥 Event: USER_DELETED | Role: organization | Service: auth_service
+2026-01-27 10:54:17,435 [ERROR] ❌ Error processing Kafka message: update or delete on table "verified_users" violates foreign key constraint "provider_dynamic_fie_provider_id_0eb69530_fk_verified_" on table "provider_dynamic_fields_providerservice"
+DETAIL:  Key (auth_user_id)=(5d560f6b-a1cb-4025-b7bb-87ef212f8a1c) is still referenced from table "provider_dynamic_fields_providerservice".
+Traceback (most recent call last):
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/base/base.py", line 303, in _commit
+    return self.connection.commit()
+           ~~~~~~~~~~~~~~~~~~~~~~^^
+psycopg2.errors.ForeignKeyViolation: update or delete on table "verified_users" violates foreign key constraint "provider_dynamic_fie_provider_id_0eb69530_fk_verified_" on table "provider_dynamic_fields_providerservice"
+DETAIL:  Key (auth_user_id)=(5d560f6b-a1cb-4025-b7bb-87ef212f8a1c) is still referenced from table "provider_dynamic_fields_providerservice".
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/kafka_consumer.py", line 220, in <module>
+    VerifiedUser.objects.filter(auth_user_id=auth_user_id).delete()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/query.py", line 1201, in delete
+    num_deleted, num_deleted_per_model = collector.delete()
+                                         ~~~~~~~~~~~~~~~~^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/deletion.py", line 454, in delete
+    with transaction.atomic(using=self.using, savepoint=False):
+         ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/transaction.py", line 263, in __exit__
+    connection.commit()
+    ~~~~~~~~~~~~~~~~~^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/utils/asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/base/base.py", line 327, in commit
+    self._commit()
+    ~~~~~~~~~~~~^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/base/base.py", line 302, in _commit
+    with debug_transaction(self, "COMMIT"), self.wrap_database_errors:
+                                            ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/base/base.py", line 303, in _commit
+    return self.connection.commit()
+           ~~~~~~~~~~~~~~~~~~~~~~^^
+django.db.utils.IntegrityError: update or delete on table "verified_users" violates foreign key constraint "provider_dynamic_fie_provider_id_0eb69530_fk_verified_" on table "provider_dynamic_fields_providerservice"
+DETAIL:  Key (auth_user_id)=(5d560f6b-a1cb-4025-b7bb-87ef212f8a1c) is still referenced from table "provider_dynamic_fields_providerservice".
+
+2026-01-27 10:54:20,402 [INFO] 🔥 Event: USER_DELETED | Role: organization | Service: auth_service
+2026-01-27 10:54:20,429 [INFO] 🗑️ Deleted user records for ec23848f-dd25-4701-805d-010cbc9e10fc
+2026-01-27 10:54:23,680 [INFO] 🔥 Event: USER_DELETED | Role: organization | Service: auth_service
+2026-01-27 10:54:23,703 [INFO] 🗑️ Deleted user records for 483ac4d8-88dd-45ca-a926-6febf6078032
+2026-01-27 10:54:26,250 [INFO] 🔥 Event: USER_DELETED | Role: organization | Service: auth_service
+2026-01-27 10:54:26,272 [INFO] 🗑️ Deleted user records for 7470623a-ee4b-4922-99f5-3ce2f17171d7
+2026-01-27 10:54:29,992 [INFO] 🔥 Event: USER_DELETED | Role: organization | Service: auth_service
+2026-01-27 10:54:30,012 [INFO] 🗑️ Deleted user records for 076875b0-ca6b-4d96-a5a5-36f29e8cd976
+2026-01-27 10:54:33,526 [INFO] 🔥 Event: USER_DELETED | Role: doctor | Service: auth_service
+2026-01-27 10:54:33,543 [INFO] 🗑️ Deleted user records for 5b3578d9-f5c1-4f9c-bc43-0d25caa47ca8
+2026-01-27 10:54:44,612 [INFO] 🔥 Event: USER_DELETED | Role: employee | Service: auth_service
+2026-01-27 10:54:44,614 [INFO] 🗑️ Deleted user records for c38f49ac-639b-4730-872a-f702b51897d8
+2026-01-27 10:55:09,494 [INFO] 🔥 Event: USER_DELETED | Role: admin | Service: auth_service
+2026-01-27 10:55:09,494 [INFO] ⏭️ Skipping admin/super_admin user event
+2026-01-27 10:55:17,092 [INFO] 🔥 Event: USER_DELETED | Role: employee | Service: auth_service
+2026-01-27 10:55:17,109 [INFO] 🗑️ Deleted user records for b4244530-edf6-4cc7-ba27-a597f33e0662
+2026-01-27 10:55:22,595 [INFO] 🔥 Event: USER_DELETED | Role: employee | Service: auth_service
+2026-01-27 10:55:22,597 [INFO] 🗑️ Deleted user records for 9e0f6bad-773b-43d3-bf18-9f03f0f4d1dc
+2026-01-27 10:55:29,587 [INFO] 🔥 Event: USER_DELETED | Role: employee | Service: auth_service
+2026-01-27 10:55:29,603 [INFO] 🗑️ Deleted user records for 589d4f66-9c0c-4e34-a25a-11f169ac6169
+2026-01-27 10:55:32,868 [INFO] 🔥 Event: USER_DELETED | Role: employee | Service: auth_service
+2026-01-27 10:55:32,914 [INFO] 🗑️ Deleted user records for 831ec522-30ed-4cd4-a195-ceea8bad9883
+2026-01-27 10:56:16,727 [INFO] 🔥 Event: SEND_EMAIL | Role: organization | Service: auth_service
+2026-01-27 10:56:16,727 [WARNING] ⚠️ Unknown event type 'SEND_EMAIL' received.
+2026-01-27 10:56:16,738 [INFO] 🔥 Event: USER_CREATED | Role: organization | Service: auth_service
+2026-01-27 10:56:16,739 [INFO] DEBUG: Checking role 'organization' against employee list...
+2026-01-27 10:56:16,745 [INFO] ✅ Created VerifiedUser kalyan@gmail.com
+2026-01-27 10:56:16,748 [INFO] ✅ Auto-created ServiceProvider profile for kalyan@gmail.com
+2026-01-27 10:56:37,461 [INFO] 🔥 Event: USER_VERIFIED | Role: organization | Service: auth_service
+2026-01-27 10:56:37,461 [INFO] DEBUG: Checking role 'organization' against employee list...
+2026-01-27 10:56:37,466 [INFO] 🔄 Updated VerifiedUser kalyan@gmail.com
+2026-01-27 10:57:20,481 [INFO] 🔥 Event: PROVIDER.PERMISSIONS.UPDATED | Role:  | Service: None
+2026-01-27 10:57:20,483 [INFO] DEBUG: [KAFKA RECV] provider.permissions.updated | User: ab6af475-d728-4da5-aa48-11ae275e05ac
+2026-01-27 10:57:20,484 [INFO] DEBUG: Templates Received - Services: 2, Cats: 8
+2026-01-27 10:57:20,515 [WARNING] ⏭️ Skipping facility Outdoor Play Area - missing category_id
+2026-01-27 10:57:20,515 [WARNING] ⏭️ Skipping facility Indoor Play Area - missing category_id
+2026-01-27 10:57:20,519 [ERROR] ❌ Error updating permissions for ab6af475-d728-4da5-aa48-11ae275e05ac: 'duration'
+2026-01-27 10:57:20,523 [INFO] 📤 Published USER_PERMISSIONS_SYNCED for ab6af475-d728-4da5-aa48-11ae275e05ac
+2026-01-27 10:57:20,528 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-01-27 10:57:20,528 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-01-27 11:00:49,539 [INFO] 🔥 Event: PROVIDER.PERMISSIONS.UPDATED | Role:  | Service: None
+2026-01-27 11:00:49,540 [WARNING] ⚠️ User 06d98c0e-a9c1-41b3-9740-2830abc03778 not found for permission update
+2026-01-27 11:00:49,544 [INFO] 📤 Published USER_PERMISSIONS_SYNCED for 06d98c0e-a9c1-41b3-9740-2830abc03778
+2026-01-27 11:00:49,547 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-01-27 11:00:49,548 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-01-27 11:04:06,368 [INFO] 🔥 Event: PROVIDER.PERMISSIONS.UPDATED | Role:  | Service: None
+2026-01-27 11:04:06,370 [INFO] DEBUG: [KAFKA RECV] provider.permissions.updated | User: 5d560f6b-a1cb-4025-b7bb-87ef212f8a1c
+2026-01-27 11:04:06,370 [INFO] DEBUG: Templates Received - Services: 2, Cats: 8
+2026-01-27 11:04:06,395 [WARNING] ⏭️ Skipping facility Indoor Play Area - missing category_id
+2026-01-27 11:04:06,395 [WARNING] ⏭️ Skipping facility Outdoor Play Area - missing category_id
+2026-01-27 11:04:06,405 [INFO] ✅ Synced Templates for user 5d560f6b-a1cb-4025-b7bb-87ef212f8a1c
+2026-01-27 11:04:06,407 [INFO] 🧹 Cleared old permissions for user 5d560f6b-a1cb-4025-b7bb-87ef212f8a1c
+2026-01-27 11:04:06,407 [INFO] 📋 Processing 7 explicit permissions from plan
+2026-01-27 11:04:06,407 [INFO]   ✅ Granting: Service=2170653c-9de5-4f61-b1ca-35b1a0439b17, Category=None, Facility=None, Pricing=None
+2026-01-27 11:04:06,407 [INFO]   ✅ Granting: Service=2170653c-9de5-4f61-b1ca-35b1a0439b17, Category=2e9da8d4-9747-41a7-8bf4-96e4df658070, Facility=None, Pricing=None
+2026-01-27 11:04:06,408 [INFO]   ✅ Granting: Service=2170653c-9de5-4f61-b1ca-35b1a0439b17, Category=None, Facility=95a3a4ce-b503-49e9-8531-d5b28e01a173, Pricing=None
+2026-01-27 11:04:06,408 [INFO]   ✅ Granting: Service=2dff446f-c95f-4310-ba4d-05e3395dd7eb, Category=None, Facility=None, Pricing=None
+2026-01-27 11:04:06,408 [INFO]   ✅ Granting: Service=2dff446f-c95f-4310-ba4d-05e3395dd7eb, Category=34857c1d-7f37-4c16-b989-378ddb127ad5, Facility=None, Pricing=None
+2026-01-27 11:04:06,408 [INFO]   ✅ Granting: Service=2dff446f-c95f-4310-ba4d-05e3395dd7eb, Category=bf255bf5-ffe7-4d27-a4ad-0d5c39a04bee, Facility=None, Pricing=None
+2026-01-27 11:04:06,408 [INFO]   ✅ Granting: Service=2dff446f-c95f-4310-ba4d-05e3395dd7eb, Category=7f29f495-d3af-447c-ad03-b51a82940133, Facility=None, Pricing=None
+2026-01-27 11:04:06,416 [INFO] ✅ Updated 7 capabilities for user 5d560f6b-a1cb-4025-b7bb-87ef212f8a1c
+2026-01-27 11:04:06,418 [INFO] ✅ Replaced user capabilities: ['VETERINARY_PHARMACY', 'VETERINARY_DOCTOR', 'VETERINARY_LABS', 'VETERINARY_CORE']
+2026-01-27 11:04:06,420 [INFO] ✅ Synced Subscription for user 5d560f6b-a1cb-4025-b7bb-87ef212f8a1c | Plan: d105f8e4-d511-4f87-a1a8-95837bef3d24
+2026-01-27 11:04:06,420 [INFO] DEBUG: dynamic_caps raw: None
+2026-01-27 11:04:06,424 [INFO] 📤 Published USER_PERMISSIONS_SYNCED for 5d560f6b-a1cb-4025-b7bb-87ef212f8a1c
+2026-01-27 11:04:06,428 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-01-27 11:04:06,428 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-01-27 11:05:25,741 [INFO] 🔥 Event: PROVIDER.PERMISSIONS.UPDATED | Role:  | Service: None
+2026-01-27 11:05:25,742 [INFO] DEBUG: [KAFKA RECV] provider.permissions.updated | User: 5d560f6b-a1cb-4025-b7bb-87ef212f8a1c
+2026-01-27 11:05:25,742 [INFO] DEBUG: Templates Received - Services: 2, Cats: 8
+2026-01-27 11:05:25,769 [WARNING] ⏭️ Skipping facility Indoor Play Area - missing category_id
+2026-01-27 11:05:25,769 [WARNING] ⏭️ Skipping facility Outdoor Play Area - missing category_id
+2026-01-27 11:05:25,780 [INFO] ✅ Synced Templates for user 5d560f6b-a1cb-4025-b7bb-87ef212f8a1c
+2026-01-27 11:05:25,783 [INFO] 🧹 Cleared old permissions for user 5d560f6b-a1cb-4025-b7bb-87ef212f8a1c
+2026-01-27 11:05:25,783 [INFO] 📋 Processing 7 explicit permissions from plan
+2026-01-27 11:05:25,783 [INFO]   ✅ Granting: Service=2170653c-9de5-4f61-b1ca-35b1a0439b17, Category=None, Facility=None, Pricing=None
+2026-01-27 11:05:25,783 [INFO]   ✅ Granting: Service=2170653c-9de5-4f61-b1ca-35b1a0439b17, Category=2e9da8d4-9747-41a7-8bf4-96e4df658070, Facility=None, Pricing=None
+2026-01-27 11:05:25,784 [INFO]   ✅ Granting: Service=2170653c-9de5-4f61-b1ca-35b1a0439b17, Category=None, Facility=95a3a4ce-b503-49e9-8531-d5b28e01a173, Pricing=None
+2026-01-27 11:05:25,784 [INFO]   ✅ Granting: Service=2dff446f-c95f-4310-ba4d-05e3395dd7eb, Category=None, Facility=None, Pricing=None
+2026-01-27 11:05:25,784 [INFO]   ✅ Granting: Service=2dff446f-c95f-4310-ba4d-05e3395dd7eb, Category=34857c1d-7f37-4c16-b989-378ddb127ad5, Facility=None, Pricing=None
+2026-01-27 11:05:25,784 [INFO]   ✅ Granting: Service=2dff446f-c95f-4310-ba4d-05e3395dd7eb, Category=bf255bf5-ffe7-4d27-a4ad-0d5c39a04bee, Facility=None, Pricing=None
+2026-01-27 11:05:25,784 [INFO]   ✅ Granting: Service=2dff446f-c95f-4310-ba4d-05e3395dd7eb, Category=7f29f495-d3af-447c-ad03-b51a82940133, Facility=None, Pricing=None
+2026-01-27 11:05:25,792 [INFO] ✅ Updated 7 capabilities for user 5d560f6b-a1cb-4025-b7bb-87ef212f8a1c
+2026-01-27 11:05:25,794 [INFO] ✅ Replaced user capabilities: ['VETERINARY_PHARMACY', 'VETERINARY_DOCTOR', 'VETERINARY_LABS', 'VETERINARY_CORE']
+2026-01-27 11:05:25,797 [INFO] ✅ Synced Subscription for user 5d560f6b-a1cb-4025-b7bb-87ef212f8a1c | Plan: d105f8e4-d511-4f87-a1a8-95837bef3d24
+2026-01-27 11:05:25,797 [INFO] DEBUG: dynamic_caps raw: None
+2026-01-27 11:05:25,802 [INFO] 📤 Published USER_PERMISSIONS_SYNCED for 5d560f6b-a1cb-4025-b7bb-87ef212f8a1c
+2026-01-27 11:05:25,806 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-01-27 11:05:25,806 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-01-27 11:30:37,727 [INFO] 🔥 Event: PROVIDER.PERMISSIONS.UPDATED | Role:  | Service: None
+2026-01-27 11:30:37,729 [INFO] DEBUG: [KAFKA RECV] provider.permissions.updated | User: 5d560f6b-a1cb-4025-b7bb-87ef212f8a1c
+2026-01-27 11:30:37,729 [INFO] DEBUG: Templates Received - Services: 2, Cats: 8
+2026-01-27 11:30:37,759 [WARNING] ⏭️ Skipping facility Indoor Play Area - missing category_id
+2026-01-27 11:30:37,759 [WARNING] ⏭️ Skipping facility Outdoor Play Area - missing category_id
+2026-01-27 11:30:37,770 [INFO] ✅ Synced Templates for user 5d560f6b-a1cb-4025-b7bb-87ef212f8a1c
+2026-01-27 11:30:37,772 [INFO] 🧹 Cleared old permissions for user 5d560f6b-a1cb-4025-b7bb-87ef212f8a1c
+2026-01-27 11:30:37,772 [INFO] 📋 Processing 7 explicit permissions from plan
+2026-01-27 11:30:37,772 [INFO]   ✅ Granting: Service=2170653c-9de5-4f61-b1ca-35b1a0439b17, Category=None, Facility=None, Pricing=None
+2026-01-27 11:30:37,772 [INFO]   ✅ Granting: Service=2170653c-9de5-4f61-b1ca-35b1a0439b17, Category=2e9da8d4-9747-41a7-8bf4-96e4df658070, Facility=None, Pricing=None
+2026-01-27 11:30:37,772 [INFO]   ✅ Granting: Service=2170653c-9de5-4f61-b1ca-35b1a0439b17, Category=None, Facility=95a3a4ce-b503-49e9-8531-d5b28e01a173, Pricing=None
+2026-01-27 11:30:37,772 [INFO]   ✅ Granting: Service=2dff446f-c95f-4310-ba4d-05e3395dd7eb, Category=None, Facility=None, Pricing=None
+2026-01-27 11:30:37,772 [INFO]   ✅ Granting: Service=2dff446f-c95f-4310-ba4d-05e3395dd7eb, Category=34857c1d-7f37-4c16-b989-378ddb127ad5, Facility=None, Pricing=None
+2026-01-27 11:30:37,773 [INFO]   ✅ Granting: Service=2dff446f-c95f-4310-ba4d-05e3395dd7eb, Category=bf255bf5-ffe7-4d27-a4ad-0d5c39a04bee, Facility=None, Pricing=None
+2026-01-27 11:30:37,773 [INFO]   ✅ Granting: Service=2dff446f-c95f-4310-ba4d-05e3395dd7eb, Category=7f29f495-d3af-447c-ad03-b51a82940133, Facility=None, Pricing=None
+2026-01-27 11:30:37,781 [INFO] ✅ Updated 7 capabilities for user 5d560f6b-a1cb-4025-b7bb-87ef212f8a1c
+2026-01-27 11:30:37,784 [INFO] ✅ Replaced user capabilities: ['VETERINARY_PHARMACY', 'VETERINARY_DOCTOR', 'VETERINARY_LABS', 'VETERINARY_CORE']
+2026-01-27 11:30:37,787 [INFO] ✅ Synced Subscription for user 5d560f6b-a1cb-4025-b7bb-87ef212f8a1c | Plan: d105f8e4-d511-4f87-a1a8-95837bef3d24
+2026-01-27 11:30:37,787 [INFO] DEBUG: dynamic_caps raw: None
+2026-01-27 11:30:37,791 [INFO] 📤 Published USER_PERMISSIONS_SYNCED for 5d560f6b-a1cb-4025-b7bb-87ef212f8a1c
+2026-01-27 11:30:37,795 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-01-27 11:30:37,795 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-01-27 11:31:54,571 [INFO] 🔥 Event: PROVIDER.PERMISSIONS.UPDATED | Role:  | Service: None
+2026-01-27 11:31:54,572 [INFO] DEBUG: [KAFKA RECV] provider.permissions.updated | User: 5d560f6b-a1cb-4025-b7bb-87ef212f8a1c
+2026-01-27 11:31:54,572 [INFO] DEBUG: Templates Received - Services: 2, Cats: 8
+2026-01-27 11:31:54,598 [WARNING] ⏭️ Skipping facility Indoor Play Area - missing category_id
+2026-01-27 11:31:54,598 [WARNING] ⏭️ Skipping facility Outdoor Play Area - missing category_id
+2026-01-27 11:31:54,607 [INFO] ✅ Synced Templates for user 5d560f6b-a1cb-4025-b7bb-87ef212f8a1c
+2026-01-27 11:31:54,609 [INFO] 🧹 Cleared old permissions for user 5d560f6b-a1cb-4025-b7bb-87ef212f8a1c
+2026-01-27 11:31:54,609 [INFO] 📋 Processing 7 explicit permissions from plan
+2026-01-27 11:31:54,609 [INFO]   ✅ Granting: Service=2170653c-9de5-4f61-b1ca-35b1a0439b17, Category=None, Facility=None, Pricing=None
+2026-01-27 11:31:54,609 [INFO]   ✅ Granting: Service=2170653c-9de5-4f61-b1ca-35b1a0439b17, Category=2e9da8d4-9747-41a7-8bf4-96e4df658070, Facility=None, Pricing=None
+2026-01-27 11:31:54,610 [INFO]   ✅ Granting: Service=2170653c-9de5-4f61-b1ca-35b1a0439b17, Category=None, Facility=95a3a4ce-b503-49e9-8531-d5b28e01a173, Pricing=None
+2026-01-27 11:31:54,610 [INFO]   ✅ Granting: Service=2dff446f-c95f-4310-ba4d-05e3395dd7eb, Category=None, Facility=None, Pricing=None
+2026-01-27 11:31:54,610 [INFO]   ✅ Granting: Service=2dff446f-c95f-4310-ba4d-05e3395dd7eb, Category=34857c1d-7f37-4c16-b989-378ddb127ad5, Facility=None, Pricing=None
+2026-01-27 11:31:54,610 [INFO]   ✅ Granting: Service=2dff446f-c95f-4310-ba4d-05e3395dd7eb, Category=bf255bf5-ffe7-4d27-a4ad-0d5c39a04bee, Facility=None, Pricing=None
+2026-01-27 11:31:54,610 [INFO]   ✅ Granting: Service=2dff446f-c95f-4310-ba4d-05e3395dd7eb, Category=7f29f495-d3af-447c-ad03-b51a82940133, Facility=None, Pricing=None
+2026-01-27 11:31:54,618 [INFO] ✅ Updated 7 capabilities for user 5d560f6b-a1cb-4025-b7bb-87ef212f8a1c
+2026-01-27 11:31:54,620 [INFO] ✅ Replaced user capabilities: ['VETERINARY_PHARMACY', 'VETERINARY_DOCTOR', 'VETERINARY_LABS', 'VETERINARY_CORE']
+2026-01-27 11:31:54,622 [INFO] ✅ Synced Subscription for user 5d560f6b-a1cb-4025-b7bb-87ef212f8a1c | Plan: d105f8e4-d511-4f87-a1a8-95837bef3d24
+2026-01-27 11:31:54,622 [INFO] DEBUG: dynamic_caps raw: None
+2026-01-27 11:31:54,626 [INFO] 📤 Published USER_PERMISSIONS_SYNCED for 5d560f6b-a1cb-4025-b7bb-87ef212f8a1c
+2026-01-27 11:31:54,630 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-01-27 11:31:54,630 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-01-27 11:33:33,437 [INFO] 🔥 Event: PROVIDER.PERMISSIONS.UPDATED | Role:  | Service: None
+2026-01-27 11:33:33,439 [INFO] DEBUG: [KAFKA RECV] provider.permissions.updated | User: 5d560f6b-a1cb-4025-b7bb-87ef212f8a1c
+2026-01-27 11:33:33,439 [INFO] DEBUG: Templates Received - Services: 2, Cats: 8
+2026-01-27 11:33:33,471 [WARNING] ⏭️ Skipping facility Indoor Play Area - missing category_id
+2026-01-27 11:33:33,471 [WARNING] ⏭️ Skipping facility Outdoor Play Area - missing category_id
+2026-01-27 11:33:33,482 [INFO] ✅ Synced Templates for user 5d560f6b-a1cb-4025-b7bb-87ef212f8a1c
+2026-01-27 11:33:33,483 [INFO] 🧹 Cleared old permissions for user 5d560f6b-a1cb-4025-b7bb-87ef212f8a1c
+2026-01-27 11:33:33,483 [INFO] 📋 Processing 7 explicit permissions from plan
+2026-01-27 11:33:33,484 [INFO]   ✅ Granting: Service=2170653c-9de5-4f61-b1ca-35b1a0439b17, Category=None, Facility=None, Pricing=None
+2026-01-27 11:33:33,484 [INFO]   ✅ Granting: Service=2170653c-9de5-4f61-b1ca-35b1a0439b17, Category=2e9da8d4-9747-41a7-8bf4-96e4df658070, Facility=None, Pricing=None
+2026-01-27 11:33:33,484 [INFO]   ✅ Granting: Service=2170653c-9de5-4f61-b1ca-35b1a0439b17, Category=None, Facility=95a3a4ce-b503-49e9-8531-d5b28e01a173, Pricing=None
+2026-01-27 11:33:33,484 [INFO]   ✅ Granting: Service=2dff446f-c95f-4310-ba4d-05e3395dd7eb, Category=None, Facility=None, Pricing=None
+2026-01-27 11:33:33,484 [INFO]   ✅ Granting: Service=2dff446f-c95f-4310-ba4d-05e3395dd7eb, Category=34857c1d-7f37-4c16-b989-378ddb127ad5, Facility=None, Pricing=None
+2026-01-27 11:33:33,484 [INFO]   ✅ Granting: Service=2dff446f-c95f-4310-ba4d-05e3395dd7eb, Category=bf255bf5-ffe7-4d27-a4ad-0d5c39a04bee, Facility=None, Pricing=None
+2026-01-27 11:33:33,484 [INFO]   ✅ Granting: Service=2dff446f-c95f-4310-ba4d-05e3395dd7eb, Category=7f29f495-d3af-447c-ad03-b51a82940133, Facility=None, Pricing=None
+2026-01-27 11:33:33,492 [INFO] ✅ Updated 7 capabilities for user 5d560f6b-a1cb-4025-b7bb-87ef212f8a1c
+2026-01-27 11:33:33,494 [INFO] ✅ Replaced user capabilities: ['VETERINARY_PHARMACY', 'VETERINARY_DOCTOR', 'VETERINARY_LABS', 'VETERINARY_CORE']
+2026-01-27 11:33:33,497 [INFO] ✅ Synced Subscription for user 5d560f6b-a1cb-4025-b7bb-87ef212f8a1c | Plan: d105f8e4-d511-4f87-a1a8-95837bef3d24
+2026-01-27 11:33:33,497 [INFO] DEBUG: dynamic_caps raw: None
+2026-01-27 11:33:33,501 [INFO] 📤 Published USER_PERMISSIONS_SYNCED for 5d560f6b-a1cb-4025-b7bb-87ef212f8a1c
+2026-01-27 11:33:33,504 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-01-27 11:33:33,504 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-01-27 11:56:05,950 [INFO] 🔥 Event: SEND_EMAIL | Role: organization | Service: auth_service
+2026-01-27 11:56:05,953 [WARNING] ⚠️ Unknown event type 'SEND_EMAIL' received.
+2026-01-27 11:56:05,960 [INFO] 🔥 Event: USER_CREATED | Role: organization | Service: auth_service
+2026-01-27 11:56:05,961 [INFO] DEBUG: Checking role 'organization' against employee list...
+2026-01-27 11:56:05,980 [INFO] ✅ Created VerifiedUser madhu@gmail.com
+2026-01-27 11:56:05,987 [INFO] ✅ Auto-created ServiceProvider profile for madhu@gmail.com
+2026-01-27 11:56:34,964 [INFO] 🔥 Event: USER_VERIFIED | Role: organization | Service: auth_service
+2026-01-27 11:56:34,965 [INFO] DEBUG: Checking role 'organization' against employee list...
+2026-01-27 11:56:34,972 [INFO] 🔄 Updated VerifiedUser madhu@gmail.com
+2026-01-27 11:57:07,561 [INFO] 🔥 Event: PROVIDER.PERMISSIONS.UPDATED | Role:  | Service: None
+2026-01-27 11:57:07,563 [INFO] DEBUG: [KAFKA RECV] provider.permissions.updated | User: 4ce26186-7b1c-4b82-949c-e69e9431be68
+2026-01-27 11:57:07,563 [INFO] DEBUG: Templates Received - Services: 2, Cats: 8
+2026-01-27 11:57:07,597 [WARNING] ⏭️ Skipping facility Outdoor Play Area - missing category_id
+2026-01-27 11:57:07,597 [WARNING] ⏭️ Skipping facility Indoor Play Area - missing category_id
+2026-01-27 11:57:07,602 [ERROR] ❌ Error updating permissions for 4ce26186-7b1c-4b82-949c-e69e9431be68: 'duration'
+2026-01-27 11:57:07,609 [INFO] 📤 Published USER_PERMISSIONS_SYNCED for 4ce26186-7b1c-4b82-949c-e69e9431be68
+2026-01-27 11:57:07,615 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-01-27 11:57:07,615 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-01-27 12:33:00,221 [INFO] 🚀 Starting Service Provider Unified Kafka Consumer...
+2026-01-27 12:33:00,235 [INFO] ✅ Connected to Kafka broker.
+2026-01-27 13:12:05,455 [INFO] 🔥 Event:  | Role:  | Service: None
+2026-01-27 13:12:05,458 [WARNING] ⚠️ Unknown event type '' received.
+2026-01-27 13:13:21,998 [INFO] 🔥 Event: PROVIDER.PERMISSIONS.UPDATED | Role:  | Service: None
+2026-01-27 13:13:22,057 [INFO] DEBUG: [KAFKA RECV] provider.permissions.updated | User: 4ce26186-7b1c-4b82-949c-e69e9431be68
+2026-01-27 13:13:22,058 [INFO] DEBUG: Templates Received - Services: 2, Cats: 8
+2026-01-27 13:13:22,096 [WARNING] ⏭️ Skipping facility Outdoor Play Area - missing category_id
+2026-01-27 13:13:22,096 [WARNING] ⏭️ Skipping facility Indoor Play Area - missing category_id
+2026-01-27 13:13:22,105 [ERROR] ❌ Error updating permissions for 4ce26186-7b1c-4b82-949c-e69e9431be68: 'duration'
+2026-01-27 13:13:22,106 [ERROR] ❌ Failed to publish sync event: name 'perms_map' is not defined
+2026-01-27 13:19:26,139 [INFO] 🚀 Starting Service Provider Unified Kafka Consumer...
+2026-01-27 13:19:26,152 [INFO] ✅ Connected to Kafka broker.
+2026-01-27 13:19:47,915 [INFO] 🔥 Event: PROVIDER.PERMISSIONS.UPDATED | Role:  | Service: None
+2026-01-27 13:19:47,958 [INFO] DEBUG: [KAFKA RECV] provider.permissions.updated | User: 4ce26186-7b1c-4b82-949c-e69e9431be68
+2026-01-27 13:19:47,959 [INFO] DEBUG: Templates Received - Services: 2, Cats: 8
+2026-01-27 13:19:47,996 [WARNING] ⏭️ Skipping facility Outdoor Play Area - missing category_id
+2026-01-27 13:19:47,997 [WARNING] ⏭️ Skipping facility Indoor Play Area - missing category_id
+2026-01-27 13:19:48,012 [INFO] ✅ Synced Templates for user 4ce26186-7b1c-4b82-949c-e69e9431be68
+2026-01-27 13:19:48,017 [INFO] 🧹 Cleared old permissions for user 4ce26186-7b1c-4b82-949c-e69e9431be68
+2026-01-27 13:19:48,032 [INFO] ✅ Updated 14 capabilities for user 4ce26186-7b1c-4b82-949c-e69e9431be68
+2026-01-27 13:19:48,036 [INFO] ✅ Replaced user capabilities: ['VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_VITALS', 'VETERINARY_PHARMACY', 'VETERINARY_VISITS', 'VETERINARY_LABS', 'VETERINARY_DOCTOR', 'VETERINARY_CORE']
+2026-01-27 13:19:48,041 [INFO] ✅ Synced Subscription for user 4ce26186-7b1c-4b82-949c-e69e9431be68
+2026-01-27 13:19:48,041 [INFO] DEBUG: dynamic_caps raw: None
+2026-01-27 13:19:48,042 [INFO] 📤 Publishing Permissions Sync: 14 items enriched
+2026-01-27 13:19:48,171 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-01-27 13:19:48,171 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-01-27 13:26:40,092 [INFO] 🔥 Event: USER_DELETED | Role: organization | Service: auth_service
+2026-01-27 13:26:40,130 [INFO] 🗑️ Deleted user records for ab6af475-d728-4da5-aa48-11ae275e05ac
+2026-01-27 13:26:42,457 [INFO] 🔥 Event: USER_DELETED | Role: organization | Service: auth_service
+2026-01-27 13:26:42,478 [INFO] 🗑️ Deleted user records for 4ce26186-7b1c-4b82-949c-e69e9431be68
+2026-01-27 13:27:47,326 [INFO] 🔥 Event: SEND_EMAIL | Role: organization | Service: auth_service
+2026-01-27 13:27:47,327 [WARNING] ⚠️ Unknown event type 'SEND_EMAIL' received.
+2026-01-27 13:27:47,338 [INFO] 🔥 Event: USER_CREATED | Role: organization | Service: auth_service
+2026-01-27 13:27:47,340 [INFO] DEBUG: Checking role 'organization' against employee list...
+2026-01-27 13:27:47,346 [INFO] ✅ Created VerifiedUser nagaanil29@gmail.com
+2026-01-27 13:27:47,353 [INFO] ✅ Auto-created ServiceProvider profile for nagaanil29@gmail.com
+2026-01-27 13:28:18,783 [INFO] 🔥 Event: USER_VERIFIED | Role: organization | Service: auth_service
+2026-01-27 13:28:18,810 [INFO] DEBUG: Checking role 'organization' against employee list...
+2026-01-27 13:28:18,814 [INFO] 🔄 Updated VerifiedUser nagaanil29@gmail.com
+2026-01-27 13:30:26,727 [INFO] 🔥 Event: PROVIDER.PERMISSIONS.UPDATED | Role:  | Service: None
+2026-01-27 13:30:26,729 [INFO] DEBUG: [KAFKA RECV] provider.permissions.updated | User: 6547765c-0c7e-4548-bd44-c87939eeaf61
+2026-01-27 13:30:26,729 [INFO] DEBUG: Templates Received - Services: 3, Cats: 10
+2026-01-27 13:30:26,775 [WARNING] ⏭️ Skipping facility Outdoor Play Area - missing category_id
+2026-01-27 13:30:26,776 [WARNING] ⏭️ Skipping facility Indoor Play Area - missing category_id
+2026-01-27 13:30:26,776 [WARNING] ⏭️ Skipping facility Ac Rooms - missing category_id
+2026-01-27 13:30:26,778 [WARNING] ⏭️ Skipping facility Hair Trimming & Styling - missing category_id
+2026-01-27 13:30:26,779 [WARNING] ⏭️ Skipping facility Bathing & Drying Stations - missing category_id
+2026-01-27 13:30:26,832 [INFO] ✅ Synced Templates for user 6547765c-0c7e-4548-bd44-c87939eeaf61
+2026-01-27 13:30:26,834 [INFO] 🧹 Cleared old permissions for user 6547765c-0c7e-4548-bd44-c87939eeaf61
+2026-01-27 13:30:26,850 [INFO] ✅ Updated 24 capabilities for user 6547765c-0c7e-4548-bd44-c87939eeaf61
+2026-01-27 13:30:26,853 [INFO] ✅ Replaced user capabilities: ['VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_VITALS', 'VETERINARY_PHARMACY', 'VETERINARY_VISITS', 'VETERINARY_LABS', 'VETERINARY_DOCTOR', 'VETERINARY_CORE']
+2026-01-27 13:30:26,858 [INFO] ✅ Synced Subscription for user 6547765c-0c7e-4548-bd44-c87939eeaf61
+2026-01-27 13:30:26,858 [INFO] DEBUG: dynamic_caps raw: None
+2026-01-27 13:30:26,859 [INFO] 📤 Publishing Permissions Sync: 24 items enriched
+2026-01-27 13:30:26,878 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-01-27 13:30:26,878 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-01-28 05:02:25,556 [INFO] 🚀 Starting Service Provider Unified Kafka Consumer...
+2026-01-28 05:02:25,568 [INFO] ✅ Connected to Kafka broker.
+2026-01-28 05:41:48,587 [INFO] 🔥 Event: SEND_EMAIL | Role: employee | Service: auth_service
+2026-01-28 05:41:48,588 [WARNING] ⚠️ Unknown event type 'SEND_EMAIL' received.
+2026-01-28 05:41:48,597 [INFO] 🔥 Event: USER_CREATED | Role: employee | Service: auth_service
+2026-01-28 05:41:48,597 [INFO] DEBUG: Checking role 'employee' against employee list...
+2026-01-28 05:41:48,597 [INFO] DEBUG: Role matched employee list.
+2026-01-28 05:41:48,597 [INFO] 🔍 Processing Employee 6f824015-40f1-4078-874d-b91a4d84b513 for Org 6547765c-0c7e-4548-bd44-c87939eeaf61
+2026-01-28 05:41:48,729 [INFO] ✅ Created OrganizationEmployee 6f824015-40f1-4078-874d-b91a4d84b513 (Invited)
+2026-01-28 05:41:48,750 [INFO] ✅ Created VerifiedUser ram@gmail.com
+2026-01-28 05:41:59,471 [INFO] 🔥 Event: EMPLOYEE_UPDATED | Role: employee | Service: None
+2026-01-28 05:41:59,473 [INFO] 🆙 Updated OrganizationEmployee 6f824015-40f1-4078-874d-b91a4d84b513
+2026-01-28 05:42:34,771 [INFO] 🔥 Event: USER_VERIFIED | Role: employee | Service: auth_service
+2026-01-28 05:42:34,772 [INFO] DEBUG: Checking role 'employee' against employee list...
+2026-01-28 05:42:34,772 [INFO] DEBUG: Role matched employee list.
+2026-01-28 05:42:34,780 [INFO] ✅ Activated OrganizationEmployee 6f824015-40f1-4078-874d-b91a4d84b513
+2026-01-28 05:42:34,789 [INFO] 🔄 Updated VerifiedUser ram@gmail.com
+2026-01-28 06:32:26,875 [INFO] 🔥 Event: SEND_EMAIL | Role: employee | Service: auth_service
+2026-01-28 06:32:26,876 [WARNING] ⚠️ Unknown event type 'SEND_EMAIL' received.
+2026-01-28 06:32:26,884 [INFO] 🔥 Event: USER_CREATED | Role: employee | Service: auth_service
+2026-01-28 06:32:26,884 [INFO] DEBUG: Checking role 'employee' against employee list...
+2026-01-28 06:32:26,884 [INFO] DEBUG: Role matched employee list.
+2026-01-28 06:32:26,884 [INFO] 🔍 Processing Employee c5d365c1-5368-4464-a48a-fea3e1356d80 for Org 6547765c-0c7e-4548-bd44-c87939eeaf61
+2026-01-28 06:32:26,892 [INFO] ✅ Created OrganizationEmployee c5d365c1-5368-4464-a48a-fea3e1356d80 (Invited)
+2026-01-28 06:32:26,896 [INFO] ✅ Created VerifiedUser prem1@gmail.com
+2026-01-28 06:32:47,748 [INFO] 🔥 Event: EMPLOYEE_UPDATED | Role: employee | Service: None
+2026-01-28 06:32:47,750 [INFO] 🆙 Updated OrganizationEmployee c5d365c1-5368-4464-a48a-fea3e1356d80
+2026-01-28 06:33:10,465 [INFO] 🔥 Event: USER_VERIFIED | Role: employee | Service: auth_service
+2026-01-28 06:33:10,465 [INFO] DEBUG: Checking role 'employee' against employee list...
+2026-01-28 06:33:10,466 [INFO] DEBUG: Role matched employee list.
+2026-01-28 06:33:10,472 [INFO] ✅ Activated OrganizationEmployee c5d365c1-5368-4464-a48a-fea3e1356d80
+2026-01-28 06:33:10,476 [INFO] 🔄 Updated VerifiedUser prem1@gmail.com
+2026-01-28 06:36:14,123 [INFO] 🔥 Event: SEND_EMAIL | Role: employee | Service: auth_service
+2026-01-28 06:36:14,124 [WARNING] ⚠️ Unknown event type 'SEND_EMAIL' received.
+2026-01-28 06:36:14,132 [INFO] 🔥 Event: USER_CREATED | Role: employee | Service: auth_service
+2026-01-28 06:36:14,133 [INFO] DEBUG: Checking role 'employee' against employee list...
+2026-01-28 06:36:14,133 [INFO] DEBUG: Role matched employee list.
+2026-01-28 06:36:14,133 [INFO] 🔍 Processing Employee d392edaa-6535-444b-8f2d-3c9ea3c905be for Org 6547765c-0c7e-4548-bd44-c87939eeaf61
+2026-01-28 06:36:14,141 [INFO] ✅ Created OrganizationEmployee d392edaa-6535-444b-8f2d-3c9ea3c905be (Invited)
+2026-01-28 06:36:14,145 [INFO] ✅ Created VerifiedUser raj1@gmail.com
+2026-01-28 06:36:23,952 [INFO] 🔥 Event: EMPLOYEE_UPDATED | Role: employee | Service: None
+2026-01-28 06:36:23,954 [INFO] 🆙 Updated OrganizationEmployee d392edaa-6535-444b-8f2d-3c9ea3c905be
+2026-01-28 06:37:08,479 [INFO] 🔥 Event: USER_VERIFIED | Role: employee | Service: auth_service
+2026-01-28 06:37:08,479 [INFO] DEBUG: Checking role 'employee' against employee list...
+2026-01-28 06:37:08,479 [INFO] DEBUG: Role matched employee list.
+2026-01-28 06:37:08,483 [INFO] ✅ Activated OrganizationEmployee d392edaa-6535-444b-8f2d-3c9ea3c905be
+2026-01-28 06:37:08,487 [INFO] 🔄 Updated VerifiedUser raj1@gmail.com
+2026-01-28 11:52:08,454 [INFO] 🔥 Event: SEND_EMAIL | Role: employee | Service: auth_service
+2026-01-28 11:52:08,455 [WARNING] ⚠️ Unknown event type 'SEND_EMAIL' received.
+2026-01-28 11:52:08,461 [INFO] 🔥 Event: USER_CREATED | Role: employee | Service: auth_service
+2026-01-28 11:52:08,461 [INFO] DEBUG: Checking role 'employee' against employee list...
+2026-01-28 11:52:08,461 [INFO] DEBUG: Role matched employee list.
+2026-01-28 11:52:08,461 [INFO] 🔍 Processing Employee 5a08c746-3616-446b-814d-0de866c2673c for Org 6547765c-0c7e-4548-bd44-c87939eeaf61
+2026-01-28 11:52:08,472 [INFO] ✅ Created OrganizationEmployee 5a08c746-3616-446b-814d-0de866c2673c (Invited)
+2026-01-28 11:52:08,477 [INFO] ✅ Created VerifiedUser akhil@gmail.com
+2026-01-28 11:52:31,858 [INFO] 🔥 Event: EMPLOYEE_UPDATED | Role: employee | Service: None
+2026-01-28 11:52:31,859 [INFO] 🆙 Updated OrganizationEmployee 5a08c746-3616-446b-814d-0de866c2673c
+2026-01-28 11:52:56,802 [INFO] 🔥 Event: USER_VERIFIED | Role: employee | Service: auth_service
+2026-01-28 11:52:56,803 [INFO] DEBUG: Checking role 'employee' against employee list...
+2026-01-28 11:52:56,803 [INFO] DEBUG: Role matched employee list.
+2026-01-28 11:52:56,808 [INFO] ✅ Activated OrganizationEmployee 5a08c746-3616-446b-814d-0de866c2673c
+2026-01-28 11:52:56,811 [INFO] 🔄 Updated VerifiedUser akhil@gmail.com

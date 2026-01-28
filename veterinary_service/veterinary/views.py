@@ -159,6 +159,8 @@ class PetViewSet(viewsets.ModelViewSet):
             if not owner_id:
                 owner_name = self.request.data.get('owner_name')
                 owner_phone = self.request.data.get('owner_phone')
+                owner_email = self.request.data.get('owner_email')
+                owner_address = self.request.data.get('owner_address') or self.request.data.get('address')
                 clinic_id = get_clinic_context(self.request)
                 
                 log_trace(f"Owner ID missing. owner_name: {owner_name}, owner_phone: {owner_phone}, clinic_id: {clinic_id}")
@@ -172,7 +174,11 @@ class PetViewSet(viewsets.ModelViewSet):
                     owner, created = PetOwner.objects.get_or_create(
                         clinic_id=clinic_id,
                         phone=owner_phone,
-                        defaults={'name': owner_name or "New Owner"}
+                        defaults={
+                            'name': owner_name or "New Owner",
+                            'email': owner_email,
+                            'address': owner_address
+                        }
                     )
                     log_trace(f"SAVING WITH NEW/FOUND OWNER: {owner.id} (Created: {created})")
                     serializer.save(owner=owner)
@@ -200,6 +206,8 @@ class PetViewSet(viewsets.ModelViewSet):
             log_trace(f"PET UPDATE START: Request data: {self.request.data}")
             owner_name = self.request.data.get('owner_name')
             owner_phone = self.request.data.get('owner_phone')
+            owner_email = self.request.data.get('owner_email')
+            owner_address = self.request.data.get('owner_address') or self.request.data.get('address')
             pet = self.get_object()
             
             if owner_phone and pet.owner:
@@ -211,6 +219,12 @@ class PetViewSet(viewsets.ModelViewSet):
                     needs_save = True
                 if owner_phone and owner.phone != owner_phone:
                     owner.phone = owner_phone
+                    needs_save = True
+                if owner_email and owner.email != owner_email:
+                    owner.email = owner_email
+                    needs_save = True
+                if owner_address and owner.address != owner_address:
+                    owner.address = owner_address
                     needs_save = True
                 
                 if needs_save:
@@ -286,14 +300,40 @@ class VisitQueueViewSet(viewsets.ViewSet):
         }
         
         required_cap = REQUIRED_CAPS.get(queue_name)
+        
         if required_cap:
-            # [FIX] Allow Organization/Provider Admins to access ALL queues
+            # 1. AUTH & ROLE EXTRACTION
+            user_id = getattr(request.user, 'username', str(request.user.id)) # Ensure string ID
             role = str(getattr(request.user, 'role', '')).upper()
+
+            # 2. BYPASS FOR OWNERS (Organization/Individual)
             if role in ['ORGANIZATION', 'INDIVIDUAL', 'PROVIDER', 'ORGANIZATION_PROVIDER']:
-                pass # Bypass check
+                # Optional: Double check Clinic permissions if needed, but owners usually have full access
+                pass 
             else:
-                user_perms = getattr(request.user, 'permissions', [])
-                if required_cap not in user_perms:
+                # 3. DIRECT DB CHECK FOR STAFF
+                # Do NOT rely on request.user.permissions which might be stale
+                from .models import VeterinaryStaff, StaffClinicAssignment
+                
+                has_permission = False
+                
+                # A. Check Specific Assignment for this Clinic
+                assignment = StaffClinicAssignment.objects.filter(
+                    staff__auth_user_id=user_id,
+                    clinic_id=clinic_id,
+                    is_active=True
+                ).first()
+                
+                if assignment and required_cap in (assignment.permissions or []):
+                    has_permission = True
+                
+                # B. Fallback to Staff Profile (if no specific assignment overrides or global perms)
+                if not has_permission:
+                    staff_profile = VeterinaryStaff.objects.filter(auth_user_id=user_id).first()
+                    if staff_profile and required_cap in (staff_profile.permissions or []):
+                        has_permission = True
+
+                if not has_permission:
                     return Response({'error': f'Permission denied. Missing capability: {required_cap}'}, status=status.HTTP_403_FORBIDDEN)
         
         date_param = request.query_params.get('date')

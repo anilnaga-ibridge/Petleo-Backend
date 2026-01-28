@@ -301,7 +301,7 @@ class LabOrderSerializer(serializers.ModelSerializer):
 class StaffClinicAssignmentSerializer(serializers.ModelSerializer):
     staff_name = serializers.CharField(source='staff.auth_user_id', read_only=True)
     clinic_name = serializers.CharField(source='clinic.name', read_only=True)
-    staff_auth_id = serializers.CharField(write_only=True, required=False) # Frontend passes this
+    staff_auth_id = serializers.CharField(required=False)
     
     class Meta:
         from .models import StaffClinicAssignment
@@ -334,6 +334,11 @@ class StaffClinicAssignmentSerializer(serializers.ModelSerializer):
             attrs['permissions'] = RolePermissionService.get_permissions_for_role(role)
             
         return attrs
+
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        ret['staff_auth_id'] = instance.staff.auth_user_id
+        return ret
 
     def create(self, validated_data):
         from .models import StaffClinicAssignment

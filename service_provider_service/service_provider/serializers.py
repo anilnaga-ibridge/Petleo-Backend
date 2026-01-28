@@ -50,10 +50,23 @@ class ProviderRoleSerializer(serializers.ModelSerializer):
         fields = ['id', 'provider', 'name', 'description', 'is_system_role', 'capabilities', 'employees', 'created_at']
         read_only_fields = ['provider', 'is_system_role', 'employees', 'created_at']
 
+
     def to_representation(self, instance):
         ret = super().to_representation(instance)
-        # Serialize related capability keys
-        ret['capabilities'] = instance.capabilities.values_list('capability_key', flat=True)
+        # 1. Capabilities with Labels
+        cap_keys = instance.capabilities.values_list('capability_key', flat=True)
+        caps = Capability.objects.filter(key__in=cap_keys)
+        ret['capabilities_details'] = [
+            {"key": c.key, "label": c.label, "group": c.group} for c in caps
+        ]
+        ret['capabilities'] = cap_keys # Keep flat list for write compatibility
+
+        # 2. Employees with Names/Emails
+        emps = instance.employees.all()
+        ret['employees_details'] = [
+            {"full_name": e.full_name, "email": e.email} for e in emps
+        ]
+        
         return ret
 
     def create(self, validated_data):

@@ -735,6 +735,7 @@ class ProviderPricingViewSet(viewsets.ModelViewSet):
             qs = qs.filter(service_id=service_id)
         return qs
 
+
     def perform_create(self, serializer):
         serializer.save(provider=self.get_verified_user())
 

@@ -57,14 +57,16 @@ def _build_permission_tree(user):
         # -- Service Node --
         if sid not in tree:
             tmpl = service_tmpls.get(sid)
-            # If template missing, we still might want to show it or skip?
-            # Let's show as fallback
+            if not tmpl:
+                # [FIX] Skip if template is missing to avoid "Unknown Service" tiles
+                continue
+                
             tree[sid] = {
                 "service_id": sid,
-                "service_name": tmpl.display_name if tmpl else "Unknown Service",
-                "name": tmpl.display_name if tmpl else "Unknown Service", # Frontend compatibility
-                "service_key": (tmpl.name if tmpl else sid).upper(),
-                "icon": tmpl.icon if tmpl else "tabler-box",
+                "service_name": tmpl.display_name,
+                "name": tmpl.display_name, # Frontend compatibility
+                "service_key": tmpl.name.upper(),
+                "icon": tmpl.icon,
                 "can_view": False,
                 "can_create": False,
                 "can_edit": False,
@@ -86,6 +88,7 @@ def _build_permission_tree(user):
                 "category_name": tmpl.name if tmpl else "Unknown Category",
                 "name": tmpl.name if tmpl else "Unknown Category", # Frontend compatibility
                 "linked_capability": tmpl.linked_capability if tmpl else None,
+                "category_key": tmpl.linked_capability if tmpl else None, # ✅ Used for deep search in frontend
                 "can_view": False,
                 "can_create": False,
                 "can_edit": False,

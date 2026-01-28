@@ -192,10 +192,25 @@ for message in consumer:
                 
                 capability_keys = []
                 for perm in permissions_list:
-                    # Check for service_key first (new standard), fallback to service_name or id
+                    # Collect all relevant identifier keys
+                    # We need "linked_capability" (e.g. VETERINARY_DOCTOR) for the frontend sidebar
+                    # We also need "service_key" (e.g. VETERINARY_CORE) for broad service access
+                    
+                    if perm.get("linked_capability"):
+                        capability_keys.append(perm.get("linked_capability"))
+                        
+                    if perm.get("category_key"):
+                         # Sometimes category names are used as keys, strictly uppercased
+                         capability_keys.append(perm.get("category_key").upper())
+
+                    # Always include service key if present
                     key = perm.get("service_key") or perm.get("service_id")
                     if key:
                         capability_keys.append(key)
+                        
+                # Deduplicate
+                capability_keys = list(set(capability_keys))
+                logger.info(f"✅ Extracted keys for {auth_user_id}: {capability_keys}")
                         
                 # Update VeterinaryStaff
                 # We use update_or_create to ensure it exists

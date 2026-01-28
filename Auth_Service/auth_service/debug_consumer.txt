@@ -1,0 +1,25 @@
+2026-01-27 16:05:54,459 [INFO] 🚀 Starting Auth Service Kafka Consumer...
+<BrokerConnection client_id=kafka-python-2.3.0, node_id=bootstrap-0 host=localhost:9093 <connecting> [IPv6 ('::1', 9093, 0, 0)]>: connecting to localhost:9093 [('::1', 9093, 0, 0) IPv6]
+<BrokerConnection client_id=kafka-python-2.3.0, node_id=bootstrap-0 host=localhost:9093 <checking_api_versions_recv> [IPv6 ('::1', 9093, 0, 0)]>: Broker version identified as 2.6
+<BrokerConnection client_id=kafka-python-2.3.0, node_id=bootstrap-0 host=localhost:9093 <connected> [IPv6 ('::1', 9093, 0, 0)]>: Connection complete.
+Updating subscribed topics to: ('service_provider_events',)
+2026-01-27 16:05:54,471 [INFO] ✅ Connected to Kafka broker.
+<BrokerConnection client_id=kafka-python-2.3.0, node_id=1 host=localhost:9093 <connecting> [IPv6 ('::1', 9093, 0, 0)]>: connecting to localhost:9093 [('::1', 9093, 0, 0) IPv6]
+<BrokerConnection client_id=kafka-python-2.3.0, node_id=1 host=localhost:9093 <connected> [IPv6 ('::1', 9093, 0, 0)]>: Connection complete.
+<BrokerConnection client_id=kafka-python-2.3.0, node_id=bootstrap-0 host=localhost:9093 <connected> [IPv6 ('::1', 9093, 0, 0)]>: Closing connection. 
+Coordinator for group/auth-service-group is BrokerMetadata(nodeId='coordinator-1', host='localhost', port=9093, rack=None)
+Discovered coordinator coordinator-1 for group auth-service-group
+Starting new heartbeat thread
+Revoking previously assigned partitions set() for group auth-service-group
+Failed to join group auth-service-group: NodeNotReadyError: coordinator-1
+<BrokerConnection client_id=kafka-python-2.3.0, node_id=coordinator-1 host=localhost:9093 <connecting> [IPv6 ('::1', 9093, 0, 0)]>: connecting to localhost:9093 [('::1', 9093, 0, 0) IPv6]
+Failed to join group auth-service-group: NodeNotReadyError: coordinator-1
+<BrokerConnection client_id=kafka-python-2.3.0, node_id=coordinator-1 host=localhost:9093 <connected> [IPv6 ('::1', 9093, 0, 0)]>: Connection complete.
+(Re-)joining group auth-service-group
+Received member id kafka-python-2.3.0-9f3fbaf4-e78d-438f-b19e-c2188bbe53dd for group auth-service-group; will retry join-group
+Failed to join group auth-service-group: [Error 79] MemberIdRequiredError
+(Re-)joining group auth-service-group
+Successfully joined group auth-service-group <Generation 4 (member_id: kafka-python-2.3.0-9f3fbaf4-e78d-438f-b19e-c2188bbe53dd, protocol: range)>
+Elected group leader -- performing partition assignments using range
+Updated partition assignment: [TopicPartition(topic='service_provider_events', partition=0)]
+Setting newly assigned partitions {TopicPartition(topic='service_provider_events', partition=0)} for group auth-service-group
