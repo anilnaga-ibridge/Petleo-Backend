@@ -24,11 +24,13 @@ def _build_permission_tree(user):
     service_ids = set()
     category_ids = set()
     facility_ids = set()
+    pricing_ids = set()
     
     for cap in caps:
         if cap.service_id: service_ids.add(cap.service_id)
         if cap.category_id: category_ids.add(cap.category_id)
         if cap.facility_id: facility_ids.add(cap.facility_id)
+        if cap.pricing_id: pricing_ids.add(cap.pricing_id)
 
     # 3. Fetch Templates (bulk)
     # Note: IDs in CapabilityAccess are strings matching super_admin_X_id
@@ -43,6 +45,11 @@ def _build_permission_tree(user):
     facility_tmpls = {
         bg.super_admin_facility_id: bg 
         for bg in ProviderTemplateFacility.objects.filter(super_admin_facility_id__in=facility_ids)
+    }
+
+    pricing_tmpls = {
+        bg.super_admin_pricing_id: bg 
+        for bg in ProviderTemplatePricing.objects.filter(super_admin_pricing_id__in=pricing_ids)
     }
 
     # 4. Build Tree
@@ -107,6 +114,19 @@ def _build_permission_tree(user):
         # -- Facility Node --
         if fid not in tree[sid]["categories"][cid]["facilities"]:
             tmpl = facility_tmpls.get(fid)
+            
+            # Resolve Pricing
+            pricing_data = {}
+            if cap.pricing_id:
+                p_tmpl = pricing_tmpls.get(cap.pricing_id)
+                if p_tmpl:
+                    pricing_data = {
+                        "pricing_id": cap.pricing_id,
+                        "price": p_tmpl.price,
+                        "duration": p_tmpl.duration,
+                        "description": p_tmpl.description
+                    }
+
             tree[sid]["categories"][cid]["facilities"][fid] = {
                 "facility_id": fid,
                 "facility_name": tmpl.name if tmpl else "Unknown Facility",
@@ -114,7 +134,8 @@ def _build_permission_tree(user):
                 "can_view": False,
                 "can_create": False,
                 "can_edit": False,
-                "can_delete": False
+                "can_delete": False,
+                **pricing_data
             }
         
         # Direct Facility Permission

@@ -71,81 +71,96 @@ def purchase_plan_and_publish(user, plan, billing_cycle="MONTHLY"):
         from dynamic_categories.models import Category
         from dynamic_facilities.models import Facility
         
+        # 1. Collect Categories from Service Templates (including linked capabilities)
+        seen_categories = set()
+        seen_facilities = set()
+        
         # Fetch all categories for these services
-        all_cats = Category.objects.filter(service__id__in=seen_services)
-        for cat in all_cats:
-            if cat.id not in seen_categories:
-                templates["categories"].append({
-                    "id": str(cat.id),
-                    "service_id": str(cat.service.id),
-                    "name": cat.name,
-                    "linked_capability": cat.linked_capability,
-                    "is_template": True
-                })
-                seen_categories.add(cat.id)
-        
-        # Fetch all facilities for these services
-        all_facs = Facility.objects.filter(service__id__in=seen_services)
-        
-        # Build map of service_id -> list of category_ids
-        service_to_cat_map = {}
-        for cat_data in templates["categories"]:
-            s_id = cat_data["service_id"]
-            if s_id not in service_to_cat_map:
-                service_to_cat_map[s_id] = []
-            service_to_cat_map[s_id].append(cat_data["id"])
-            
-        for fac in all_facs:
-            s_id = str(fac.service.id)
-            # Find a category to attach to
-            cats = service_to_cat_map.get(s_id, [])
-            if not cats:
-                # No categories for this service, cannot attach facility in current Consumer logic
-                continue
-                
-            # Attach to the first category found
-            target_cat_id = cats[0]
-            
-            # Check for duplicates or just add?
-            # Since we attach to only one category, simple check is enough
-            if fac.id not in seen_facilities:
-                templates["facilities"].append({
+        categories_qs = Category.objects.filter(service__id__in=seen_services)
+
+        # Build Categories Tree
+        for cat in categories_qs:
+             templates["categories"].append({
+                "id": str(cat.id),
+                "service_id": str(cat.service.id),
+                "name": cat.name,
+                "linked_capability": cat.linked_capability,
+                "is_template": True
+            })
+             seen_categories.add(cat.id)
+
+             # Add Facilities for this Category
+             # Since Facility now links to Category, we just filter by this category.
+             cat_facilities = cat.facilities.filter(is_active=True)
+             
+             for fac in cat_facilities:
+                 templates["facilities"].append({
                     "id": str(fac.id),
-                    "category_id": target_cat_id,
+                    "category_id": str(cat.id),
                     "name": fac.name,
                     "description": getattr(fac, "description", "")
                 })
-                seen_facilities.add(fac.id)
+                 seen_facilities.add(fac.id)
+        
+        # DEBUG: Log Facilities Payload
+        import json
+        print(f"DEBUG: [PRODUCER] Facilities Payload: {json.dumps(templates.get('facilities', []), indent=2)}")
 
         # 2. Collect Pricing (Pricing model)
         from dynamic_pricing.models import PricingRule
         
+        # We fetch all pricing rules for the service, but now we respect the hierarchy more strictly.
         pricing_qs = PricingRule.objects.filter(service__id__in=seen_services, is_active=True)
         
         for price in pricing_qs:
+            # Logic simplifies: 
+            # If price has category, use it.
+            # If price has facility, use facility's category.
+            
             p_cat_id = str(price.category.id) if price.category else None
             p_fac_id = str(price.facility.id) if price.facility else None
             
+            # Infer category from facility if missing
+            if p_fac_id and not p_cat_id and price.facility.category:
+                 p_cat_id = str(price.facility.category.id)
+
             include_price = False
-            if not p_cat_id and not p_fac_id:
-                include_price = True
-            elif p_cat_id and not p_fac_id:
-                if price.category.id in seen_categories:
-                    include_price = True
-            elif p_fac_id:
-                if price.facility.id in seen_facilities:
-                    include_price = True
             
+            if not p_cat_id and not p_fac_id:
+                 # Service-level pricing
+                 include_price = True
+            elif p_cat_id and not p_fac_id:
+                 if price.category.id in seen_categories:
+                     include_price = True
+                 else:
+                     print(f"DEBUG: Price {price.id} skipped - Category {p_cat_id} not in seen_categories")
+            elif p_fac_id:
+                 if price.facility.id in seen_facilities:
+                     include_price = True
+                 else:
+                     print(f"DEBUG: Price {price.id} skipped - Facility {p_fac_id} not in seen_facilities")
+
             if include_price:
+                # Ensure duration default
+                duration_val = "fixed"
+                if hasattr(price, 'duration_minutes'):
+                    duration_val = price.duration_minutes or "fixed"
+                
+                print(f"DEBUG: Adding Price {price.id} | Cat: {p_cat_id} | Fac: {p_fac_id}")
+                
                 templates["pricing"].append({
                     "id": str(price.id),
                     "service_id": str(price.service.id),
                     "category_id": p_cat_id,
                     "facility_id": p_fac_id,
-                    "price": str(price.base_price), # PricingRule has base_price, not price
-                    "duration": price.duration_minutes or 0, # Handle None
+                    "price": str(price.base_price),
+                    "duration": duration_val,
                     "description": f"Default pricing for {price.service.display_name}"
                 })
+        
+        # DEBUG: Log FINAL Pricing Payload
+        import json
+        print(f"DEBUG: [PRODUCER FINAL] Pricing Payload: {json.dumps(templates.get('pricing', []), indent=2)}")
 
         purchased_plan_info = {
             "id": str(purchased.id),

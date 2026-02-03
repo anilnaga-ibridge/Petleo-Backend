@@ -18,10 +18,15 @@ class FacilityViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         """
-        Allow filtering by service ID (?service=1)
+        Allow filtering by service ID (?service=1) OR category ID (?category=1)
         """
         queryset = super().get_queryset()
         service_id = self.request.query_params.get("service")
+        category_id = self.request.query_params.get("category")
+        
         if service_id:
-            queryset = queryset.filter(service_id=service_id)
+            queryset = queryset.filter(category__service_id=service_id)
+        if category_id:
+            queryset = queryset.filter(category_id=category_id)
+            
         return queryset

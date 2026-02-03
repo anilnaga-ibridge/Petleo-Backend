@@ -1,5 +1,7 @@
 from rest_framework import serializers
 from .models import PricingRule
+from dynamic_categories.serializers import CategorySerializer
+from dynamic_facilities.serializers import FacilitySerializer
 
 class PricingRuleSerializer(serializers.ModelSerializer):
     service_display = serializers.CharField(
@@ -19,7 +21,15 @@ class PricingRuleSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
+        # Add display fields for backwards compatibility or simple lookups
         data["service_display"] = instance.service.display_name if instance.service else None
         data["category_display"] = instance.category.name if instance.category else None
         data["facility_display"] = instance.facility.name if instance.facility else None
+        
+        # Add nested objects for frontend hierarchy grouping
+        if instance.category:
+            data["category"] = CategorySerializer(instance.category).data
+        if instance.facility:
+            data["facility"] = FacilitySerializer(instance.facility).data
+            
         return data

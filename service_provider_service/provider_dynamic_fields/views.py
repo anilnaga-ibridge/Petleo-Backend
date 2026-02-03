@@ -363,7 +363,13 @@ class ProviderCategoryViewSet(viewsets.ModelViewSet):
                 template_service = ProviderTemplateService.objects.get(super_admin_service_id=service_id)
                 templates = ProviderTemplateCategory.objects.filter(service=template_service)
                 
+                # Filter out templates that already exist in custom_data (by name)
+                existing_names = {c["name"] for c in custom_data}
+
                 for t in templates:
+                    if t.name in existing_names:
+                        continue
+                        
                     cat_dict = {
                         "id": f"TEMPLATE_{t.id}",
                         "original_id": t.super_admin_category_id,
@@ -648,19 +654,86 @@ class ProviderFacilityViewSet(viewsets.ModelViewSet):
                 templates = ProviderTemplateFacility.objects.filter(category__in=categories)
                 
                 for t in templates:
+                    cat_id_debug = f"TEMPLATE_{t.category.id}"
                     template_data.append({
                         "id": f"TEMPLATE_{t.id}",
                         "original_id": t.super_admin_facility_id,
-                        "category_id": t.category.super_admin_category_id,
+                        "category_id": f"TEMPLATE_{t.category.id}",
                         "name": t.name,
                         "description": t.description,
                         "is_template": True
                     })
             except ProviderTemplateService.DoesNotExist:
                 pass
+        
+        category_param = request.query_params.get("category")
+        if category_param:
+            print(f"DEBUG: Facility List requested for category {category_param}")
+            # Filter custom data
+            custom_data = [d for d in custom_data if str(d.get("category")) == str(category_param)]
+            
+            # Fetch Templates for this category
+            if str(category_param).startswith("TEMPLATE_"):
+                # ... existing logic ...
+                from .models import ProviderTemplateFacility, ProviderTemplateCategory
+                try:
+                    cat_pk = str(category_param).replace("TEMPLATE_", "")
+                    t_cat = ProviderTemplateCategory.objects.get(id=cat_pk)
+                    t_facs = ProviderTemplateFacility.objects.filter(category=t_cat)
+                    
+                    template_data = [] 
+                    for t in t_facs:
+                        template_data.append({
+                            "id": f"TEMPLATE_{t.id}",
+                            "original_id": t.super_admin_facility_id,
+                            "category_id": f"TEMPLATE_{t.category.id}",
+                            "name": t.name,
+                            "description": t.description,
+                            "is_template": True
+                        })
+                except ProviderTemplateCategory.DoesNotExist:
+                    pass
+            else:
+                 # Real Category ID passed. 
+                 print(f"DEBUG: Real Category ID passed: {category_param}")
+                 from .models import ProviderCategory, ProviderTemplateCategory, ProviderTemplateFacility
+                 try:
+                     real_cat = ProviderCategory.objects.get(id=category_param)
+                     print(f"DEBUG: Found Real Category: {real_cat.name} (Service: {real_cat.service_id})")
+                     
+                     # Match template by name/service
+                     t_cat = ProviderTemplateCategory.objects.filter(
+                         service__super_admin_service_id=real_cat.service_id,
+                         name=real_cat.name
+                     ).first()
+                     
+                     if t_cat:
+                         print(f"DEBUG: Found matching Template Category: {t_cat.name} (ID: {t_cat.id})")
+                         t_facs = ProviderTemplateFacility.objects.filter(category=t_cat)
+                         print(f"DEBUG: Found {t_facs.count()} template facilities")
+                         
+                         template_data = []
+                         for t in t_facs:
+                            fac_entry = {
+                                "id": f"TEMPLATE_{t.id}",
+                                "original_id": t.super_admin_facility_id,
+                                "category_id": str(real_cat.id), # Use the real category ID as parent
+                                "name": t.name,
+                                "description": t.description,
+                                "is_template": True
+                            }
+                            template_data.append(fac_entry)
+                            print(f"DEBUG: Added facility: {t.name}")
+                     else:
+                         print("DEBUG: No matching Template Category found")
+                         
+                 except (ProviderCategory.DoesNotExist, Exception) as e:
+                     print(f"DEBUG: Error finding category or template: {e}")
+                     pass
 
         # 3. Merge
         combined = template_data + custom_data
+        print(f"DEBUG: Returning {len(combined)} facilities")
 
         # 4. Inject Permissions
         from provider_dynamic_fields.models import ProviderCapabilityAccess
@@ -972,17 +1045,44 @@ class ProviderPricingViewSet(viewsets.ModelViewSet):
                 template_service = ProviderTemplateService.objects.get(super_admin_service_id=service_id)
                 templates = ProviderTemplatePricing.objects.filter(service=template_service)
                 
+                # Pre-fetch existing real categories to avoid N+1
+                real_cats_map = {} # template_cat_id_str -> real_cat_obj
+                try:
+                    from .models import ProviderCategory, ProviderTemplateCategory
+                    # Find categories for this service belonging to this provider
+                    real_cats = ProviderCategory.objects.filter(
+                        provider=self.get_verified_user(), 
+                        service_id=service_id
+                    )
+                    for rc in real_cats:
+                        # Find corresponding template cat
+                        # This is tricky because real_cat doesn't store template_id directly
+                        # We have to match by name
+                        real_cats_map[rc.name] = rc
+                except Exception:
+                    pass
+
                 for t in templates:
-                    # Derive category from facility if missing
-                    cat_id = None
-                    cat_name = "All Categories"
+                    # Derive category from pricing first, then facility
+                    t_cat_name = None
+                    t_cat_id_raw = None
                     
                     if t.category:
-                        cat_id = t.category.super_admin_category_id
-                        cat_name = t.category.name
+                        t_cat_name = t.category.name
+                        t_cat_id_raw = t.category.id
                     elif t.facility and t.facility.category:
-                        cat_id = t.facility.category.super_admin_category_id
-                        cat_name = t.facility.category.name
+                        t_cat_name = t.facility.category.name
+                        t_cat_id_raw = t.facility.category.id
+
+                    # Default to template ID
+                    cat_id = f"TEMPLATE_{t_cat_id_raw}" if t_cat_id_raw else None
+                    cat_name = t_cat_name or "All Categories"
+                    
+                    # Try to match with Real Category
+                    if t_cat_name and t_cat_name in real_cats_map:
+                        rc = real_cats_map[t_cat_name]
+                        cat_id = str(rc.id)
+                        # cat_name = rc.name # Should be same
 
                     template_data.append({
                         "id": f"TEMPLATE_{t.id}",
@@ -1046,10 +1146,10 @@ class ProviderPricingViewSet(viewsets.ModelViewSet):
             if (s, f, d) not in shadow_map:
                 final_list.append(t)
                 
-        # Add Custom (only active ones)
+        # Add Custom (even inactive ones, as they might be disabled by user)
         for c in custom_data:
-            if c.get("is_active"):
-                final_list.append(c)
+            # We add ALL custom data, because inactive ones represent "disabled" facilities
+            final_list.append(c)
 
         # 5. Inject Permissions
         from provider_dynamic_fields.models import ProviderCapabilityAccess

@@ -423,11 +423,11 @@ class ProviderTemplatePricing(models.Model):
         ProviderTemplateFacility,
         on_delete=models.CASCADE,
         related_name="pricing_rules",
-        null=True, blank=True
+        default="00000000-0000-0000-0000-000000000000"
     )
     
     price = models.DecimalField(max_digits=10, decimal_places=2)
-    duration = models.CharField(max_length=50)
+    duration = models.CharField(max_length=50, default="fixed")
     description = models.TextField(null=True, blank=True)
     
     created_at = models.DateTimeField(auto_now_add=True)

@@ -255,6 +255,7 @@ class ProviderFacilitySerializer(serializers.ModelSerializer):
 
 class ProviderPricingSerializer(serializers.ModelSerializer):
     facility_name = serializers.CharField(source="facility.name", read_only=True)
+    facility_description = serializers.CharField(source="facility.description", read_only=True)
     # We need to fetch category name. Since category_id is CharField (not FK), we can't use source="category.name".
     # But wait, ProviderPricing.category_id stores the ID. 
     # If it's a ProviderCategory, we can look it up.
@@ -265,7 +266,7 @@ class ProviderPricingSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ProviderPricing
-        fields = ["id", "service_id", "category_id", "category_name", "facility", "facility_name", "price", "duration", "description", "is_active", "created_at"]
+        fields = ["id", "service_id", "category_id", "category_name", "facility", "facility_name", "facility_description", "price", "duration", "description", "is_active", "created_at"]
         read_only_fields = ["id", "created_at"]
 
     def get_category_name(self, obj):

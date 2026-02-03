@@ -348,29 +348,72 @@ for message in consumer:
                                     logger.warning(f"⚠️ Category {fac.get('category_id')} not found for facility {fac['name']}")
 
                             # Pricing
+                            # Pricing
                             for price in templates.get("pricing", []):
                                 try:
                                     service_obj = ProviderTemplateService.objects.get(super_admin_service_id=price["service_id"])
                                     
-                                    cat_obj = None
-                                    if price.get("category_id"):
-                                        cat_obj = ProviderTemplateCategory.objects.filter(super_admin_category_id=price["category_id"]).first()
+                                    # 1. Determine Target Facilities
+                                    target_facilities = []
                                     
-                                    fac_obj = None
-                                    if price.get("facility_id"):
-                                        fac_obj = ProviderTemplateFacility.objects.filter(super_admin_facility_id=price["facility_id"]).first()
+                                    explicit_fac_id = price.get("facility_id")
+                                    cat_id = price.get("category_id")
 
-                                    ProviderTemplatePricing.objects.update_or_create(
-                                        super_admin_pricing_id=price["id"],
-                                        defaults={
-                                            "service": service_obj,
-                                            "category": cat_obj,
-                                            "facility": fac_obj,
-                                            "price": price["price"],
-                                            "duration": price.get("duration") or price.get("duration_minutes"),  # FIX: Handle mismatched key
-                                            "description": price.get("description", "")
-                                        }
-                                    )
+                                    if explicit_fac_id:
+                                        # CASE A: Explicit Facility Price
+                                        fac_obj = ProviderTemplateFacility.objects.filter(super_admin_facility_id=explicit_fac_id).first()
+                                        if fac_obj: 
+                                            target_facilities.append((fac_obj, price["id"])) # Use original ID
+                                        else:
+                                             logger.warning(f"⚠️ Facility {explicit_fac_id} not found for pricing {price['id']}")
+
+                                    elif cat_id:
+                                        # CASE B: Category Level Price -> EXPLODE to all Facilities
+                                        try:
+                                            cat_obj = ProviderTemplateCategory.objects.get(super_admin_category_id=cat_id)
+                                            
+                                            # 🛡️ CLEANUP: Delete existing pricing for this category to prevent duplicates
+                                            # This handles the case where we re-explode and IDs might have shifted or old ones linger
+                                            ProviderTemplatePricing.objects.filter(
+                                                category=cat_obj, 
+                                                service=service_obj
+                                            ).delete()
+
+                                            linked_facs = ProviderTemplateFacility.objects.filter(category=cat_obj)
+                                            
+                                            if not linked_facs.exists():
+                                                logger.warning(f"⚠️ Pricing {price['id']} has Category {cat_id} but NO facilities exist to attach to.")
+                                            
+                                            for lf in linked_facs:
+                                                # CRITICAL: Create Composite ID to satisfy unique=True constraint
+                                                composite_id = f"{price['id']}_{lf.super_admin_facility_id}" 
+                                                target_facilities.append((lf, composite_id))
+                                                
+                                            logger.info(f"💥 Exploded Category Price {price['id']} into {len(target_facilities)} facilities.")
+                                            
+                                        except ProviderTemplateCategory.DoesNotExist:
+                                            logger.warning(f"⚠️ Category {cat_id} not found for pricing {price['id']}")
+
+                                    else:
+                                        logger.warning(f"⏭️ Skipping pricing {price['id']} - No Facility or Category linked.")
+                                        continue
+
+                                    # 2. Persist Rows
+                                    for fac_obj, unique_sa_id in target_facilities:
+                                        cat_obj = fac_obj.category
+
+                                        ProviderTemplatePricing.objects.update_or_create(
+                                            super_admin_pricing_id=unique_sa_id,
+                                            defaults={
+                                                "service": service_obj,
+                                                "category": cat_obj,
+                                                "facility": fac_obj,
+                                                "price": price["price"],
+                                                "duration": price.get("duration") or price.get("duration_minutes", "fixed"),
+                                                "description": price.get("description", "")
+                                            }
+                                        )
+
                                 except ProviderTemplateService.DoesNotExist:
                                     logger.warning(f"⚠️ Service {price['service_id']} not found for pricing {price['id']}")
 
@@ -428,6 +471,10 @@ for message in consumer:
 
                         # 4. Pricing
                         for price in templates.get("pricing", []):
+                            # Strict Hierarchy: Price -> Facility -> Category -> Service
+                            if not price.get("facility_id"):
+                                continue
+
                             add_perm(
                                 price["service_id"], 
                                 price.get("category_id"), 

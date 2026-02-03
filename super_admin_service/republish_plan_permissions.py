@@ -143,21 +143,28 @@ def build_templates_for_plan(purchased_plan):
             seen_categories.add(cat.id)
 
     # 3. Facilities
-    all_facs = Facility.objects.filter(service__id__in=seen_services)
+    all_facs = Facility.objects.filter(category__service__id__in=seen_services)
+    print(f"DEBUG: Found {all_facs.count()} facilities for services {seen_services}")
     for fac in all_facs:
         if fac.id not in seen_facilities:
             templates["facilities"].append({
                 "id": str(fac.id),
+                "category_id": str(fac.category.id),
                 "name": fac.name,
                 "description": getattr(fac, "description", "")
             })
             seen_facilities.add(fac.id)
+            print(f"DEBUG: Added facility template: {fac.name} (Cat: {fac.category.name})")
 
     # 4. Pricing
     pricing_qs = PricingRule.objects.filter(service__id__in=seen_services, is_active=True)
     for price in pricing_qs:
         p_cat_id = str(price.category.id) if price.category else None
         p_fac_id = str(price.facility.id) if price.facility else None
+        
+        # Infer category from facility if missing
+        if p_fac_id and not p_cat_id and price.facility.category:
+            p_cat_id = str(price.facility.category.id)
         
         include_price = False
         if not p_cat_id and not p_fac_id:
@@ -179,7 +186,7 @@ def build_templates_for_plan(purchased_plan):
                 "duration": price.duration_minutes,
                 "description": f"Default pricing for {price.service.display_name}"
             })
-
+    
     return templates
 
 if __name__ == "__main__":
