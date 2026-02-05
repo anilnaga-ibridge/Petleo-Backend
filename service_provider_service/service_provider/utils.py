@@ -95,7 +95,7 @@ def _build_permission_tree(user):
                 "category_name": tmpl.name if tmpl else "Unknown Category",
                 "name": tmpl.name if tmpl else "Unknown Category", # Frontend compatibility
                 "linked_capability": tmpl.linked_capability if tmpl else None,
-                "category_key": tmpl.linked_capability if tmpl else None, # ✅ Used for deep search in frontend
+                "category_key": (tmpl.linked_capability or tmpl.name) if tmpl else None, # ✅ Used for deep search in frontend
                 "can_view": False,
                 "can_create": False,
                 "can_edit": False,
@@ -109,6 +109,7 @@ def _build_permission_tree(user):
             _merge_perms(tree[sid]["categories"][cid], cap)
             # Implies parent view
             tree[sid]["can_view"] = True
+            tree[sid]["categories"][cid]["can_view"] = True  # Ensure category itself is viewable
             continue
             
         # -- Facility Node --

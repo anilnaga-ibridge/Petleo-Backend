@@ -6,6 +6,7 @@ from .views import (
     get_allowed_services,
     get_provider_role_templates,
     get_my_access,
+    resolve_role_capabilities,
 )
 
 urlpatterns = [
@@ -15,6 +16,7 @@ urlpatterns = [
     path("permissions/my-access/", get_my_access, name="provider_my_access"),
     path("allowed-services/", get_allowed_services, name="provider_allowed_services"),
     path("role-templates/", get_provider_role_templates, name="role_templates"),
+    path("roles/resolve/", resolve_role_capabilities, name="resolve_role"),
 ]
 
 from rest_framework.routers import DefaultRouter

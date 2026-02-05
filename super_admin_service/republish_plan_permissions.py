@@ -14,9 +14,7 @@ from plans_coupens.models import PurchasedPlan, Plan
 # from plans_coupens.purchase_publish_wrapper import purchase_publish_wrapper # Removed bad import
 from plans_coupens.models import ProviderPlanCapability
 from plans_coupens.kafka_producer import publish_permissions_updated
-# We might need to manually build the payload if we don't want to create a new purchase.
-# purchase_publish_wrapper does both. We just want the publishing part.
-# Let's verify existing logic in purchase_publish_wrapper to extract the build step.
+from plans_coupens.payload_builder import build_unified_payload
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger(__name__)
@@ -24,24 +22,12 @@ logger = logging.getLogger(__name__)
 def republish_permissions(email, dry_run=True):
     logger.info(f"🔎 Looking for active plans for: {email}")
     
-    # 1. Find the User (We might need Auth service or just trust the email exists in PurchasedPlan links if we had a User model here)
-    # PurchasedPlan links to 'user' which is likely a generic User object or Auth User.
-    # We can filter `PurchasedPlan.objects.exclude(is_active=False)` and try to match email if possible.
-    # Wait, PurchasedPlan.user might be an object or ID.
-    # In `purchase_publish_wrapper.py`: `PurchasedPlan.objects.create(user=user...)`
-    # We need to know how `user` is stored. UUID? Or Object?
-    
-    # Let's indiscriminately check all purchased plans and filter by email if we can inspect the user object.
-    
     plans = PurchasedPlan.objects.filter(is_active=True)
-    
     found = False
     for pp in plans:
-        # Check user email
         u = pp.user
         u_email = getattr(u, 'email', None)
         if hasattr(u, 'username'): u_email = u.username 
-        # Adapt based on actual User model in Super Admin
         
         if u_email != email:
             continue
@@ -49,23 +35,19 @@ def republish_permissions(email, dry_run=True):
         found = True
         logger.info(f"✅ Found Active Plan: {pp.plan.title} (ID: {pp.plan.id})")
         
+        # Auth User ID extraction
+        auth_id = str(u.auth_user_id) if hasattr(u, 'auth_user_id') else str(u.id)
+
+        # Build Unified Payload
+        data_bundle = build_unified_payload(u, pp.plan, str(pp.id), auth_id)
+        payload = data_bundle["perms_payload"]
+        templates = data_bundle["templates"]
+        dynamic_caps = data_bundle["dynamic_capabilities"]
+
         if dry_run:
-            logger.info("⚠️  DRY RUN: Would publish permissions for this plan.")
-            # We can try to build the payload to show what would be sent
-            payload = build_payload_for_plan(pp)
-            logger.info(f"📦 Payload Preview: {len(payload)} items")
+            logger.info(f"⚠️  DRY RUN: Would publish {len(payload)} perms and {len(dynamic_caps)} dynamic caps.")
         else:
             logger.info("🔄 Publishing Kafka Event...")
-            # Re-use logic to build and send
-            payload = build_payload_for_plan(pp)
-            
-            # We need templates too
-            templates = build_templates_for_plan(pp)
-            
-            # Push
-            # Auth User ID extraction
-            auth_id = str(u.auth_user_id) if hasattr(u, 'auth_user_id') else str(u.id)
-            
             plan_info = {
                 "id": str(pp.id),
                 "plan_id": str(pp.plan.id),
@@ -74,7 +56,14 @@ def republish_permissions(email, dry_run=True):
                 "end_date": pp.end_date.isoformat() if pp.end_date else None,
             }
             
-            publish_permissions_updated(auth_id, str(pp.id), payload, plan_info, templates=templates)
+            publish_permissions_updated(
+                auth_id, 
+                str(pp.id), 
+                payload, 
+                plan_info, 
+                templates=templates, 
+                dynamic_capabilities=dynamic_caps
+            )
             logger.info("✅ Event Published.")
 
     if not found:

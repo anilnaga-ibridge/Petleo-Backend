@@ -323,7 +323,7 @@ class ProviderPricing(models.Model):
         null=True, blank=True
     )
     service_id = models.CharField(max_length=255, null=True, blank=True)
-    category_id = models.CharField(max_length=255, null=True, blank=True) # Can be ProviderCategory ID or SuperAdmin Category ID
+    category_id = models.CharField(max_length=255, null=True, blank=True)
     
     # Optional link to specific facility
     facility = models.ForeignKey(
@@ -335,18 +335,27 @@ class ProviderPricing(models.Model):
     )
     
     price = models.DecimalField(max_digits=10, decimal_places=2)
-    duration = models.CharField(max_length=50, help_text="e.g. per_hour, per_day, fixed")
+    billing_unit = models.CharField(max_length=20, default="PER_SESSION", help_text="HOURLY, DAILY, WEEKLY, PER_SESSION, ONE_TIME")
+    duration_minutes = models.IntegerField(null=True, blank=True, help_text="Duration for HOURLY/PER_SESSION billing")
     description = models.TextField(null=True, blank=True)
     
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    @property
+    def duration(self):
+        return self.duration_minutes
+
+    @duration.setter
+    def duration(self, value):
+        self.duration_minutes = value
+
     class Meta:
         ordering = ["-created_at"]
 
     def __str__(self):
-        return f"{self.price} - {self.duration}m ({self.provider.full_name})"
+        return f"{self.price} - {self.billing_unit} ({self.provider.full_name})"
 
 
 # ==========================================================
@@ -427,11 +436,40 @@ class ProviderTemplatePricing(models.Model):
     )
     
     price = models.DecimalField(max_digits=10, decimal_places=2)
-    duration = models.CharField(max_length=50, default="fixed")
+    billing_unit = models.CharField(max_length=20, default="PER_SESSION", help_text="HOURLY, DAILY, WEEKLY, PER_SESSION, ONE_TIME")
+    duration_minutes = models.IntegerField(null=True, blank=True, help_text="Duration for HOURLY/PER_SESSION billing")
     description = models.TextField(null=True, blank=True)
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    @property
+    def duration(self):
+        return self.duration_minutes
+
+    @duration.setter
+    def duration(self, value):
+        self.duration_minutes = value
+    
+    def get_display_text(self):
+        """Return human-readable billing text"""
+        if self.billing_unit == "HOURLY":
+            hours = self.duration_minutes / 60 if self.duration_minutes else 1
+            return f"₹{self.price} per {hours} hour(s)"
+        elif self.billing_unit == "DAILY":
+            return f"₹{self.price} per day"
+        elif self.billing_unit == "WEEKLY":
+            return f"₹{self.price} per week"
+        elif self.billing_unit == "PER_SESSION":
+            if self.duration_minutes:
+                return f"₹{self.price} per session ({self.duration_minutes} mins)"
+            return f"₹{self.price} per session"
+        elif self.billing_unit == "ONE_TIME":
+            return f"₹{self.price} (one-time)"
+        return f"₹{self.price}"
+    
+    def __str__(self):
+        return f"{self.facility.name}: {self.get_display_text()}"
 
 
 # ==========================================================

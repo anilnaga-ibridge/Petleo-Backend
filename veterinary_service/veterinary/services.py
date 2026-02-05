@@ -1,4 +1,7 @@
 import uuid
+import json
+import urllib.request
+import urllib.error
 from django.db import transaction
 from django.db.models import Case, When, Value, IntegerField
 from django.utils import timezone
@@ -280,6 +283,23 @@ class MetadataService:
             submitted_by=user_id,
             data=data
         )
+
+        # Add Audit Log for tracking
+        action_map = {
+            'VITALS': 'VITALS_ENTERED',
+            'PRESCRIPTION': 'PRESCRIPTION_CREATED',
+            'LAB_ORDER': 'LAB_ORDERED',
+            'LAB_RESULTS': 'LAB_RESULT_ADDED'
+        }
+        action_type = action_map.get(form_code, 'FORM_SUBMITTED')
+        
+        from .models import VeterinaryAuditLog
+        VeterinaryAuditLog.objects.create(
+            visit_id=visit_id,
+            action_type=action_type,
+            performed_by=str(user_id)
+        )
+
         return submission
 
     @staticmethod
@@ -664,13 +684,15 @@ class ClinicAnalyticsService:
         }
 
     @staticmethod
-    def get_dashboard_metrics(clinic_id, date_param=None):
+    def get_dashboard_metrics(clinic_id, date_param=None, service_id=None):
         """
         Returns real-time analytics for the clinic dashboard.
-        Aggregates all departments.
+        Aggregates all departments or specific service.
         """
         from django.utils import timezone
         import datetime
+        from django.db.models import Sum
+        from .models import VisitCharge
         
         target_date = timezone.now().date()
         if date_param:
@@ -678,6 +700,54 @@ class ClinicAnalyticsService:
                 target_date = datetime.datetime.strptime(date_param, '%Y-%m-%d').date()
             except ValueError: pass
 
+        yesterday_date = target_date - datetime.timedelta(days=1)
+
+        # SERVICE SPECIFIC ANYLTICS
+        if service_id:
+            # 1. Bookings (Total Visits)
+            bookings_today = Visit.objects.filter(clinic_id=clinic_id, service_id=service_id, created_at__date=target_date).count()
+            bookings_yesterday = Visit.objects.filter(clinic_id=clinic_id, service_id=service_id, created_at__date=yesterday_date).count()
+            
+            # 2. Revenue (From Invoices linked to Visits of this service)
+            # This assumes VisitInvoice is created for the visit
+            revenue_today = VisitCharge.objects.filter(
+                visit_invoice__visit__clinic_id=clinic_id,
+                visit_invoice__visit__service_id=service_id,
+                visit_invoice__status='PAID',
+                visit_invoice__updated_at__date=target_date
+            ).aggregate(Sum('amount'))['amount__sum'] or 0.00
+            
+            revenue_yesterday = VisitCharge.objects.filter(
+                visit_invoice__visit__clinic_id=clinic_id,
+                visit_invoice__visit__service_id=service_id,
+                visit_invoice__status='PAID',
+                visit_invoice__updated_at__date=yesterday_date
+            ).aggregate(Sum('amount'))['amount__sum'] or 0.00
+
+            # 3. Profile Views (Mock for now, or track in AuditLog)
+            profile_views = 0 
+            
+            # 4. Avg Rating (Mock for now)
+            avg_rating = 4.8
+
+            return {
+                "bookings": {"value": bookings_today, "change": ClinicAnalyticsService._get_trend(bookings_today, bookings_yesterday)},
+                "revenue": {"value": float(revenue_today), "change": ClinicAnalyticsService._get_trend(float(revenue_today), float(revenue_yesterday))},
+                "profile_views": {"value": profile_views, "change": 0},
+                "avg_rating": {"value": avg_rating, "change": 0},
+                # Recent Activity Link
+                "recent_activity": [
+                    # Fetch last 3 visits
+                    {
+                        "title": f"New Booking: {v.pet.name}", 
+                        "subtitle": v.created_at.strftime("%H:%M"), 
+                        "icon": "tabler-calendar-plus"
+                    }
+                    for v in Visit.objects.filter(clinic_id=clinic_id, service_id=service_id).order_by('-created_at')[:3]
+                ]
+            }
+
+        # CLINIC WIDE ANALYTICS
         reception = ClinicAnalyticsService.get_reception_metrics(clinic_id, target_date)
         vitals = ClinicAnalyticsService.get_vitals_metrics(clinic_id, target_date)
         doctor = ClinicAnalyticsService.get_doctor_metrics(clinic_id, target_date)
@@ -685,7 +755,6 @@ class ClinicAnalyticsService:
         pharmacy = ClinicAnalyticsService.get_pharmacy_metrics(clinic_id, target_date)
         
         # Executive Summary (Trends)
-        yesterday_date = target_date - datetime.timedelta(days=1)
         
         # Function to get key metric for yesterday
         def get_yesterday_count(metric_type):
@@ -738,6 +807,232 @@ class ClinicAnalyticsService:
             "lab": lab,
             "pharmacy": pharmacy
         }
+
+    @staticmethod
+    def get_live_summary(clinic_id, user_id=None, date_param=None):
+        """
+        Returns PREMIUM real-time operational summary.
+        dfate_param: YYYY-MM-DD (Defaults to Today)
+        """
+        from django.utils import timezone
+        import datetime
+        from django.db.models import Count, Case, When, Value, IntegerField
+        from django.db.models.functions import TruncDate
+        from .models import Visit, Pet, FormSubmission, VeterinaryAuditLog
+        
+        target_date = timezone.now().date()
+        if date_param:
+            try:
+                target_date = datetime.datetime.strptime(date_param, '%Y-%m-%d').date()
+            except ValueError: pass
+
+        yesterday = target_date - datetime.timedelta(days=1)
+        
+        # --- 1. CURRENT STATS (Labelled 'today' for frontend compat) ---
+        visits_today = Visit.objects.filter(clinic_id=clinic_id, created_at__date=target_date)
+        
+        # Avg Wait (Check-in to Doctor Start)
+        started_visits = visits_today.filter(doctor_started_at__isnull=False, checked_in_at__isnull=False)
+        avg_wait = 0
+        if started_visits.exists():
+            total_wait = sum((v.doctor_started_at - v.checked_in_at).total_seconds() for v in started_visits)
+            avg_wait = int((total_wait / started_visits.count()) / 60)
+
+        # --- 2. YESTERDAY STATS ---
+        visits_yesterday = Visit.objects.filter(clinic_id=clinic_id, created_at__date=yesterday)
+        started_yesterday = visits_yesterday.filter(doctor_started_at__isnull=False, checked_in_at__isnull=False)
+        avg_wait_yest = 0
+        if started_yesterday.exists():
+            total_wait_y = sum((v.doctor_started_at - v.checked_in_at).total_seconds() for v in started_yesterday)
+            avg_wait_yest = int((total_wait_y / started_yesterday.count()) / 60)
+
+        data_yesterday = {
+             "visits": visits_yesterday.count(),
+             "avg_wait_time": avg_wait_yest,
+             "completed": visits_yesterday.filter(status__in=['TREATMENT_COMPLETED', 'CLOSED']).count()
+        }
+
+        # --- 3. LIVE QUEUE (Active) ---
+        queue_qs = visits_today.exclude(status__in=['TREATMENT_COMPLETED', 'CLOSED']).annotate(
+            sort_priority=Case(
+                When(status='CHECKED_IN', then=Value(1)),
+                When(status='VITALS_RECORDED', then=Value(2)),
+                When(status='DOCTOR_ASSIGNED', then=Value(3)),
+                default=Value(10),
+                output_field=IntegerField(),
+            )
+        ).order_by('sort_priority', 'created_at')[:15] # Top 15
+        
+        queue_data = []
+        for v in queue_qs:
+            handled_by = "Pending"
+            if v.status == 'DOCTOR_ASSIGNED':
+                handled_by = "Doctor"
+            elif v.status == 'VITALS_RECORDED':
+                handled_by = "Nurse" 
+            
+            queue_data.append({
+                "id": str(v.id),
+                "pet_name": v.pet.name,
+                "owner": v.pet.owner.name if v.pet.owner else "Guest",
+                "status": v.status,
+                "time": v.updated_at.strftime("%H:%M"),
+                "handled_by": handled_by
+            })
+
+        # --- 4. MY WORK (Staff Productivity) ---
+        my_work = {"registered": 0, "vitals": 0, "consulted": 0, "completed": 0}
+        if user_id:
+            try:
+                from django.db.models import Q
+                
+                my_work["registered"] = VeterinaryAuditLog.objects.filter(
+                    visit__clinic_id=clinic_id,
+                    performed_by=user_id,
+                    action_type='VISIT_CREATED',
+                    created_at__date=target_date
+                ).count() or Pet.objects.filter(
+                    owner__clinic_id=clinic_id, 
+                    created_by=user_id, 
+                    created_at__date=target_date
+                ).count()
+                
+                my_work["vitals"] = VeterinaryAuditLog.objects.filter(
+                    visit__clinic_id=clinic_id,
+                    performed_by=user_id,
+                    action_type='VITALS_ENTERED',
+                    created_at__date=target_date
+                ).count() or FormSubmission.objects.filter(
+                    visit__clinic_id=clinic_id, 
+                    submitted_by=user_id, 
+                    form_definition__code='VITALS', 
+                    created_at__date=target_date
+                ).count()
+                
+                my_work["consulted"] = VeterinaryAuditLog.objects.filter(
+                    visit__clinic_id=clinic_id,
+                    performed_by=user_id,
+                    action_type__in=['PRESCRIPTION_CREATED', 'LAB_ORDERED'],
+                    created_at__date=target_date
+                ).count() or FormSubmission.objects.filter(
+                    visit__clinic_id=clinic_id, 
+                    submitted_by=user_id, 
+                    form_definition__code__in=['PRESCRIPTION', 'LAB_ORDER'], 
+                    created_at__date=target_date
+                ).count()
+                
+                my_work["completed"] = VeterinaryAuditLog.objects.filter(
+                    visit__clinic_id=clinic_id,
+                    performed_by=user_id,
+                    action_type='STATUS_CHANGE',
+                    created_at__date=target_date
+                ).filter(
+                    Q(metadata__new_status='TREATMENT_COMPLETED') | 
+                    Q(metadata__new_status='CLOSED') |
+                    Q(metadata__new_status='MEDICINES_DISPENSED')
+                ).count()
+            except Exception as e:
+                pass
+
+        # --- Granular Breakdown ---
+        # 1. Waiting (Checked In, Not yet Vitals or Doctor)
+        waiting = visits_today.filter(status__in=['CHECKED_IN'])
+        
+        # 2. Vitals (In Queue or Being Recorded)
+        # Note: VITALS_RECORDED means they represent ready for Doctor, but we can group them here or in Doctor Queue.
+        # Let's say: 
+        # Waiting = CHECKED_IN
+        # Vitals = In Vitals Queue? (Actually CHECKED_IN is the Vitals Queue). 
+        # Let's align with the Queues:
+        # Waiting Room = CREATED
+        # Vitals Queue = CHECKED_IN
+        # Doctor Queue = VITALS_RECORDED + DOCTOR_ASSIGNED + LAB_COMPLETED
+        # Labs Queue = LAB_REQUESTED
+        # Pharmacy Queue = PRESCRIPTION_FINALIZED
+        
+        # Revised: 
+        # Waiting (Reception) = CREATED
+        waiting_count = visits_today.filter(status='CREATED').count()
+        # Vitals Pending = CHECKED_IN
+        vitals_count = visits_today.filter(status='CHECKED_IN').count()
+        # Doctor Pending = VITALS_RECORDED + DOCTOR_ASSIGNED
+        doctor_count = visits_today.filter(status__in=['VITALS_RECORDED', 'DOCTOR_ASSIGNED']).count()
+        # Labs Pending = LAB_REQUESTED
+        labs_count = visits_today.filter(status='LAB_REQUESTED').count()
+        # Pharmacy Pending = PRESCRIPTION_FINALIZED + LAB_COMPLETED (if no meds yet) or MEDICINES_DISPENSED?
+        # Typically Pharmacy bucket shows those needing Dispense.
+        pharmacy_count = visits_today.filter(status__in=['PRESCRIPTION_FINALIZED', 'LAB_COMPLETED']).count()
+
+        completed_count = visits_today.filter(status__in=['TREATMENT_COMPLETED', 'CLOSED']).count()
+
+        # Reminders for Today (Simple count)
+        from .models import MedicationReminder
+        reminders_count = MedicationReminder.objects.filter(visit__clinic_id=clinic_id, next_reminder_at__date=target_date).count()
+        
+        # Next Consultations (Scheduled for today, Status=CREATED) - Same as Waiting basically, but maybe distinguish?
+        # For dashboard, "Waiting" usually means physically there. "Scheduled" means expecting.
+        # Let's assume CREATED includes both.
+
+        data_today = {
+            "visits": visits_today.count(),
+            "avg_wait_time": avg_wait,
+            # Granular
+            "waiting": waiting_count, # CREATED
+            "vitals": vitals_count,   # CHECKED_IN
+            "doctor": doctor_count,   # VITALS_RECORDED, DOCTOR_ASSIGNED
+            "labs": labs_count,       # LAB_REQUESTED
+            "pharmacy": pharmacy_count, # PRESCRIPTION_FINALIZED
+            "completed": completed_count,
+            "reminders": reminders_count
+        }
+
+        # --- 5. DETAILS (Popups) ---
+        def serialize_visit_simple(qs):
+             return [{
+                "id": str(v.id),
+                "pet_name": v.pet.name,
+                "owner": v.pet.owner.name if v.pet.owner else "Guest",
+                "status": v.status,
+                "time": v.checked_in_at.strftime("%H:%M") if v.checked_in_at else v.created_at.strftime("%H:%M")
+            } for v in qs]
+
+        details = {
+            "visits": serialize_visit_simple(visits_today.order_by('-created_at')),
+            "waiting": serialize_visit_simple(visits_today.filter(status='CREATED').order_by('created_at')),
+            "vitals": serialize_visit_simple(visits_today.filter(status='CHECKED_IN').order_by('created_at')),
+            "doctor": serialize_visit_simple(visits_today.filter(status__in=['VITALS_RECORDED', 'DOCTOR_ASSIGNED']).order_by('created_at')),
+            "labs": serialize_visit_simple(visits_today.filter(status='LAB_REQUESTED').order_by('created_at')),
+            "pharmacy": serialize_visit_simple(visits_today.filter(status__in=['PRESCRIPTION_FINALIZED', 'LAB_COMPLETED']).order_by('created_at')),
+            "completed": serialize_visit_simple(visits_today.filter(status__in=['TREATMENT_COMPLETED', 'CLOSED']).order_by('-updated_at'))
+        }
+
+        # --- 6. TREND (Last 7 Days) ---
+        seven_days_ago = target_date - datetime.timedelta(days=7)
+        trend_qs = Visit.objects.filter(
+            clinic_id=clinic_id, 
+            created_at__date__gte=seven_days_ago
+        ).annotate(
+            date=TruncDate('created_at')
+        ).values('date').annotate(
+            visits=Count('id')
+        ).order_by('date')
+        
+        trend_data = [{"date": str(getItem['date']), "visits": getItem['visits']} for getItem in trend_qs]
+
+        return {
+            "today": data_today,
+            "yesterday": data_yesterday,
+            "queue": queue_data,
+            "my_work": my_work,
+            "trend": trend_data,
+            "details": details,
+            "debug": {
+                "user_id": user_id,
+                "target_date": str(target_date),
+                "clinic_id": clinic_id
+            }
+        }
+
 class RolePermissionService:
     ROLE_PERMISSIONS = {
         'Receptionist': ['VETERINARY_CORE', 'VETERINARY_VISITS', 'VETERINARY_SCHEDULE', 'VETERINARY_ADMIN_SETTINGS', 'VETERINARY_VACCINES'],
@@ -745,13 +1040,43 @@ class RolePermissionService:
         'Nurse': ['VETERINARY_CORE', 'VETERINARY_VISITS', 'VETERINARY_VITALS', 'VETERINARY_VACCINES', 'VETERINARY_LABS'],
         'Lab Technician': ['VETERINARY_CORE', 'VETERINARY_LABS'],
         'Pharmacist': ['VETERINARY_CORE', 'VETERINARY_PHARMACY', 'VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_PRESCRIPTIONS'],
-        'Admin': ['VETERINARY_CORE', 'VETERINARY_ADMIN', 'VETERINARY_ADMIN_SETTINGS', 'VETERINARY_VISITS', 'VETERINARY_VITALS', 'VETERINARY_PRESCRIPTIONS', 'VETERINARY_LABS', 'VETERINARY_VACCINES', 'VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_PHARMACY', 'VETERINARY_DOCTOR']
+        'Admin': ['VETERINARY_CORE', 'VETERINARY_ADMIN', 'VETERINARY_ADMIN_SETTINGS', 'VETERINARY_VISITS', 'VETERINARY_VITALS', 'VETERINARY_PRESCRIPTIONS', 'VETERINARY_LABS', 'VETERINARY_VACCINES', 'VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_PHARMACY', 'VETERINARY_DOCTOR', 'VETERINARY_SCHEDULE', 'VETERINARY_ONLINE_CONSULT'],
+        'Vitals Staff': ['VETERINARY_CORE', 'VETERINARY_VITALS']
     }
 
     @staticmethod
-    def get_permissions_for_role(role_name):
-        # Case insensitive lookup
+    def get_permissions_for_role(role_name, organization_id=None):
+        """
+        Dynamically resolve permissions for a role.
+        Priority: 
+        1. Live call to Service Provider Service (for Custom Roles)
+        2. Hardcoded defaults (for System Roles)
+        """
+        if not role_name:
+            return ['VETERINARY_CORE']
+
+        # 1. Dynamic Resolution (Internal API Call)
+        if organization_id:
+            try:
+                # Clean role name for URL (no spaces etc)
+                import urllib.parse
+                safe_role = urllib.parse.quote(role_name)
+                url = f"http://127.0.0.1:8002/api/provider/roles/resolve/?org_id={organization_id}&role_name={safe_role}"
+                
+                with urllib.request.urlopen(url, timeout=2) as response:
+                    if response.status == 200:
+                        data = json.loads(response.read().decode())
+                        caps = data.get('capabilities')
+                        if caps:
+                            print(f"✅ Resolved role '{role_name}' dynamically from Provider Service.")
+                            return caps
+            except Exception as e:
+                # Silent fail, fallback to hardcoded
+                print(f"⚠️ Failed to resolve role '{role_name}' dynamically: {e}")
+
+        # 2. Hardcoded Fallback
         for key, perms in RolePermissionService.ROLE_PERMISSIONS.items():
             if key.lower() == role_name.lower():
                 return perms
-        return ['VETERINARY_CORE'] # Fallback default
+        
+        return ['VETERINARY_CORE'] # Absolute fallback

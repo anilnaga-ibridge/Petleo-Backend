@@ -64,6 +64,7 @@ class PetOwner(TimeStampedModel):
     email = models.EmailField(blank=True, null=True)
     phone = models.CharField(max_length=50)
     address = models.TextField(blank=True, null=True)
+    created_by = models.CharField(max_length=255, null=True, blank=True, help_text="Auth User ID of staff who registered this owner")
     
     class Meta:
         unique_together = ('clinic', 'phone')
@@ -84,6 +85,7 @@ class Pet(TimeStampedModel):
     notes = models.TextField(blank=True, null=True)
     tag = models.CharField(max_length=100, blank=True, null=True)
     is_active = models.BooleanField(default=True)
+    created_by = models.CharField(max_length=255, null=True, blank=True, help_text="Auth User ID of staff who registered this pet")
     
     def __str__(self):
         return f"{self.name} ({self.species})"
@@ -110,6 +112,7 @@ class Visit(TimeStampedModel):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     clinic = models.ForeignKey(Clinic, on_delete=models.CASCADE, related_name='visits')
     pet = models.ForeignKey(Pet, on_delete=models.CASCADE, related_name='visits')
+    service_id = models.CharField(max_length=255, null=True, blank=True, help_text="ID of the service (Grooming, Veterinary, etc.)")
     status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='CREATED')
     visit_type = models.CharField(max_length=20, choices=VISIT_TYPE_CHOICES, default='OFFLINE')
     reason = models.TextField(blank=True, null=True, help_text="Reason for the visit / Chief Complaint")
@@ -124,6 +127,7 @@ class Visit(TimeStampedModel):
     prescription_finalized_at = models.DateTimeField(null=True, blank=True)
     pharmacy_completed_at = models.DateTimeField(null=True, blank=True) # Added per spec (alias for medicines_dispensed)
     closed_at = models.DateTimeField(null=True, blank=True)
+    created_by = models.CharField(max_length=255, null=True, blank=True, help_text="Auth User ID of staff who created this visit")
     
     def __str__(self):
         return f"Visit {self.id} ({self.status})"

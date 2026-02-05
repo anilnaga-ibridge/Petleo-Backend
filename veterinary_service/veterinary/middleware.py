@@ -19,13 +19,7 @@ class VeterinaryPermissionMiddleware(MiddlewareMixin):
     Supports multi-clinic context resolution via assignments.
     """
     def process_request(self, request):
-        log_file = "/Users/PraveenWorks/Anil Works/Petleo-Backend/veterinary_service/middleware_trace.log"
-        def log(msg):
-            try:
-                with open(log_file, "a") as f:
-                    f.write(f"{timezone.now()} - {msg}\n")
-            except:
-                pass
+        from .log_utils import log_mw as log
 
         log("--- Request Started ---")
         log(f"Path: {request.path}")

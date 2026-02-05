@@ -263,7 +263,7 @@ def get_effective_provider_user(auth_user):
         # 1. Check if employee
         # We must use auth_user.auth_user_id because OrganizationEmployee links via Auth ID
         employee = OrganizationEmployee.objects.get(auth_user_id=auth_user.auth_user_id)
-        if employee.status == 'active':
+        if employee.status.upper() == 'ACTIVE':
             # print(f"DEBUG: User is active employee of {employee.organization.id}")
             return employee.organization.verified_user
     except OrganizationEmployee.DoesNotExist:
@@ -947,7 +947,7 @@ class ProviderPricingViewSet(viewsets.ModelViewSet):
                     category_id=str(real_cat.id),
                     facility=real_fac,
                     price=t_price.price,
-                    duration=t_price.duration,
+                    duration_minutes=t_price.duration_minutes,
                     description=t_price.description,
                     is_active=False # This hides it
                 )
@@ -1017,7 +1017,7 @@ class ProviderPricingViewSet(viewsets.ModelViewSet):
                 data["facility"] = real_fac.id if real_fac else None
                 
                 if not data.get("duration"):
-                    data["duration"] = t_price.duration
+                    data["duration"] = t_price.duration_minutes
 
                 serializer = self.get_serializer(data=data)
                 serializer.is_valid(raise_exception=True)
@@ -1086,14 +1086,15 @@ class ProviderPricingViewSet(viewsets.ModelViewSet):
 
                     template_data.append({
                         "id": f"TEMPLATE_{t.id}",
-                        "original_id": str(t.id),
+                        "original_id": t.super_admin_pricing_id,
                         "service_id": service_id,
                         "category_id": cat_id,
                         "category_name": cat_name,
                         "facility": t.facility.super_admin_facility_id if t.facility else None,
                         "facility_name": t.facility.name if t.facility else "All Facilities",
                         "price": str(t.price),
-                        "duration": t.duration,
+                        "billing_unit": t.billing_unit,
+                        "duration": t.duration_minutes,
                         "description": t.description,
                         "is_template": True,
                         "is_active": True
@@ -1131,7 +1132,7 @@ class ProviderPricingViewSet(viewsets.ModelViewSet):
             
             f_key = f_sa_id if f_sa_id else (str(p.facility.id) if p.facility else "None")
             s = str(p.service_id) if p.service_id else "None"
-            d = str(p.duration)
+            d = str(p.duration_minutes)
             shadow_map.add((s, f_key, d))
 
         # 4. Merge

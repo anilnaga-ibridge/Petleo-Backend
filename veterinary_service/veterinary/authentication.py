@@ -58,17 +58,26 @@ class ShadowUserAuthentication(JWTAuthentication):
             
             # Fetch Staff Profile
             from .models import VeterinaryStaff, StaffClinicAssignment
+            perm_log(f"\n{'='*80}")
+            perm_log(f"🔍 STAFF PERMISSION LOADING: user_id={user_id}")
+            perm_log(f"{'='*80}")
+            
             staff = VeterinaryStaff.objects.filter(auth_user_id=user_id).first()
             
             if staff:
+                perm_log(f"✅ Staff Profile Found: ID={staff.id}, Role={staff.role}")
+                perm_log(f"📋 Staff Base Permissions: {staff.permissions}")
+                
                 assignment = None
                 if target_clinic_id:
+                    perm_log(f"🎯 Looking for clinic-specific assignment: clinic_id={target_clinic_id}")
                     assignment = StaffClinicAssignment.objects.filter(
                         staff=staff, clinic_id=target_clinic_id, is_active=True
                     ).first()
                 
                 if not assignment:
                     # Fallback to primary if no clinic targeted, or if target invalid
+                    perm_log(f"🏠 Falling back to primary assignment")
                     assignment = StaffClinicAssignment.objects.filter(
                         staff=staff, is_primary=True, is_active=True
                     ).first()
@@ -77,18 +86,28 @@ class ShadowUserAuthentication(JWTAuthentication):
                     user.permissions = assignment.permissions
                     user.clinic_id = assignment.clinic_id
                     user.role = assignment.role or staff.role
-                    perm_log(f"ShadowAuth: Assignment Found. Perms={len(user.permissions)}")
+                    perm_log(f"✅ Assignment Found:")
+                    perm_log(f"   - Clinic ID: {assignment.clinic_id}")
+                    perm_log(f"   - Role: {assignment.role}")
+                    perm_log(f"   - Permissions: {assignment.permissions}")
+                    perm_log(f"   - Permission Count: {len(user.permissions)}")
+                    perm_log(f"   - Is Primary: {assignment.is_primary}")
+                    perm_log(f"   - Is Active: {assignment.is_active}")
                 else:
                     # Fallback to Staff Base permissions
                     user.permissions = staff.permissions
                     user.role = staff.role
                     user.clinic_id = staff.clinic.id if staff.clinic else None
-                    perm_log(f"ShadowAuth: No Assignment. Using Base Perms={len(user.permissions)}")
+                    perm_log(f"⚠️ No Assignment Found. Using Base Staff Permissions:")
+                    perm_log(f"   - Permissions: {staff.permissions}")
+                    perm_log(f"   - Permission Count: {len(user.permissions)}")
+                    perm_log(f"   - Clinic ID: {user.clinic_id}")
                     
             else:
-                perm_log("ShadowAuth: No Staff Profile found.")
+                perm_log("❌ No Staff Profile found for this user")
         
-        perm_log(f"ShadowAuth: Final Permissions: {user.permissions}")
+        perm_log(f"🎯 FINAL AUTH PERMISSIONS: {user.permissions}")
+        perm_log(f"{'='*80}\n")
         
         return user, validated_token
 

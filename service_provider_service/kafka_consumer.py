@@ -60,9 +60,9 @@ for message in consumer:
         logger.info(f"🔥 Event: {event_type} | Role: {role} | Service: {service}")
 
         # -----------------------------
-        # SKIP ADMIN EVENTS
+        # SKIP ADMIN EVENTS (EXCEPT DELETION)
         # -----------------------------
-        if role in ["admin", "super_admin"] and event_type.startswith("USER_"):
+        if role in ["admin", "super_admin"] and event_type.startswith("USER_") and event_type != "USER_DELETED":
             logger.info("⏭️ Skipping admin/super_admin user event")
             continue
 
@@ -281,6 +281,7 @@ for message in consumer:
                     user = VerifiedUser.objects.get(auth_user_id=auth_user_id)
                     
                     logger.info(f"DEBUG: [KAFKA RECV] provider.permissions.updated | User: {auth_user_id}")
+                    logger.info(f"DEBUG: Payload Keys: {list(data.keys())}")
                     if templates:
                         logger.info(f"DEBUG: Templates Received - Services: {len(templates.get('services', []))}, Cats: {len(templates.get('categories', []))}")
                     
@@ -401,6 +402,21 @@ for message in consumer:
                                     # 2. Persist Rows
                                     for fac_obj, unique_sa_id in target_facilities:
                                         cat_obj = fac_obj.category
+                                        
+                                        # ⚠️ CRITICAL FIX #1: BILLING UNIT VALIDATION
+                                        # Previously: duration field accepted null, causing NOT NULL violations
+                                        # Now: Validate billing_unit and handle duration_minutes correctly
+                                        billing_unit = price.get("billing_unit", "PER_SESSION")
+                                        duration_minutes = price.get("duration_minutes")  # Can be None
+                                        
+                                        # Defensive validation: ensure billing_unit is valid
+                                        VALID_BILLING_UNITS = ["HOURLY", "DAILY", "WEEKLY", "PER_SESSION", "ONE_TIME"]
+                                        if billing_unit not in VALID_BILLING_UNITS:
+                                            logger.warning(f"⚠️ Invalid billing_unit '{billing_unit}', defaulting to PER_SESSION")
+                                            billing_unit = "PER_SESSION"
+                                        
+                                        # Log for transparency
+                                        logger.debug(f"💰 Pricing: {fac_obj.name} = ₹{price['price']} ({billing_unit}, {duration_minutes}min)")
 
                                         ProviderTemplatePricing.objects.update_or_create(
                                             super_admin_pricing_id=unique_sa_id,
@@ -409,7 +425,8 @@ for message in consumer:
                                                 "category": cat_obj,
                                                 "facility": fac_obj,
                                                 "price": price["price"],
-                                                "duration": price.get("duration") or price.get("duration_minutes", "fixed"),
+                                                "billing_unit": billing_unit,
+                                                "duration_minutes": duration_minutes,  # Explicitly None if not provided
                                                 "description": price.get("description", "")
                                             }
                                         )
@@ -422,14 +439,20 @@ for message in consumer:
                         # 2. SYNC PERMISSIONS (ProviderCapabilityAccess)
                         plan_id = data.get("purchased_plan", {}).get("plan_id")
                         
-                        # 🛡️ CRITICAL FIX: ALWAYS CLEAR EXISTING PERMISSIONS
-                        # This ensures the new plan replaces the old one entirely.
+                        # 🛡️ CRITICAL FIX #3: NEVER SET VETERINARY_CORE UNCONDITIONALLY
+                        # ⚠️ WARNING: DO NOT CHANGE THIS TO user.permissions = ["VETERINARY_CORE"]
+                        # That causes the Veterinary Dashboard to appear for ALL providers,
+                        # even those without veterinary services.
+                        # 
+                        # Why empty list?
+                        # - If transaction succeeds: permissions populated correctly later (line 581)
+                        # - If transaction fails: user has NO permissions (safe state)
+                        # - VETERINARY_CORE is ONLY added IF veterinary capabilities exist (line 577)
                         ProviderCapabilityAccess.objects.filter(user=user).delete()
                         AllowedService.objects.filter(verified_user=user).delete()
-                        # Reset user permissions to base state
-                        user.permissions = ["VETERINARY_CORE"]
+                        user.permissions = []  # ✅ Must start EMPTY
                         
-                        logger.info(f"🧹 Cleared old permissions for user {auth_user_id}")
+                        logger.info(f"🧹 Cleared old permissions for user {auth_user_id} → permissions=[]")
                         
                         # Dictionary to track unique permissions: (service, category, facility, pricing) -> dict
                         perms_map = {}
@@ -496,6 +519,11 @@ for message in consumer:
                             )
 
                         # Create new permissions objects
+                        logger.info(f"DEBUG: perms_map size: {len(perms_map)}")
+                        if perms_map:
+                            sample_keys = list(perms_map.keys())[:3]
+                            logger.info(f"DEBUG: Sample perms_map keys: {sample_keys}")
+                        
                         new_perms = []
                         for p_data in perms_map.values():
                             new_perms.append(ProviderCapabilityAccess(
@@ -511,8 +539,31 @@ for message in consumer:
                                 can_delete=p_data["can_delete"],
                             ))
                         
+                        logger.info(f"DEBUG: About to bulk_create {len(new_perms)} ProviderCapabilityAccess records")
                         if new_perms:
                             ProviderCapabilityAccess.objects.bulk_create(new_perms)
+                            logger.info(f"DEBUG: bulk_create completed successfully")
+                            
+                            # 🛡️ Audit Log
+                            from service_provider.models import PermissionAuditLog
+                            PermissionAuditLog.log_action(
+                                actor=None,
+                                action='PLAN_SYNCED_KAFKA',
+                                details={
+                                    'plan_id': plan_id,
+                                    'capability_count': len(new_perms),
+                                    'user_email': user.email
+                                }
+                            )
+
+                            # 🔄 Manual Cache Invalidation (signals don't trigger for bulk_create)
+                            try:
+                                provider_profile = user.provider_profile
+                                for emp in provider_profile.employees.all():
+                                    emp.invalidate_permission_cache()
+                                logger.info(f"🗑️ Invalidated cache for {provider_profile.employees.count()} employees")
+                            except Exception as e:
+                                logger.warning(f"⚠️ Failed to invalidate cache: {e}")
                         
                         # REBUILD AllowedService from current plan
                         unique_allowed = {}
@@ -541,12 +592,35 @@ for message in consumer:
                     if linked_caps:
                         # 🛡️ REPLACE permissions to remove old ones
                         updated_perms = list(set(linked_caps))
-                        if "VETERINARY_CORE" not in updated_perms:
-                            updated_perms.append("VETERINARY_CORE")
+                        
+                        # ⚠️ CRITICAL FIX #2: CONDITIONAL VETERINARY_CORE ADDITION
+                        # WARNING: NEVER add VETERINARY_CORE unconditionally!
+                        # Previously: if linked_caps: → VETERINARY_CORE added for ANY service
+                        # Now: Only add if VETERINARY_* capabilities exist
+                        
+                        # Defensive check: filter only VETERINARY_* capabilities
+                        vet_capabilities = [cap for cap in updated_perms if cap.startswith("VETERINARY_")]
+                        has_vet_capabilities = len(vet_capabilities) > 0
+                        
+                        # Detailed logging for transparency
+                        logger.info(f"📋 Linked capabilities: {updated_perms}")
+                        logger.info(f"🏥 Veterinary capabilities: {vet_capabilities}")
+                        
+                        if has_vet_capabilities:
+                            if "VETERINARY_CORE" not in updated_perms:
+                                updated_perms.append("VETERINARY_CORE")
+                                logger.info(f"✅ Auto-added VETERINARY_CORE (vet capabilities detected: {vet_capabilities})")
+                            else:
+                                logger.info(f"ℹ️  VETERINARY_CORE already present")
+                        else:
+                            logger.info(f"⏭️  Skipping VETERINARY_CORE (no veterinary capabilities in plan)")
                             
                         user.permissions = updated_perms
                         user.save()
-                        logger.info(f"✅ Replaced user capabilities: {updated_perms}")
+                        logger.info(f"✅ Final user capabilities: {updated_perms}")
+                    else:
+                        # No linked capabilities at all
+                        logger.info(f"ℹ️  No linked capabilities found, user.permissions remains empty")
                     
                     # 4. SYNC SUBSCRIPTION
                     purchased_plan_info = data.get("purchased_plan", {})
@@ -570,8 +644,14 @@ for message in consumer:
                         logger.info(f"✅ Synced Subscription for user {auth_user_id}")
 
                     # 5. DYNAMIC CAPABILITIES (NEW System)
+                    # 5. DYNAMIC CAPABILITIES (NEW System)
+                    # Support both "dynamic_capabilities" (new) and "capabilities" (legacy/migration)
                     dynamic_caps = data.get("dynamic_capabilities") or data.get("data", {}).get("dynamic_capabilities")
-                    logger.info(f"DEBUG: dynamic_caps raw: {dynamic_caps}")
+                    if not dynamic_caps:
+                        dynamic_caps = data.get("capabilities") or data.get("data", {}).get("capabilities")
+                    
+                    logger.info(f"DEBUG: Capabilities Processing | Raw Count: {len(dynamic_caps) if dynamic_caps else 0}")
+
                     if dynamic_caps:
                         from service_provider.models import Capability, FeatureModule, ProviderCapability
                         
@@ -579,8 +659,16 @@ for message in consumer:
                         ProviderCapability.objects.filter(user=user).delete()
                         
                         for cap_data in dynamic_caps:
-                            cap_key = cap_data["capability_key"]
-                            modules_list = cap_data.get("modules", [])
+                            # Handle simple string list ["DayCare", "Grooming"]
+                            if isinstance(cap_data, str):
+                                cap_key = cap_data
+                                modules_list = []
+                            else:
+                                cap_key = cap_data.get("capability_key")
+                                modules_list = cap_data.get("modules", [])
+
+                            if not cap_key:
+                                continue
                             
                             # Ensure Capability exists
                             capability_obj, _ = Capability.objects.get_or_create(

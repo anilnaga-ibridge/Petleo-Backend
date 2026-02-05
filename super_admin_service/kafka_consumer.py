@@ -437,9 +437,9 @@ while True:
                 continue
 
             # -----------------------------
-            # FILTER: Only Admin/SuperAdmin
+            # FILTER: Only Admin/SuperAdmin (EXCEPT DELETION)
             # -----------------------------
-            if role in ["individual", "organization", "employee"]:
+            if role in ["individual", "organization", "employee"] and event_type != "USER_DELETED":
                 logger.info(f"⏭️ Skipping {role} event (handled by Service Provider Service)")
                 continue
 

@@ -1,15 +1,25 @@
-
 def get_clinic_context(request):
     """
     Robustly resolve clinic_id from request.
-    1. Checks if already attached to request.user (via Middleware/Auth)
-    2. Checks request headers (X-Clinic-ID) or query params as a backup.
-    STRICT: No auto-guessing for Multi-Clinic Organizations.
+    STRICT: Only use the clinic_id validated by Middleware or Authentication.
     """
-    clinic_id = getattr(request.user, 'clinic_id', None)
-    if not clinic_id:
-        clinic_id = request.headers.get('X-Clinic-ID') or request.GET.get('clinic_id')
-    return clinic_id
+    return getattr(request.user, 'clinic_id', None)
+
+def get_auth_user_id(request):
+    """
+    Robustly resolve auth_user_id (UUID string) from request.
+    In this system, request.user.username is usually the UUID from Auth Service.
+    """
+    if hasattr(request.auth, 'get') and request.auth:
+        auth_uid = request.auth.get('user_id')
+        if auth_uid: return str(auth_uid)
+    
+    # Fallback to username if it looks like a UUID
+    username = getattr(request.user, 'username', '')
+    if len(username) > 30: # Likely a UUID
+        return username
+        
+    return str(request.user.id) if getattr(request.user, 'id', None) else None
 from rest_framework import viewsets, permissions, status
 from rest_framework.response import Response
 from rest_framework.decorators import action
@@ -120,6 +130,17 @@ class PetOwnerViewSet(viewsets.ModelViewSet):
             return PetOwner.objects.filter(clinic_id=clinic_id)
         return PetOwner.objects.none()
 
+    def perform_create(self, serializer):
+        clinic_id = get_clinic_context(self.request)
+        if not clinic_id:
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError("No active clinic context found. Please select a clinic.")
+        
+        serializer.save(
+            clinic_id=clinic_id,
+            created_by=get_auth_user_id(self.request)
+        )
+
 class PetViewSet(viewsets.ModelViewSet):
     serializer_class = PetSerializer
     permission_classes = [permissions.IsAuthenticated, HasVeterinaryAccess]
@@ -181,14 +202,14 @@ class PetViewSet(viewsets.ModelViewSet):
                         }
                     )
                     log_trace(f"SAVING WITH NEW/FOUND OWNER: {owner.id} (Created: {created})")
-                    serializer.save(owner=owner)
+                    serializer.save(owner=owner, created_by=get_auth_user_id(self.request))
                     return
                 else:
                     log_trace("ERROR: owner_phone missing in payload.")
                     raise ValidationError({"owner_phone": "Owner phone is required for registration."})
 
             log_trace(f"SAVING WITH PROVIDED OWNER_ID: {owner_id}")
-            serializer.save()
+            serializer.save(created_by=get_auth_user_id(self.request))
             log_trace("SAVE SUCCESSFUL")
         except Exception as e:
             log_trace(f"CRITICAL ERROR IN PET CREATE: {str(e)}")
@@ -288,7 +309,7 @@ class VisitQueueViewSet(viewsets.ViewSet):
         """
         clinic_id = get_clinic_context(request)
         if not clinic_id:
-             return Response({'error': 'No active clinic context found'}, status=status.HTTP_400_BAD_REQUEST)
+             return Response([], status=status.HTTP_200_OK)
              
         # Map queue name to required capability
         REQUIRED_CAPS = {
@@ -347,15 +368,31 @@ class AnalyticsViewSet(viewsets.ViewSet):
     @feature_tier(PRO)
     def dashboard(self, request):
         """
-        GET /veterinary/analytics/dashboard?date=YYYY-MM-DD
+        GET /veterinary/analytics/dashboard?date=YYYY-MM-DD&service_id=UUID
         """
         clinic_id = get_clinic_context(request)
         if not clinic_id:
-             return Response({'error': 'No active clinic context found'}, status=status.HTTP_400_BAD_REQUEST)
+             return Response({})
              
         date_param = request.query_params.get('date')
-        metrics = ClinicAnalyticsService.get_dashboard_metrics(clinic_id, date_param)
+        service_id = request.query_params.get('service_id')
+        metrics = ClinicAnalyticsService.get_dashboard_metrics(clinic_id, date_param, service_id=service_id)
         return Response(metrics)
+
+    @action(detail=False, methods=['get'])
+    def summary(self, request):
+        """
+        GET /veterinary/analytics/summary
+        Real-time operational summary (Total, Status Counts, Queue).
+        """
+        clinic_id = get_clinic_context(request)
+        if not clinic_id:
+             return Response({})
+              
+        user_id = get_auth_user_id(request)
+        date_param = request.query_params.get('date')
+        data = ClinicAnalyticsService.get_live_summary(clinic_id, user_id=user_id, date_param=date_param)
+        return Response(data)
 
 class VisitViewSet(viewsets.ModelViewSet):
     serializer_class = VisitSerializer
@@ -369,13 +406,16 @@ class VisitViewSet(viewsets.ModelViewSet):
         return Visit.objects.none()
 
     def perform_create(self, serializer):
-        # [SENIOR DEV FIX] Auto-resolve clinic if missing from frontend
+        # [SENIOR DEV FIX] STRICT: Always use clinic from context, never trust frontend payload
         clinic_id = get_clinic_context(self.request)
-        
-        if not serializer.validated_data.get('clinic') and clinic_id:
-            instance = serializer.save(clinic_id=clinic_id)
-        else:
-            instance = serializer.save()
+        if not clinic_id:
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError("No active clinic context found. Please select a clinic.")
+            
+        instance = serializer.save(
+            clinic_id=clinic_id, 
+            created_by=get_auth_user_id(self.request)
+        )
 
         producer.send_event('VET_VISIT_CREATED', {
             'visit_id': str(instance.id),
@@ -383,6 +423,13 @@ class VisitViewSet(viewsets.ModelViewSet):
             'clinic_id': str(instance.clinic.id),
             'status': instance.status
         })
+
+        from .models import VeterinaryAuditLog
+        VeterinaryAuditLog.objects.create(
+            visit=instance,
+            action_type='VISIT_CREATED',
+            performed_by=str(self.request.user.id)
+        )
 
     def perform_update(self, serializer):
         # [SENIOR DEV FIX] Handle status transitions via standard update/patch
@@ -393,7 +440,7 @@ class VisitViewSet(viewsets.ModelViewSet):
         if new_status and new_status != old_status:
             try:
                 # Use WorkflowService to handle validation and side effects (timestamps, etc.)
-                WorkflowService.transition_visit(visit, new_status)
+                WorkflowService.transition_visit(visit, new_status, user_role=get_auth_user_id(self.request))
                 # Remove status from validated_data so serializer doesn't re-save it
                 serializer.validated_data.pop('status')
             except ValueError as e:
@@ -403,26 +450,41 @@ class VisitViewSet(viewsets.ModelViewSet):
         serializer.save()
 
     @action(detail=True, methods=['post'], url_path='check-in')
-    @require_capability('VETERINARY_VISITS')
     def check_in(self, request, pk=None):
+        from rest_framework.exceptions import PermissionDenied
         visit = self.get_object()
+        
+        # [PERMISSION CHECK]
+        # If it's a Core Veterinary Visit (no service_id), enforce VETERINARY_VISITS
+        if not visit.service_id:
+            user_perms = getattr(request.user, 'permissions', [])
+            if 'VETERINARY_VISITS' not in user_perms:
+                raise PermissionDenied("You do not have permission to check-in veterinary visits.")
+        
         try:
-            WorkflowService.transition_visit(visit, 'CHECKED_IN')
+            WorkflowService.transition_visit(visit, 'CHECKED_IN', user_role=get_auth_user_id(request))
             return Response({'status': 'success', 'new_status': visit.status})
         except ValueError as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=True, methods=['post'])
-    @require_capability(['VETERINARY_VISITS', 'VETERINARY_DOCTOR']) # Basic capability, specific transitions might need more
     def transition(self, request, pk=None):
         """
         Transition visit status.
         Body: {"status": "NEW_STATUS"}
         """
+        from rest_framework.exceptions import PermissionDenied
         visit = self.get_object()
+        
+        # [PERMISSION CHECK]
+        if not visit.service_id:
+            user_perms = getattr(request.user, 'permissions', [])
+            if 'VETERINARY_VISITS' not in user_perms and 'VETERINARY_DOCTOR' not in user_perms:
+                 raise PermissionDenied("You do not have permission to transition veterinary visits.")
+
         new_status = request.data.get('status')
         try:
-            WorkflowService.transition_visit(visit, new_status)
+            WorkflowService.transition_visit(visit, new_status, user_role=get_auth_user_id(request))
             return Response({'status': 'success', 'new_status': visit.status})
         except ValueError as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
@@ -457,7 +519,7 @@ class VisitViewSet(viewsets.ModelViewSet):
                 visit.id, 
                 form_code, 
                 request.data, 
-                request.user.id # Assuming user ID is available
+                get_auth_user_id(request)
             )
             return Response(FormSubmissionSerializer(submission).data, status=status.HTTP_201_CREATED)
         except ValueError as e:
@@ -493,15 +555,16 @@ class PetOwnerClientViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         # Filter visits where the pet belongs to the logged-in user
-        # In a real app, we'd link request.user.id to PetOwner.auth_user_id
-        return Visit.objects.filter(pet__owner__auth_user_id=self.request.user.id).order_by('-created_at')
+        user_id = get_auth_user_id(self.request)
+        return Visit.objects.filter(pet__owner__auth_user_id=user_id).order_by('-created_at')
 
     @action(detail=False, methods=['get'])
     def pets(self, request):
         """
         GET /veterinary/pet-owner/pets
         """
-        pets = Pet.objects.filter(owner__auth_user_id=request.user.id)
+        user_id = get_auth_user_id(request)
+        pets = Pet.objects.filter(owner__auth_user_id=user_id)
         return Response(PetSerializer(pets, many=True).data)
 
     @action(detail=False, methods=['get'])
@@ -518,7 +581,8 @@ class PetOwnerClientViewSet(viewsets.ReadOnlyModelViewSet):
         GET /veterinary/pet-owner/visit/{id}
         """
         try:
-            visit = Visit.objects.get(id=visit_id, pet__owner__auth_user_id=request.user.id)
+            user_id = get_auth_user_id(request)
+            visit = Visit.objects.get(id=visit_id, pet__owner__auth_user_id=user_id)
             return Response(VisitDetailSerializer(visit).data)
         except Visit.DoesNotExist:
             return Response({'error': 'Visit not found'}, status=status.HTTP_404_NOT_FOUND)
@@ -568,10 +632,26 @@ class PetOwnerClientViewSet(viewsets.ReadOnlyModelViewSet):
         return Response(FormSubmissionSerializer(submissions, many=True).data)
 
 class FormDefinitionViewSet(viewsets.ModelViewSet):
-    queryset = FormDefinition.objects.all()
     serializer_class = FormDefinitionSerializer
     permission_classes = [permissions.IsAuthenticated, HasVeterinaryAccess]
     lookup_field = 'code'
+
+    def get_queryset(self):
+        clinic_id = get_clinic_context(self.request)
+        from django.db.models import Q
+        # Global forms (clinic=None) OR specifically for this clinic
+        if clinic_id:
+            return FormDefinition.objects.filter(Q(clinic_id=clinic_id) | Q(clinic__isnull=True))
+        return FormDefinition.objects.filter(clinic__isnull=True)
+
+    def perform_create(self, serializer):
+        # [SENIOR DEV FIX] STRICT: Organizations cannot create global forms.
+        clinic_id = get_clinic_context(self.request)
+        if not clinic_id:
+             from rest_framework.exceptions import PermissionDenied
+             raise PermissionDenied("Clinic context required to create form definitions.")
+        
+        serializer.save(clinic_id=clinic_id)
 
 # ========================
 # PHASE 3: EXECUTION VIEWSETS
@@ -586,11 +666,9 @@ class LabViewSet(viewsets.ViewSet):
         """
         List pending lab orders for the clinic.
         """
-        # Assuming clinic_id is available in user context or request
-        # For Phase 3, we'll extract it from the user's profile or request params
-        clinic_id = getattr(request.user, 'clinic_id', None)
+        clinic_id = get_clinic_context(request)
         if not clinic_id:
-             return Response({'error': 'No active clinic context found'}, status=status.HTTP_400_BAD_REQUEST)
+             return Response([], status=status.HTTP_200_OK)
              
         orders = LabService.get_pending_lab_orders(clinic_id)
         return Response(orders)
@@ -604,9 +682,9 @@ class PharmacyViewSet(viewsets.ViewSet):
         """
         List pending prescriptions.
         """
-        clinic_id = getattr(request.user, 'clinic_id', None)
+        clinic_id = get_clinic_context(request)
         if not clinic_id:
-             return Response({'error': 'No active clinic context found'}, status=status.HTTP_400_BAD_REQUEST)
+             return Response([], status=status.HTTP_200_OK)
              
         submissions = PharmacyService.get_pending_prescriptions(clinic_id)
         return Response(FormSubmissionSerializer(submissions, many=True).data)
@@ -622,9 +700,17 @@ class PharmacyViewSet(viewsets.ViewSet):
         if not submission_id:
             return Response({'error': 'submission_id required'}, status=status.HTTP_400_BAD_REQUEST)
             
+        clinic_id = get_clinic_context(request)
+        if not clinic_id:
+             return Response({'error': 'No clinic context found'}, status=status.HTTP_400_BAD_REQUEST)
+
         try:
-            dispense = PharmacyService.dispense_medicines(submission_id, request.user.id)
+            # Secure by ensuring submission belongs to clinic
+            submission = FormSubmission.objects.get(id=submission_id, visit__clinic_id=clinic_id)
+            dispense = PharmacyService.dispense_medicines(submission.id, get_auth_user_id(request))
             return Response(PharmacyDispenseSerializer(dispense).data)
+        except FormSubmission.DoesNotExist:
+            return Response({'error': 'Prescription not found in this clinic'}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -636,18 +722,37 @@ class ReminderViewSet(viewsets.ViewSet):
         """
         Confirm a reminder (mark as COMPLETED).
         """
+        clinic_id = get_clinic_context(request)
+        if not clinic_id:
+             return Response({'error': 'No clinic context found'}, status=status.HTTP_400_BAD_REQUEST)
+
         try:
-            reminder = MedicationReminder.objects.get(id=pk)
+            # Secure by ensuring reminder belongs to clinic
+            reminder = MedicationReminder.objects.get(id=pk, visit__clinic_id=clinic_id)
             reminder.status = 'COMPLETED'
             reminder.save()
             return Response({'status': 'success'})
         except MedicationReminder.DoesNotExist:
-            return Response({'error': 'Reminder not found'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'error': 'Reminder not found in this clinic'}, status=status.HTTP_404_NOT_FOUND)
 
 class DynamicFieldDefinitionViewSet(viewsets.ModelViewSet):
-    queryset = DynamicFieldDefinition.objects.all()
     serializer_class = DynamicFieldDefinitionSerializer
     permission_classes = [permissions.IsAuthenticated, HasVeterinaryAccess]
+
+    def get_queryset(self):
+        clinic_id = get_clinic_context(self.request)
+        if clinic_id:
+            return DynamicFieldDefinition.objects.filter(clinic_id=clinic_id)
+        return DynamicFieldDefinition.objects.none()
+
+    def perform_create(self, serializer):
+        # [SENIOR DEV FIX] Enforce clinic from context
+        clinic_id = get_clinic_context(self.request)
+        if not clinic_id:
+             from rest_framework.exceptions import PermissionDenied
+             raise PermissionDenied("Cloud context required to create field definitions.")
+             
+        serializer.save(clinic_id=clinic_id)
 
 class DynamicEntityViewSet(viewsets.ViewSet):
     """
@@ -841,20 +946,16 @@ class StaffAssignmentViewSet(viewsets.ModelViewSet):
         return qs
 
     def perform_create(self, serializer):
+        # [SENIOR DEV FIX] Enforce organization ownership of the target clinic
         user = self.request.user
         org_id = str(user.id)
         if hasattr(self.request.auth, 'get'):
              org_id = self.request.auth.get('user_id') or org_id
              
-        # Validate that the clinic belongs to this organization
         clinic = serializer.validated_data.get('clinic')
-        if str(clinic.organization_id) != org_id:
+        if clinic and str(clinic.organization_id) != str(org_id):
              from rest_framework.exceptions import PermissionDenied
-             raise PermissionDenied("You can only assign staff to your own clinics.")
-             
-        # Check if staff object exists properly
-        staff = serializer.validated_data.get('staff')
-        # If staff doesn't exist in VeterinaryStaff yet, we might need to auto-create it?
-        # Assuming staff exists because FE will likely pick from existing list.
+             raise PermissionDenied("You can only assign staff to clinics you own.")
              
         serializer.save()
+

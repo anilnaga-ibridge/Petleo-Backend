@@ -668,3 +668,1202 @@ DETAIL:  Key (auth_user_id)=(5d560f6b-a1cb-4025-b7bb-87ef212f8a1c) is still refe
 2026-02-02 09:55:40,592 [INFO] 🔄 Updated VerifiedUser lavanya@gmail.com
 2026-02-03 05:10:25,700 [INFO] 🚀 Starting Service Provider Unified Kafka Consumer...
 2026-02-03 05:10:25,713 [INFO] ✅ Connected to Kafka broker.
+2026-02-03 12:43:40,255 [INFO] 🔥 Event: SEND_EMAIL | Role: organization | Service: auth_service
+2026-02-03 12:43:40,258 [WARNING] ⚠️ Unknown event type 'SEND_EMAIL' received.
+2026-02-03 12:43:40,265 [INFO] 🔥 Event: USER_CREATED | Role: organization | Service: auth_service
+2026-02-03 12:43:40,265 [INFO] DEBUG: Checking role 'organization' against employee list...
+2026-02-03 12:43:40,372 [INFO] ✅ Created VerifiedUser ani@gmail.com
+2026-02-03 12:43:40,382 [INFO] ✅ Auto-created ServiceProvider profile for ani@gmail.com
+2026-02-03 12:44:06,661 [INFO] 🔥 Event: USER_VERIFIED | Role: organization | Service: auth_service
+2026-02-03 12:44:06,661 [INFO] DEBUG: Checking role 'organization' against employee list...
+2026-02-03 12:44:06,668 [INFO] 🔄 Updated VerifiedUser ani@gmail.com
+2026-02-03 12:48:17,011 [INFO] 🔥 Event: PROVIDER.PERMISSIONS.UPDATED | Role:  | Service: None
+2026-02-03 12:48:17,013 [INFO] DEBUG: [KAFKA RECV] provider.permissions.updated | User: a85d0e4c-58fd-49ba-b3fd-6d3a06d3cf1d
+2026-02-03 12:48:17,013 [INFO] DEBUG: Templates Received - Services: 4, Cats: 10
+2026-02-03 12:48:17,131 [ERROR] ❌ Error updating permissions for a85d0e4c-58fd-49ba-b3fd-6d3a06d3cf1d: null value in column "duration" of relation "provider_dynamic_fields_providertemplatepricing" violates not-null constraint
+DETAIL:  Failing row contains (fc7f79b8-4869-4e14-bc09-40717445ba24, bd74d4ca-9b72-4373-b524-ad5f83405004, 45.00, null, , 2026-02-03 12:48:17.128555+00, 2026-02-03 12:48:17.128571+00, df9cd628-af84-4960-b5b4-acc53406fdfa, 091382ba-3857-4ed3-8341-66d35ddcf17e, 0a60e990-0b31-44ff-89ec-5b9c691d410c).
+
+2026-02-03 12:48:17,131 [INFO] 📤 Publishing Permissions Sync: 0 items enriched
+2026-02-03 12:48:17,263 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-02-03 12:48:17,263 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-02-04 04:55:53,247 [INFO] 🚀 Starting Service Provider Unified Kafka Consumer...
+2026-02-04 04:55:53,260 [INFO] ✅ Connected to Kafka broker.
+2026-02-04 05:13:12,907 [INFO] 🔥 Event: SEND_EMAIL | Role: organization | Service: auth_service
+2026-02-04 05:13:12,908 [WARNING] ⚠️ Unknown event type 'SEND_EMAIL' received.
+2026-02-04 05:13:12,913 [INFO] 🔥 Event: USER_CREATED | Role: organization | Service: auth_service
+2026-02-04 05:13:12,913 [INFO] DEBUG: Checking role 'organization' against employee list...
+2026-02-04 05:13:12,965 [INFO] ✅ Created VerifiedUser vinod@gmail.com
+2026-02-04 05:13:12,971 [INFO] ✅ Auto-created ServiceProvider profile for vinod@gmail.com
+2026-02-04 05:13:45,985 [INFO] 🔥 Event: USER_VERIFIED | Role: organization | Service: auth_service
+2026-02-04 05:13:45,985 [INFO] DEBUG: Checking role 'organization' against employee list...
+2026-02-04 05:13:45,990 [INFO] 🔄 Updated VerifiedUser vinod@gmail.com
+2026-02-04 05:14:20,369 [INFO] 🔥 Event: PROVIDER.PERMISSIONS.UPDATED | Role:  | Service: None
+2026-02-04 05:14:20,370 [INFO] DEBUG: [KAFKA RECV] provider.permissions.updated | User: 1a7fffd1-9187-49fb-8cbf-d3b678e4072f
+2026-02-04 05:14:20,370 [INFO] DEBUG: Templates Received - Services: 4, Cats: 10
+2026-02-04 05:14:20,501 [ERROR] ❌ Error updating permissions for 1a7fffd1-9187-49fb-8cbf-d3b678e4072f: null value in column "duration" of relation "provider_dynamic_fields_providertemplatepricing" violates not-null constraint
+DETAIL:  Failing row contains (3b57d11f-ec2e-48f8-bdab-cd182132eb35, bd74d4ca-9b72-4373-b524-ad5f83405004, 45.00, null, , 2026-02-04 05:14:20.496914+00, 2026-02-04 05:14:20.496932+00, fc8d9791-2895-42b5-a6ab-41cd8c999a42, cbd9c8a9-fd30-42ae-9643-05fd838d1f6e, fb91a5a7-a9cc-4691-9ceb-764096e49145).
+
+2026-02-04 05:14:20,501 [INFO] 📤 Publishing Permissions Sync: 0 items enriched
+2026-02-04 05:14:20,628 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-02-04 05:14:20,628 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-02-04 05:27:06,942 [INFO] 🔥 Event: PROVIDER.PERMISSIONS.UPDATED | Role:  | Service: None
+2026-02-04 05:27:06,944 [INFO] DEBUG: [KAFKA RECV] provider.permissions.updated | User: a85d0e4c-58fd-49ba-b3fd-6d3a06d3cf1d
+2026-02-04 05:27:06,945 [INFO] DEBUG: Templates Received - Services: 4, Cats: 10
+2026-02-04 05:27:07,034 [INFO] ✅ Synced Templates for user a85d0e4c-58fd-49ba-b3fd-6d3a06d3cf1d
+2026-02-04 05:27:07,037 [INFO] 🧹 Cleared old permissions for user a85d0e4c-58fd-49ba-b3fd-6d3a06d3cf1d
+2026-02-04 05:27:07,068 [INFO] ✅ Updated 24 capabilities for user a85d0e4c-58fd-49ba-b3fd-6d3a06d3cf1d
+2026-02-04 05:27:07,071 [INFO] ✅ Replaced user capabilities: ['VETERINARY_VITALS', 'VETERINARY_DOCTOR', 'VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_LABS', 'VETERINARY_VISITS', 'VETERINARY_PHARMACY', 'VETERINARY_CORE']
+2026-02-04 05:27:07,087 [INFO] ✅ Synced Subscription for user a85d0e4c-58fd-49ba-b3fd-6d3a06d3cf1d
+2026-02-04 05:27:07,087 [INFO] DEBUG: dynamic_caps raw: None
+2026-02-04 05:27:07,087 [INFO] 📤 Publishing Permissions Sync: 24 items enriched
+2026-02-04 05:27:07,111 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-02-04 05:27:07,111 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-02-04 05:29:14,643 [INFO] 🔥 Event: PROVIDER.PERMISSIONS.UPDATED | Role:  | Service: None
+2026-02-04 05:29:14,644 [INFO] DEBUG: [KAFKA RECV] provider.permissions.updated | User: a85d0e4c-58fd-49ba-b3fd-6d3a06d3cf1d
+2026-02-04 05:29:14,644 [INFO] DEBUG: Templates Received - Services: 4, Cats: 10
+2026-02-04 05:29:14,738 [INFO] ✅ Synced Templates for user a85d0e4c-58fd-49ba-b3fd-6d3a06d3cf1d
+2026-02-04 05:29:14,740 [INFO] 🧹 Cleared old permissions for user a85d0e4c-58fd-49ba-b3fd-6d3a06d3cf1d
+2026-02-04 05:29:14,755 [INFO] ✅ Updated 24 capabilities for user a85d0e4c-58fd-49ba-b3fd-6d3a06d3cf1d
+2026-02-04 05:29:14,758 [INFO] ✅ Replaced user capabilities: ['VETERINARY_VITALS', 'VETERINARY_DOCTOR', 'VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_LABS', 'VETERINARY_VISITS', 'VETERINARY_PHARMACY', 'VETERINARY_CORE']
+2026-02-04 05:29:14,760 [INFO] ✅ Synced Subscription for user a85d0e4c-58fd-49ba-b3fd-6d3a06d3cf1d
+2026-02-04 05:29:14,760 [INFO] DEBUG: dynamic_caps raw: None
+2026-02-04 05:29:14,760 [INFO] 📤 Publishing Permissions Sync: 24 items enriched
+2026-02-04 05:29:14,774 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-02-04 05:29:14,774 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-02-04 08:21:39,957 [INFO] 🚀 Starting Service Provider Unified Kafka Consumer...
+2026-02-04 08:21:39,971 [INFO] ✅ Connected to Kafka broker.
+2026-02-04 08:26:02,325 [INFO] 🚀 Starting Service Provider Unified Kafka Consumer...
+2026-02-04 08:26:02,336 [INFO] ✅ Connected to Kafka broker.
+2026-02-04 08:38:16,506 [INFO] 🔥 Event: PROVIDER.PERMISSIONS.UPDATED | Role:  | Service: None
+2026-02-04 08:38:16,564 [INFO] DEBUG: [KAFKA RECV] provider.permissions.updated | User: 1a7fffd1-9187-49fb-8cbf-d3b678e4072f
+2026-02-04 08:38:16,564 [INFO] DEBUG: Payload Keys: ['auth_user_id', 'purchase_id', 'permissions', 'purchased_plan', 'templates', 'dynamic_capabilities']
+2026-02-04 08:38:16,564 [INFO] DEBUG: Templates Received - Services: 19, Cats: 10
+2026-02-04 08:38:16,704 [INFO] ✅ Synced Templates for user 1a7fffd1-9187-49fb-8cbf-d3b678e4072f
+2026-02-04 08:38:16,712 [INFO] 🧹 Cleared old permissions for user 1a7fffd1-9187-49fb-8cbf-d3b678e4072f
+2026-02-04 08:38:16,731 [INFO] ✅ Updated 24 capabilities for user 1a7fffd1-9187-49fb-8cbf-d3b678e4072f
+2026-02-04 08:38:16,735 [INFO] ✅ Replaced user capabilities: ['VETERINARY_DOCTOR', 'VETERINARY_LABS', 'VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_VISITS', 'VETERINARY_VITALS', 'VETERINARY_PHARMACY', 'VETERINARY_CORE']
+2026-02-04 08:38:16,739 [INFO] ✅ Synced Subscription for user 1a7fffd1-9187-49fb-8cbf-d3b678e4072f
+2026-02-04 08:38:16,739 [INFO] DEBUG: Capabilities Processing | Raw Count: 3
+2026-02-04 08:38:16,747 [INFO] ✅ Synced 3 Dynamic Capabilities for user 1a7fffd1-9187-49fb-8cbf-d3b678e4072f
+2026-02-04 08:38:16,748 [INFO] 📤 Publishing Permissions Sync: 24 items enriched
+2026-02-04 08:38:16,880 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-02-04 08:38:16,880 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-02-04 09:57:16,936 [INFO] 🔥 Event: SEND_EMAIL | Role: organization | Service: auth_service
+2026-02-04 09:57:16,938 [WARNING] ⚠️ Unknown event type 'SEND_EMAIL' received.
+2026-02-04 09:57:16,946 [INFO] 🔥 Event: USER_CREATED | Role: organization | Service: auth_service
+2026-02-04 09:57:16,947 [INFO] DEBUG: Checking role 'organization' against employee list...
+2026-02-04 09:57:16,956 [INFO] ✅ Created VerifiedUser sravan@gmail.com
+2026-02-04 09:57:16,962 [INFO] ✅ Auto-created ServiceProvider profile for sravan@gmail.com
+2026-02-04 09:57:53,967 [INFO] 🔥 Event: USER_VERIFIED | Role: organization | Service: auth_service
+2026-02-04 09:57:53,967 [INFO] DEBUG: Checking role 'organization' against employee list...
+2026-02-04 09:57:53,971 [INFO] 🔄 Updated VerifiedUser sravan@gmail.com
+2026-02-04 10:10:38,085 [INFO] 🔥 Event: PROVIDER.PERMISSIONS.UPDATED | Role:  | Service: None
+2026-02-04 10:10:38,087 [INFO] DEBUG: [KAFKA RECV] provider.permissions.updated | User: c182211a-095f-42c6-bbf7-b377345a6289
+2026-02-04 10:10:38,087 [INFO] DEBUG: Payload Keys: ['auth_user_id', 'purchase_id', 'permissions', 'purchased_plan', 'templates', 'dynamic_capabilities']
+2026-02-04 10:10:38,087 [INFO] DEBUG: Templates Received - Services: 4, Cats: 13
+2026-02-04 10:10:38,291 [ERROR] ❌ Error updating permissions for c182211a-095f-42c6-bbf7-b377345a6289: null value in column "duration" of relation "provider_dynamic_fields_providertemplatepricing" violates not-null constraint
+DETAIL:  Failing row contains (53ed13ed-83db-4db6-93bf-abdd432ed5b9, cbbaebf0-4b68-4a91-8796-5ee442cc677a, 763.00, null, , 2026-02-04 10:10:38.286326+00, 2026-02-04 10:10:38.286343+00, 15eb8454-05f9-4105-b7d3-dfdfc66f4bf4, 77310096-a400-4dc5-9bb4-17b8af235dac, e729b2ad-b354-4298-b3ea-ca66decbdfbc).
+
+2026-02-04 10:10:38,291 [INFO] 📤 Publishing Permissions Sync: 0 items enriched
+2026-02-04 10:10:38,298 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-02-04 10:10:38,299 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-02-04 10:25:08,671 [INFO] 🔥 Event: PROVIDER.PERMISSIONS.UPDATED | Role:  | Service: None
+2026-02-04 10:25:08,683 [INFO] DEBUG: [KAFKA RECV] provider.permissions.updated | User: c182211a-095f-42c6-bbf7-b377345a6289
+2026-02-04 10:25:08,683 [INFO] DEBUG: Payload Keys: ['auth_user_id', 'purchase_id', 'permissions', 'purchased_plan', 'templates', 'dynamic_capabilities']
+2026-02-04 10:25:08,683 [INFO] DEBUG: Templates Received - Services: 25, Cats: 13
+2026-02-04 10:25:08,875 [INFO] ✅ Synced Templates for user c182211a-095f-42c6-bbf7-b377345a6289
+2026-02-04 10:25:08,879 [INFO] 🧹 Cleared old permissions for user c182211a-095f-42c6-bbf7-b377345a6289
+2026-02-04 10:25:08,907 [INFO] ✅ Updated 33 capabilities for user c182211a-095f-42c6-bbf7-b377345a6289
+2026-02-04 10:25:08,910 [INFO] ✅ Replaced user capabilities: ['VETERINARY_DOCTOR', 'VETERINARY_LABS', 'VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_VISITS', 'VETERINARY_VITALS', 'VETERINARY_PHARMACY', 'VETERINARY_CORE']
+2026-02-04 10:25:08,914 [INFO] ✅ Synced Subscription for user c182211a-095f-42c6-bbf7-b377345a6289
+2026-02-04 10:25:08,915 [INFO] DEBUG: Capabilities Processing | Raw Count: 2
+2026-02-04 10:25:08,927 [INFO] ✅ Synced 2 Dynamic Capabilities for user c182211a-095f-42c6-bbf7-b377345a6289
+2026-02-04 10:25:08,927 [INFO] 📤 Publishing Permissions Sync: 33 items enriched
+2026-02-04 10:25:08,958 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-02-04 10:25:08,958 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-02-05 04:56:58,279 [INFO] 🚀 Starting Service Provider Unified Kafka Consumer...
+2026-02-05 04:56:58,293 [INFO] ✅ Connected to Kafka broker.
+2026-02-05 05:22:22,151 [INFO] 🔥 Event: SEND_EMAIL | Role: employee | Service: auth_service
+2026-02-05 05:22:22,151 [WARNING] ⚠️ Unknown event type 'SEND_EMAIL' received.
+2026-02-05 05:22:22,159 [INFO] 🔥 Event: USER_CREATED | Role: employee | Service: auth_service
+2026-02-05 05:22:22,160 [INFO] DEBUG: Checking role 'employee' against employee list...
+2026-02-05 05:22:22,160 [INFO] DEBUG: Role matched employee list.
+2026-02-05 05:22:22,160 [INFO] 🔍 Processing Employee 81508e5a-1c54-4eda-bc7b-5f2db0b0d775 for Org 1a7fffd1-9187-49fb-8cbf-d3b678e4072f
+2026-02-05 05:22:22,252 [INFO] ✅ Created OrganizationEmployee 81508e5a-1c54-4eda-bc7b-5f2db0b0d775 (Invited)
+2026-02-05 05:22:22,410 [INFO] ✅ Created VerifiedUser kamal@gmail.com
+2026-02-05 05:22:45,353 [INFO] 🔥 Event: EMPLOYEE_UPDATED | Role: employee | Service: None
+2026-02-05 05:22:45,355 [INFO] 🆙 Updated OrganizationEmployee 81508e5a-1c54-4eda-bc7b-5f2db0b0d775
+2026-02-05 05:23:36,119 [INFO] 🔥 Event: USER_VERIFIED | Role: employee | Service: auth_service
+2026-02-05 05:23:36,119 [INFO] DEBUG: Checking role 'employee' against employee list...
+2026-02-05 05:23:36,120 [INFO] DEBUG: Role matched employee list.
+2026-02-05 05:23:36,125 [INFO] ✅ Activated OrganizationEmployee 81508e5a-1c54-4eda-bc7b-5f2db0b0d775
+2026-02-05 05:23:36,131 [INFO] 🔄 Updated VerifiedUser kamal@gmail.com
+2026-02-05 06:23:42,184 [INFO] 🔥 Event: EMPLOYEE_UPDATED | Role: employee | Service: None
+2026-02-05 06:23:42,186 [INFO] 🆙 Updated OrganizationEmployee 81508e5a-1c54-4eda-bc7b-5f2db0b0d775
+2026-02-05 06:54:12,166 [INFO] 🔥 Event: SEND_EMAIL | Role: organization | Service: auth_service
+2026-02-05 06:54:12,168 [WARNING] ⚠️ Unknown event type 'SEND_EMAIL' received.
+2026-02-05 06:54:12,180 [INFO] 🔥 Event: USER_CREATED | Role: organization | Service: auth_service
+2026-02-05 06:54:12,181 [INFO] DEBUG: Checking role 'organization' against employee list...
+2026-02-05 06:54:12,192 [INFO] ✅ Created VerifiedUser yadagiri@gmail.com
+2026-02-05 06:54:12,197 [INFO] ✅ Auto-created ServiceProvider profile for yadagiri@gmail.com
+2026-02-05 06:54:50,042 [INFO] 🔥 Event: USER_VERIFIED | Role: organization | Service: auth_service
+2026-02-05 06:54:50,042 [INFO] DEBUG: Checking role 'organization' against employee list...
+2026-02-05 06:54:50,046 [INFO] 🔄 Updated VerifiedUser yadagiri@gmail.com
+2026-02-05 07:27:50,242 [INFO] 🔥 Event: USER_DELETED | Role: employee | Service: auth_service
+2026-02-05 07:27:50,292 [ERROR] ❌ Error processing Kafka message: relation "service_provider_billingprofile" does not exist
+LINE 1: DELETE FROM "service_provider_billingprofile" WHERE "service...
+                    ^
+Traceback (most recent call last):
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+psycopg2.errors.UndefinedTable: relation "service_provider_billingprofile" does not exist
+LINE 1: DELETE FROM "service_provider_billingprofile" WHERE "service...
+                    ^
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/kafka_consumer.py", line 221, in <module>
+    VerifiedUser.objects.filter(auth_user_id=auth_user_id).delete()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/query.py", line 1201, in delete
+    num_deleted, num_deleted_per_model = collector.delete()
+                                         ~~~~~~~~~~~~~~~~^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/deletion.py", line 467, in delete
+    count = qs._raw_delete(using=self.using)
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/query.py", line 1223, in _raw_delete
+    return query.get_compiler(using).execute_sql(ROW_COUNT)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/sql/compiler.py", line 1623, in execute_sql
+    cursor.execute(sql, params)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        sql, params, many=False, executor=self._execute
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+django.db.utils.ProgrammingError: relation "service_provider_billingprofile" does not exist
+LINE 1: DELETE FROM "service_provider_billingprofile" WHERE "service...
+                    ^
+
+2026-02-05 07:30:51,813 [INFO] 🔥 Event: USER_DELETED | Role: organization | Service: auth_service
+2026-02-05 07:30:51,841 [ERROR] ❌ Error processing Kafka message: relation "service_provider_billingprofile" does not exist
+LINE 1: DELETE FROM "service_provider_billingprofile" WHERE "service...
+                    ^
+Traceback (most recent call last):
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+psycopg2.errors.UndefinedTable: relation "service_provider_billingprofile" does not exist
+LINE 1: DELETE FROM "service_provider_billingprofile" WHERE "service...
+                    ^
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/kafka_consumer.py", line 221, in <module>
+    VerifiedUser.objects.filter(auth_user_id=auth_user_id).delete()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/query.py", line 1201, in delete
+    num_deleted, num_deleted_per_model = collector.delete()
+                                         ~~~~~~~~~~~~~~~~^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/deletion.py", line 467, in delete
+    count = qs._raw_delete(using=self.using)
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/query.py", line 1223, in _raw_delete
+    return query.get_compiler(using).execute_sql(ROW_COUNT)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/sql/compiler.py", line 1623, in execute_sql
+    cursor.execute(sql, params)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        sql, params, many=False, executor=self._execute
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+django.db.utils.ProgrammingError: relation "service_provider_billingprofile" does not exist
+LINE 1: DELETE FROM "service_provider_billingprofile" WHERE "service...
+                    ^
+
+2026-02-05 07:30:55,034 [INFO] 🔥 Event: USER_DELETED | Role: organization | Service: auth_service
+2026-02-05 07:30:55,055 [ERROR] ❌ Error processing Kafka message: relation "service_provider_billingprofile" does not exist
+LINE 1: DELETE FROM "service_provider_billingprofile" WHERE "service...
+                    ^
+Traceback (most recent call last):
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+psycopg2.errors.UndefinedTable: relation "service_provider_billingprofile" does not exist
+LINE 1: DELETE FROM "service_provider_billingprofile" WHERE "service...
+                    ^
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/kafka_consumer.py", line 221, in <module>
+    VerifiedUser.objects.filter(auth_user_id=auth_user_id).delete()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/query.py", line 1201, in delete
+    num_deleted, num_deleted_per_model = collector.delete()
+                                         ~~~~~~~~~~~~~~~~^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/deletion.py", line 467, in delete
+    count = qs._raw_delete(using=self.using)
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/query.py", line 1223, in _raw_delete
+    return query.get_compiler(using).execute_sql(ROW_COUNT)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/sql/compiler.py", line 1623, in execute_sql
+    cursor.execute(sql, params)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        sql, params, many=False, executor=self._execute
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+django.db.utils.ProgrammingError: relation "service_provider_billingprofile" does not exist
+LINE 1: DELETE FROM "service_provider_billingprofile" WHERE "service...
+                    ^
+
+2026-02-05 07:30:57,567 [INFO] 🔥 Event: USER_DELETED | Role: organization | Service: auth_service
+2026-02-05 07:30:57,584 [ERROR] ❌ Error processing Kafka message: relation "service_provider_billingprofile" does not exist
+LINE 1: DELETE FROM "service_provider_billingprofile" WHERE "service...
+                    ^
+Traceback (most recent call last):
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+psycopg2.errors.UndefinedTable: relation "service_provider_billingprofile" does not exist
+LINE 1: DELETE FROM "service_provider_billingprofile" WHERE "service...
+                    ^
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/kafka_consumer.py", line 221, in <module>
+    VerifiedUser.objects.filter(auth_user_id=auth_user_id).delete()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/query.py", line 1201, in delete
+    num_deleted, num_deleted_per_model = collector.delete()
+                                         ~~~~~~~~~~~~~~~~^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/deletion.py", line 467, in delete
+    count = qs._raw_delete(using=self.using)
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/query.py", line 1223, in _raw_delete
+    return query.get_compiler(using).execute_sql(ROW_COUNT)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/sql/compiler.py", line 1623, in execute_sql
+    cursor.execute(sql, params)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        sql, params, many=False, executor=self._execute
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+django.db.utils.ProgrammingError: relation "service_provider_billingprofile" does not exist
+LINE 1: DELETE FROM "service_provider_billingprofile" WHERE "service...
+                    ^
+
+2026-02-05 07:30:59,925 [INFO] 🔥 Event: USER_DELETED | Role: organization | Service: auth_service
+2026-02-05 07:30:59,943 [ERROR] ❌ Error processing Kafka message: relation "service_provider_billingprofile" does not exist
+LINE 1: DELETE FROM "service_provider_billingprofile" WHERE "service...
+                    ^
+Traceback (most recent call last):
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+psycopg2.errors.UndefinedTable: relation "service_provider_billingprofile" does not exist
+LINE 1: DELETE FROM "service_provider_billingprofile" WHERE "service...
+                    ^
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/kafka_consumer.py", line 221, in <module>
+    VerifiedUser.objects.filter(auth_user_id=auth_user_id).delete()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/query.py", line 1201, in delete
+    num_deleted, num_deleted_per_model = collector.delete()
+                                         ~~~~~~~~~~~~~~~~^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/deletion.py", line 467, in delete
+    count = qs._raw_delete(using=self.using)
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/query.py", line 1223, in _raw_delete
+    return query.get_compiler(using).execute_sql(ROW_COUNT)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/sql/compiler.py", line 1623, in execute_sql
+    cursor.execute(sql, params)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        sql, params, many=False, executor=self._execute
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+django.db.utils.ProgrammingError: relation "service_provider_billingprofile" does not exist
+LINE 1: DELETE FROM "service_provider_billingprofile" WHERE "service...
+                    ^
+
+2026-02-05 07:31:02,522 [INFO] 🔥 Event: USER_DELETED | Role: organization | Service: auth_service
+2026-02-05 07:31:02,541 [ERROR] ❌ Error processing Kafka message: relation "service_provider_billingprofile" does not exist
+LINE 1: DELETE FROM "service_provider_billingprofile" WHERE "service...
+                    ^
+Traceback (most recent call last):
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+psycopg2.errors.UndefinedTable: relation "service_provider_billingprofile" does not exist
+LINE 1: DELETE FROM "service_provider_billingprofile" WHERE "service...
+                    ^
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/kafka_consumer.py", line 221, in <module>
+    VerifiedUser.objects.filter(auth_user_id=auth_user_id).delete()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/query.py", line 1201, in delete
+    num_deleted, num_deleted_per_model = collector.delete()
+                                         ~~~~~~~~~~~~~~~~^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/deletion.py", line 467, in delete
+    count = qs._raw_delete(using=self.using)
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/query.py", line 1223, in _raw_delete
+    return query.get_compiler(using).execute_sql(ROW_COUNT)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/sql/compiler.py", line 1623, in execute_sql
+    cursor.execute(sql, params)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        sql, params, many=False, executor=self._execute
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+django.db.utils.ProgrammingError: relation "service_provider_billingprofile" does not exist
+LINE 1: DELETE FROM "service_provider_billingprofile" WHERE "service...
+                    ^
+
+2026-02-05 07:31:11,647 [INFO] 🔥 Event: USER_DELETED | Role: employee | Service: auth_service
+2026-02-05 07:31:11,670 [ERROR] ❌ Error processing Kafka message: relation "service_provider_billingprofile" does not exist
+LINE 1: DELETE FROM "service_provider_billingprofile" WHERE "service...
+                    ^
+Traceback (most recent call last):
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+psycopg2.errors.UndefinedTable: relation "service_provider_billingprofile" does not exist
+LINE 1: DELETE FROM "service_provider_billingprofile" WHERE "service...
+                    ^
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/kafka_consumer.py", line 221, in <module>
+    VerifiedUser.objects.filter(auth_user_id=auth_user_id).delete()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/query.py", line 1201, in delete
+    num_deleted, num_deleted_per_model = collector.delete()
+                                         ~~~~~~~~~~~~~~~~^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/deletion.py", line 467, in delete
+    count = qs._raw_delete(using=self.using)
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/query.py", line 1223, in _raw_delete
+    return query.get_compiler(using).execute_sql(ROW_COUNT)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/sql/compiler.py", line 1623, in execute_sql
+    cursor.execute(sql, params)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        sql, params, many=False, executor=self._execute
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+django.db.utils.ProgrammingError: relation "service_provider_billingprofile" does not exist
+LINE 1: DELETE FROM "service_provider_billingprofile" WHERE "service...
+                    ^
+
+2026-02-05 07:32:55,615 [INFO] 🔥 Event: USER_DELETED | Role: individual | Service: auth_service
+2026-02-05 07:32:55,617 [INFO] 🗑️ Deleted user records for ec7a653a-5d8a-451c-b8a4-151dc397155b
+2026-02-05 07:33:02,773 [INFO] 🔥 Event: USER_DELETED | Role: individual | Service: auth_service
+2026-02-05 07:33:02,788 [ERROR] ❌ Error processing Kafka message: relation "service_provider_billingprofile" does not exist
+LINE 1: DELETE FROM "service_provider_billingprofile" WHERE "service...
+                    ^
+Traceback (most recent call last):
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+psycopg2.errors.UndefinedTable: relation "service_provider_billingprofile" does not exist
+LINE 1: DELETE FROM "service_provider_billingprofile" WHERE "service...
+                    ^
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/kafka_consumer.py", line 221, in <module>
+    VerifiedUser.objects.filter(auth_user_id=auth_user_id).delete()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/query.py", line 1201, in delete
+    num_deleted, num_deleted_per_model = collector.delete()
+                                         ~~~~~~~~~~~~~~~~^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/deletion.py", line 467, in delete
+    count = qs._raw_delete(using=self.using)
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/query.py", line 1223, in _raw_delete
+    return query.get_compiler(using).execute_sql(ROW_COUNT)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/sql/compiler.py", line 1623, in execute_sql
+    cursor.execute(sql, params)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        sql, params, many=False, executor=self._execute
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+django.db.utils.ProgrammingError: relation "service_provider_billingprofile" does not exist
+LINE 1: DELETE FROM "service_provider_billingprofile" WHERE "service...
+                    ^
+
+2026-02-05 07:33:06,507 [INFO] 🔥 Event: USER_DELETED | Role: individual | Service: auth_service
+2026-02-05 07:33:06,509 [INFO] 🗑️ Deleted user records for 4eec4343-82fe-495b-b1bd-0bcb4a7d56b7
+2026-02-05 07:33:10,959 [INFO] 🔥 Event: USER_DELETED | Role: individual | Service: auth_service
+2026-02-05 07:33:10,973 [ERROR] ❌ Error processing Kafka message: relation "service_provider_billingprofile" does not exist
+LINE 1: DELETE FROM "service_provider_billingprofile" WHERE "service...
+                    ^
+Traceback (most recent call last):
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+psycopg2.errors.UndefinedTable: relation "service_provider_billingprofile" does not exist
+LINE 1: DELETE FROM "service_provider_billingprofile" WHERE "service...
+                    ^
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/kafka_consumer.py", line 221, in <module>
+    VerifiedUser.objects.filter(auth_user_id=auth_user_id).delete()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/query.py", line 1201, in delete
+    num_deleted, num_deleted_per_model = collector.delete()
+                                         ~~~~~~~~~~~~~~~~^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/deletion.py", line 467, in delete
+    count = qs._raw_delete(using=self.using)
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/query.py", line 1223, in _raw_delete
+    return query.get_compiler(using).execute_sql(ROW_COUNT)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/sql/compiler.py", line 1623, in execute_sql
+    cursor.execute(sql, params)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        sql, params, many=False, executor=self._execute
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+django.db.utils.ProgrammingError: relation "service_provider_billingprofile" does not exist
+LINE 1: DELETE FROM "service_provider_billingprofile" WHERE "service...
+                    ^
+
+2026-02-05 07:33:13,854 [INFO] 🔥 Event: USER_DELETED | Role: individual | Service: auth_service
+2026-02-05 07:33:13,900 [ERROR] ❌ Error processing Kafka message: relation "service_provider_billingprofile" does not exist
+LINE 1: DELETE FROM "service_provider_billingprofile" WHERE "service...
+                    ^
+Traceback (most recent call last):
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+psycopg2.errors.UndefinedTable: relation "service_provider_billingprofile" does not exist
+LINE 1: DELETE FROM "service_provider_billingprofile" WHERE "service...
+                    ^
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/kafka_consumer.py", line 221, in <module>
+    VerifiedUser.objects.filter(auth_user_id=auth_user_id).delete()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/query.py", line 1201, in delete
+    num_deleted, num_deleted_per_model = collector.delete()
+                                         ~~~~~~~~~~~~~~~~^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/deletion.py", line 467, in delete
+    count = qs._raw_delete(using=self.using)
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/query.py", line 1223, in _raw_delete
+    return query.get_compiler(using).execute_sql(ROW_COUNT)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/sql/compiler.py", line 1623, in execute_sql
+    cursor.execute(sql, params)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        sql, params, many=False, executor=self._execute
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+django.db.utils.ProgrammingError: relation "service_provider_billingprofile" does not exist
+LINE 1: DELETE FROM "service_provider_billingprofile" WHERE "service...
+                    ^
+
+2026-02-05 07:34:12,936 [INFO] 🔥 Event: SEND_EMAIL | Role: organization | Service: auth_service
+2026-02-05 07:34:12,936 [WARNING] ⚠️ Unknown event type 'SEND_EMAIL' received.
+2026-02-05 07:34:12,943 [INFO] 🔥 Event: USER_CREATED | Role: organization | Service: auth_service
+2026-02-05 07:34:12,943 [INFO] DEBUG: Checking role 'organization' against employee list...
+2026-02-05 07:34:12,948 [INFO] ✅ Created VerifiedUser vinod@gmail.com
+2026-02-05 07:34:12,953 [INFO] ✅ Auto-created ServiceProvider profile for vinod@gmail.com
+2026-02-05 07:34:42,699 [INFO] 🔥 Event: USER_VERIFIED | Role: organization | Service: auth_service
+2026-02-05 07:34:42,699 [INFO] DEBUG: Checking role 'organization' against employee list...
+2026-02-05 07:34:42,704 [INFO] 🔄 Updated VerifiedUser vinod@gmail.com
+2026-02-05 07:36:00,801 [INFO] 🔥 Event: PROVIDER.PERMISSIONS.UPDATED | Role:  | Service: None
+2026-02-05 07:36:00,803 [INFO] DEBUG: [KAFKA RECV] provider.permissions.updated | User: 048328fb-b2ee-46ee-aa77-a0cb9aa21f91
+2026-02-05 07:36:00,803 [INFO] DEBUG: Payload Keys: ['auth_user_id', 'purchase_id', 'permissions', 'purchased_plan', 'templates', 'dynamic_capabilities']
+2026-02-05 07:36:00,804 [INFO] DEBUG: Templates Received - Services: 3, Cats: 10
+2026-02-05 07:36:00,943 [ERROR] ❌ Error updating permissions for 048328fb-b2ee-46ee-aa77-a0cb9aa21f91: null value in column "duration" of relation "provider_dynamic_fields_providertemplatepricing" violates not-null constraint
+DETAIL:  Failing row contains (43b32715-608c-4f04-8551-7a34b352d0ea, 679e3fa4-56f1-4c6f-bc77-6d0c1030696a, 344.00, null, , 2026-02-05 07:36:00.939245+00, 2026-02-05 07:36:00.939262+00, 038f0763-f9a3-494d-aa5d-b8767c1a0115, b0fcceb3-f506-48c6-9814-4555375cce60, abe17e7a-4d10-4e06-9104-c46b35c34f1e).
+
+2026-02-05 07:36:00,943 [INFO] 📤 Publishing Permissions Sync: 0 items enriched
+2026-02-05 07:36:01,075 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-02-05 07:36:01,076 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-02-05 07:43:48,162 [INFO] 🚀 Starting Service Provider Unified Kafka Consumer...
+2026-02-05 07:43:48,173 [INFO] ✅ Connected to Kafka broker.
+2026-02-05 07:45:45,309 [INFO] 🚀 Starting Service Provider Unified Kafka Consumer...
+2026-02-05 07:45:45,320 [INFO] ✅ Connected to Kafka broker.
+2026-02-05 07:52:00,692 [INFO] 🚀 Starting Service Provider Unified Kafka Consumer...
+2026-02-05 07:52:00,704 [INFO] ✅ Connected to Kafka broker.
+2026-02-05 07:54:51,810 [INFO] 🔥 Event: USER_DELETED | Role: organization | Service: auth_service
+2026-02-05 07:54:51,872 [ERROR] ❌ Error processing Kafka message: relation "service_provider_billingprofile" does not exist
+LINE 1: DELETE FROM "service_provider_billingprofile" WHERE "service...
+                    ^
+Traceback (most recent call last):
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+psycopg2.errors.UndefinedTable: relation "service_provider_billingprofile" does not exist
+LINE 1: DELETE FROM "service_provider_billingprofile" WHERE "service...
+                    ^
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/kafka_consumer.py", line 221, in <module>
+    VerifiedUser.objects.filter(auth_user_id=auth_user_id).delete()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/query.py", line 1201, in delete
+    num_deleted, num_deleted_per_model = collector.delete()
+                                         ~~~~~~~~~~~~~~~~^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/deletion.py", line 467, in delete
+    count = qs._raw_delete(using=self.using)
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/query.py", line 1223, in _raw_delete
+    return query.get_compiler(using).execute_sql(ROW_COUNT)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/sql/compiler.py", line 1623, in execute_sql
+    cursor.execute(sql, params)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        sql, params, many=False, executor=self._execute
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+django.db.utils.ProgrammingError: relation "service_provider_billingprofile" does not exist
+LINE 1: DELETE FROM "service_provider_billingprofile" WHERE "service...
+                    ^
+
+2026-02-05 07:55:14,361 [INFO] 🚀 Starting Service Provider Unified Kafka Consumer...
+2026-02-05 07:55:14,371 [INFO] ✅ Connected to Kafka broker.
+2026-02-05 07:56:33,700 [INFO] 🔥 Event: SEND_EMAIL | Role: organization | Service: auth_service
+2026-02-05 07:56:33,701 [WARNING] ⚠️ Unknown event type 'SEND_EMAIL' received.
+2026-02-05 07:56:33,708 [INFO] 🔥 Event: USER_CREATED | Role: organization | Service: auth_service
+2026-02-05 07:56:33,708 [INFO] DEBUG: Checking role 'organization' against employee list...
+2026-02-05 07:56:33,754 [INFO] ✅ Created VerifiedUser vvv@gmail.com
+2026-02-05 07:56:33,759 [INFO] ✅ Auto-created ServiceProvider profile for vvv@gmail.com
+2026-02-05 07:57:01,327 [INFO] 🔥 Event: USER_VERIFIED | Role: organization | Service: auth_service
+2026-02-05 07:57:01,329 [INFO] DEBUG: Checking role 'organization' against employee list...
+2026-02-05 07:57:01,335 [INFO] 🔄 Updated VerifiedUser vvv@gmail.com
+2026-02-05 07:59:03,456 [INFO] 🔥 Event: PROVIDER.PERMISSIONS.UPDATED | Role:  | Service: None
+2026-02-05 07:59:03,458 [INFO] DEBUG: [KAFKA RECV] provider.permissions.updated | User: 37d85d2f-f134-42c4-8dbf-f40b77be0aa9
+2026-02-05 07:59:03,459 [INFO] DEBUG: Payload Keys: ['auth_user_id', 'purchase_id', 'permissions', 'purchased_plan', 'templates', 'dynamic_capabilities']
+2026-02-05 07:59:03,459 [INFO] DEBUG: Templates Received - Services: 4, Cats: 11
+2026-02-05 07:59:03,611 [INFO] ✅ Synced Templates for user 37d85d2f-f134-42c4-8dbf-f40b77be0aa9
+2026-02-05 07:59:03,615 [INFO] 🧹 Cleared old permissions for user 37d85d2f-f134-42c4-8dbf-f40b77be0aa9
+2026-02-05 07:59:03,616 [INFO] DEBUG: perms_map size: 27
+2026-02-05 07:59:03,616 [INFO] DEBUG: Sample perms_map keys: [('2dff446f-c95f-4310-ba4d-05e3395dd7eb', None, None, None), ('4fe2290b-0d07-4598-a6d8-585a9b22e819', None, None, None), ('5ec07d87-902a-4327-9386-2774e910bd58', None, None, None)]
+2026-02-05 07:59:03,617 [INFO] DEBUG: About to bulk_create 27 ProviderCapabilityAccess records
+2026-02-05 07:59:03,638 [INFO] DEBUG: bulk_create completed successfully
+2026-02-05 07:59:03,651 [INFO] 🗑️ Invalidated cache for 0 employees
+2026-02-05 07:59:03,724 [INFO] ✅ Updated 27 capabilities for user 37d85d2f-f134-42c4-8dbf-f40b77be0aa9
+2026-02-05 07:59:03,726 [INFO] ✅ Auto-added VETERINARY_CORE (vet capabilities detected)
+2026-02-05 07:59:03,728 [INFO] ✅ Replaced user capabilities: ['VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_PHARMACY', 'VETERINARY_VISITS', 'VETERINARY_VITALS', 'VETERINARY_DOCTOR', 'VETERINARY_LABS', 'VETERINARY_CORE']
+2026-02-05 07:59:03,735 [INFO] ✅ Synced Subscription for user 37d85d2f-f134-42c4-8dbf-f40b77be0aa9
+2026-02-05 07:59:03,735 [INFO] DEBUG: Capabilities Processing | Raw Count: 0
+2026-02-05 07:59:03,735 [INFO] 📤 Publishing Permissions Sync: 27 items enriched
+2026-02-05 07:59:03,871 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-02-05 07:59:03,871 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-02-05 08:12:53,551 [INFO] 🚀 Starting Service Provider Unified Kafka Consumer...
+2026-02-05 08:12:53,563 [INFO] ✅ Connected to Kafka broker.
+2026-02-05 08:16:52,302 [INFO] 🚀 Starting Service Provider Unified Kafka Consumer...
+2026-02-05 08:16:52,315 [INFO] ✅ Connected to Kafka broker.
+2026-02-05 08:31:36,368 [INFO] 🔥 Event: USER_DELETED | Role: organization | Service: auth_service
+2026-02-05 08:31:36,431 [ERROR] ❌ Error processing Kafka message: relation "service_provider_billingprofile" does not exist
+LINE 1: DELETE FROM "service_provider_billingprofile" WHERE "service...
+                    ^
+Traceback (most recent call last):
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+psycopg2.errors.UndefinedTable: relation "service_provider_billingprofile" does not exist
+LINE 1: DELETE FROM "service_provider_billingprofile" WHERE "service...
+                    ^
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/kafka_consumer.py", line 221, in <module>
+    VerifiedUser.objects.filter(auth_user_id=auth_user_id).delete()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/query.py", line 1201, in delete
+    num_deleted, num_deleted_per_model = collector.delete()
+                                         ~~~~~~~~~~~~~~~~^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/deletion.py", line 467, in delete
+    count = qs._raw_delete(using=self.using)
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/query.py", line 1223, in _raw_delete
+    return query.get_compiler(using).execute_sql(ROW_COUNT)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/sql/compiler.py", line 1623, in execute_sql
+    cursor.execute(sql, params)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        sql, params, many=False, executor=self._execute
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+django.db.utils.ProgrammingError: relation "service_provider_billingprofile" does not exist
+LINE 1: DELETE FROM "service_provider_billingprofile" WHERE "service...
+                    ^
+
+2026-02-05 08:31:57,733 [INFO] 🚀 Starting Service Provider Unified Kafka Consumer...
+2026-02-05 08:31:57,743 [INFO] ✅ Connected to Kafka broker.
+2026-02-05 08:32:39,946 [INFO] 🔥 Event: SEND_EMAIL | Role: organization | Service: auth_service
+2026-02-05 08:32:39,947 [WARNING] ⚠️ Unknown event type 'SEND_EMAIL' received.
+2026-02-05 08:32:39,955 [INFO] 🔥 Event: USER_CREATED | Role: organization | Service: auth_service
+2026-02-05 08:32:39,955 [INFO] DEBUG: Checking role 'organization' against employee list...
+2026-02-05 08:32:39,963 [INFO] ✅ Created VerifiedUser sss@gmail.com
+2026-02-05 08:32:39,967 [INFO] ✅ Auto-created ServiceProvider profile for sss@gmail.com
+2026-02-05 08:33:06,282 [INFO] 🔥 Event: USER_VERIFIED | Role: organization | Service: auth_service
+2026-02-05 08:33:06,282 [INFO] DEBUG: Checking role 'organization' against employee list...
+2026-02-05 08:33:06,286 [INFO] 🔄 Updated VerifiedUser sss@gmail.com
+2026-02-05 08:33:34,593 [INFO] 🔥 Event: PROVIDER.PERMISSIONS.UPDATED | Role:  | Service: None
+2026-02-05 08:33:34,595 [INFO] DEBUG: [KAFKA RECV] provider.permissions.updated | User: eaa037c7-6524-4557-af2b-d900f7731328
+2026-02-05 08:33:34,596 [INFO] DEBUG: Payload Keys: ['auth_user_id', 'purchase_id', 'permissions', 'purchased_plan', 'templates', 'dynamic_capabilities']
+2026-02-05 08:33:34,596 [INFO] DEBUG: Templates Received - Services: 4, Cats: 10
+2026-02-05 08:33:34,689 [INFO] ✅ Synced Templates for user eaa037c7-6524-4557-af2b-d900f7731328
+2026-02-05 08:33:34,691 [INFO] 🧹 Cleared old permissions for user eaa037c7-6524-4557-af2b-d900f7731328 → permissions=[]
+2026-02-05 08:33:34,692 [INFO] DEBUG: perms_map size: 24
+2026-02-05 08:33:34,692 [INFO] DEBUG: Sample perms_map keys: [('013a72ea-5fb8-4597-922e-6a67dc49168a', None, None, None), ('2dff446f-c95f-4310-ba4d-05e3395dd7eb', None, None, None), ('c9fd149a-0f68-4a0b-8167-7b20731ce429', None, None, None)]
+2026-02-05 08:33:34,693 [INFO] DEBUG: About to bulk_create 24 ProviderCapabilityAccess records
+2026-02-05 08:33:34,698 [INFO] DEBUG: bulk_create completed successfully
+2026-02-05 08:33:34,703 [INFO] 🗑️ Invalidated cache for 0 employees
+2026-02-05 08:33:34,716 [INFO] ✅ Updated 24 capabilities for user eaa037c7-6524-4557-af2b-d900f7731328
+2026-02-05 08:33:34,717 [INFO] 📋 Linked capabilities: ['VETERINARY_LABS', 'VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_VISITS', 'VETERINARY_PHARMACY', 'VETERINARY_DOCTOR', 'VETERINARY_VITALS']
+2026-02-05 08:33:34,718 [INFO] 🏥 Veterinary capabilities: ['VETERINARY_LABS', 'VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_VISITS', 'VETERINARY_PHARMACY', 'VETERINARY_DOCTOR', 'VETERINARY_VITALS']
+2026-02-05 08:33:34,718 [INFO] ✅ Auto-added VETERINARY_CORE (vet capabilities detected: ['VETERINARY_LABS', 'VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_VISITS', 'VETERINARY_PHARMACY', 'VETERINARY_DOCTOR', 'VETERINARY_VITALS'])
+2026-02-05 08:33:34,719 [INFO] ✅ Final user capabilities: ['VETERINARY_LABS', 'VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_VISITS', 'VETERINARY_PHARMACY', 'VETERINARY_DOCTOR', 'VETERINARY_VITALS', 'VETERINARY_CORE']
+2026-02-05 08:33:34,722 [INFO] ✅ Synced Subscription for user eaa037c7-6524-4557-af2b-d900f7731328
+2026-02-05 08:33:34,722 [INFO] DEBUG: Capabilities Processing | Raw Count: 0
+2026-02-05 08:33:34,722 [INFO] 📤 Publishing Permissions Sync: 24 items enriched
+2026-02-05 08:33:34,852 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-02-05 08:33:34,852 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-02-05 08:36:51,491 [INFO] 🔥 Event: USER_DELETED | Role: organization | Service: auth_service
+2026-02-05 08:36:51,511 [ERROR] ❌ Error processing Kafka message: relation "service_provider_billingprofile" does not exist
+LINE 1: DELETE FROM "service_provider_billingprofile" WHERE "service...
+                    ^
+Traceback (most recent call last):
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+psycopg2.errors.UndefinedTable: relation "service_provider_billingprofile" does not exist
+LINE 1: DELETE FROM "service_provider_billingprofile" WHERE "service...
+                    ^
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/kafka_consumer.py", line 221, in <module>
+    VerifiedUser.objects.filter(auth_user_id=auth_user_id).delete()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/query.py", line 1201, in delete
+    num_deleted, num_deleted_per_model = collector.delete()
+                                         ~~~~~~~~~~~~~~~~^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/deletion.py", line 467, in delete
+    count = qs._raw_delete(using=self.using)
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/query.py", line 1223, in _raw_delete
+    return query.get_compiler(using).execute_sql(ROW_COUNT)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/sql/compiler.py", line 1623, in execute_sql
+    cursor.execute(sql, params)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        sql, params, many=False, executor=self._execute
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+django.db.utils.ProgrammingError: relation "service_provider_billingprofile" does not exist
+LINE 1: DELETE FROM "service_provider_billingprofile" WHERE "service...
+                    ^
+
+2026-02-05 08:40:16,448 [INFO] 🔥 Event: SEND_EMAIL | Role: organization | Service: auth_service
+2026-02-05 08:40:16,449 [WARNING] ⚠️ Unknown event type 'SEND_EMAIL' received.
+2026-02-05 08:40:16,455 [INFO] 🔥 Event: USER_CREATED | Role: organization | Service: auth_service
+2026-02-05 08:40:16,456 [INFO] DEBUG: Checking role 'organization' against employee list...
+2026-02-05 08:40:16,460 [INFO] ✅ Created VerifiedUser pl@gmail.com
+2026-02-05 08:40:16,465 [INFO] ✅ Auto-created ServiceProvider profile for pl@gmail.com
+2026-02-05 08:40:44,570 [INFO] 🔥 Event: USER_VERIFIED | Role: organization | Service: auth_service
+2026-02-05 08:40:44,570 [INFO] DEBUG: Checking role 'organization' against employee list...
+2026-02-05 08:40:44,574 [INFO] 🔄 Updated VerifiedUser pl@gmail.com
+2026-02-05 08:41:13,684 [INFO] 🔥 Event: PROVIDER.PERMISSIONS.UPDATED | Role:  | Service: None
+2026-02-05 08:41:13,685 [INFO] DEBUG: [KAFKA RECV] provider.permissions.updated | User: 479ad179-889c-448c-8163-626974543ff4
+2026-02-05 08:41:13,685 [INFO] DEBUG: Payload Keys: ['auth_user_id', 'purchase_id', 'permissions', 'purchased_plan', 'templates', 'dynamic_capabilities']
+2026-02-05 08:41:13,686 [INFO] DEBUG: Templates Received - Services: 3, Cats: 8
+2026-02-05 08:41:13,746 [INFO] ✅ Synced Templates for user 479ad179-889c-448c-8163-626974543ff4
+2026-02-05 08:41:13,748 [INFO] 🧹 Cleared old permissions for user 479ad179-889c-448c-8163-626974543ff4 → permissions=[]
+2026-02-05 08:41:13,748 [INFO] DEBUG: perms_map size: 15
+2026-02-05 08:41:13,748 [INFO] DEBUG: Sample perms_map keys: [('2dff446f-c95f-4310-ba4d-05e3395dd7eb', None, None, None), ('7ce1a0c2-50f0-40fe-a82f-df6767fcf91e', None, None, None), ('8da6c82b-2136-4a14-9670-2973682107a6', None, None, None)]
+2026-02-05 08:41:13,749 [INFO] DEBUG: About to bulk_create 15 ProviderCapabilityAccess records
+2026-02-05 08:41:13,752 [INFO] DEBUG: bulk_create completed successfully
+2026-02-05 08:41:13,756 [INFO] 🗑️ Invalidated cache for 0 employees
+2026-02-05 08:41:13,769 [INFO] ✅ Updated 15 capabilities for user 479ad179-889c-448c-8163-626974543ff4
+2026-02-05 08:41:13,770 [INFO] 📋 Linked capabilities: ['VETERINARY_LABS', 'VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_VISITS', 'VETERINARY_PHARMACY', 'VETERINARY_DOCTOR', 'VETERINARY_VITALS']
+2026-02-05 08:41:13,770 [INFO] 🏥 Veterinary capabilities: ['VETERINARY_LABS', 'VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_VISITS', 'VETERINARY_PHARMACY', 'VETERINARY_DOCTOR', 'VETERINARY_VITALS']
+2026-02-05 08:41:13,770 [INFO] ✅ Auto-added VETERINARY_CORE (vet capabilities detected: ['VETERINARY_LABS', 'VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_VISITS', 'VETERINARY_PHARMACY', 'VETERINARY_DOCTOR', 'VETERINARY_VITALS'])
+2026-02-05 08:41:13,771 [INFO] ✅ Final user capabilities: ['VETERINARY_LABS', 'VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_VISITS', 'VETERINARY_PHARMACY', 'VETERINARY_DOCTOR', 'VETERINARY_VITALS', 'VETERINARY_CORE']
+2026-02-05 08:41:13,774 [INFO] ✅ Synced Subscription for user 479ad179-889c-448c-8163-626974543ff4
+2026-02-05 08:41:13,774 [INFO] DEBUG: Capabilities Processing | Raw Count: 0
+2026-02-05 08:41:13,774 [INFO] 📤 Publishing Permissions Sync: 15 items enriched
+2026-02-05 08:41:13,785 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-02-05 08:41:13,785 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-02-05 09:55:09,660 [INFO] 🔥 Event: SEND_EMAIL | Role: organization | Service: auth_service
+2026-02-05 09:55:09,661 [WARNING] ⚠️ Unknown event type 'SEND_EMAIL' received.
+2026-02-05 09:55:09,669 [INFO] 🔥 Event: USER_CREATED | Role: organization | Service: auth_service
+2026-02-05 09:55:09,669 [INFO] DEBUG: Checking role 'organization' against employee list...
+2026-02-05 09:55:09,675 [INFO] ✅ Created VerifiedUser ram@gmail.com
+2026-02-05 09:55:09,678 [INFO] ✅ Auto-created ServiceProvider profile for ram@gmail.com
+2026-02-05 09:55:38,210 [INFO] 🔥 Event: USER_VERIFIED | Role: organization | Service: auth_service
+2026-02-05 09:55:38,211 [INFO] DEBUG: Checking role 'organization' against employee list...
+2026-02-05 09:55:38,216 [INFO] 🔄 Updated VerifiedUser ram@gmail.com
+2026-02-05 09:56:04,440 [INFO] 🔥 Event: PROVIDER.PERMISSIONS.UPDATED | Role:  | Service: None
+2026-02-05 09:56:04,441 [INFO] DEBUG: [KAFKA RECV] provider.permissions.updated | User: 0ba4980d-7067-4339-b501-fa2c7ac415f5
+2026-02-05 09:56:04,441 [INFO] DEBUG: Payload Keys: ['auth_user_id', 'purchase_id', 'permissions', 'purchased_plan', 'templates', 'dynamic_capabilities']
+2026-02-05 09:56:04,442 [INFO] DEBUG: Templates Received - Services: 3, Cats: 8
+2026-02-05 09:56:04,498 [INFO] ✅ Synced Templates for user 0ba4980d-7067-4339-b501-fa2c7ac415f5
+2026-02-05 09:56:04,501 [INFO] 🧹 Cleared old permissions for user 0ba4980d-7067-4339-b501-fa2c7ac415f5 → permissions=[]
+2026-02-05 09:56:04,501 [INFO] DEBUG: perms_map size: 15
+2026-02-05 09:56:04,501 [INFO] DEBUG: Sample perms_map keys: [('2dff446f-c95f-4310-ba4d-05e3395dd7eb', None, None, None), ('7ce1a0c2-50f0-40fe-a82f-df6767fcf91e', None, None, None), ('8da6c82b-2136-4a14-9670-2973682107a6', None, None, None)]
+2026-02-05 09:56:04,502 [INFO] DEBUG: About to bulk_create 15 ProviderCapabilityAccess records
+2026-02-05 09:56:04,506 [INFO] DEBUG: bulk_create completed successfully
+2026-02-05 09:56:04,511 [INFO] 🗑️ Invalidated cache for 0 employees
+2026-02-05 09:56:04,521 [INFO] ✅ Updated 15 capabilities for user 0ba4980d-7067-4339-b501-fa2c7ac415f5
+2026-02-05 09:56:04,523 [INFO] 📋 Linked capabilities: ['VETERINARY_LABS', 'VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_VISITS', 'VETERINARY_PHARMACY', 'VETERINARY_DOCTOR', 'VETERINARY_VITALS']
+2026-02-05 09:56:04,523 [INFO] 🏥 Veterinary capabilities: ['VETERINARY_LABS', 'VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_VISITS', 'VETERINARY_PHARMACY', 'VETERINARY_DOCTOR', 'VETERINARY_VITALS']
+2026-02-05 09:56:04,523 [INFO] ✅ Auto-added VETERINARY_CORE (vet capabilities detected: ['VETERINARY_LABS', 'VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_VISITS', 'VETERINARY_PHARMACY', 'VETERINARY_DOCTOR', 'VETERINARY_VITALS'])
+2026-02-05 09:56:04,524 [INFO] ✅ Final user capabilities: ['VETERINARY_LABS', 'VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_VISITS', 'VETERINARY_PHARMACY', 'VETERINARY_DOCTOR', 'VETERINARY_VITALS', 'VETERINARY_CORE']
+2026-02-05 09:56:04,528 [INFO] ✅ Synced Subscription for user 0ba4980d-7067-4339-b501-fa2c7ac415f5
+2026-02-05 09:56:04,528 [INFO] DEBUG: Capabilities Processing | Raw Count: 0
+2026-02-05 09:56:04,528 [INFO] 📤 Publishing Permissions Sync: 15 items enriched
+2026-02-05 09:56:04,542 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-02-05 09:56:04,542 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-02-05 09:59:09,871 [INFO] 🔥 Event: SEND_EMAIL | Role: organization | Service: auth_service
+2026-02-05 09:59:09,871 [WARNING] ⚠️ Unknown event type 'SEND_EMAIL' received.
+2026-02-05 09:59:09,878 [INFO] 🔥 Event: USER_CREATED | Role: organization | Service: auth_service
+2026-02-05 09:59:09,878 [INFO] DEBUG: Checking role 'organization' against employee list...
+2026-02-05 09:59:09,884 [INFO] ✅ Created VerifiedUser premm@gmail.com
+2026-02-05 09:59:09,888 [INFO] ✅ Auto-created ServiceProvider profile for premm@gmail.com
+2026-02-05 09:59:31,312 [INFO] 🔥 Event: USER_VERIFIED | Role: organization | Service: auth_service
+2026-02-05 09:59:31,313 [INFO] DEBUG: Checking role 'organization' against employee list...
+2026-02-05 09:59:31,316 [INFO] 🔄 Updated VerifiedUser premm@gmail.com
+2026-02-05 10:00:08,616 [INFO] 🔥 Event: PROVIDER.PERMISSIONS.UPDATED | Role:  | Service: None
+2026-02-05 10:00:08,618 [INFO] DEBUG: [KAFKA RECV] provider.permissions.updated | User: a72fbed7-0394-4637-b05c-2693556e49e6
+2026-02-05 10:00:08,618 [INFO] DEBUG: Payload Keys: ['auth_user_id', 'purchase_id', 'permissions', 'purchased_plan', 'templates', 'dynamic_capabilities']
+2026-02-05 10:00:08,618 [INFO] DEBUG: Templates Received - Services: 4, Cats: 9
+2026-02-05 10:00:08,693 [INFO] ✅ Synced Templates for user a72fbed7-0394-4637-b05c-2693556e49e6
+2026-02-05 10:00:08,695 [INFO] 🧹 Cleared old permissions for user a72fbed7-0394-4637-b05c-2693556e49e6 → permissions=[]
+2026-02-05 10:00:08,695 [INFO] DEBUG: perms_map size: 19
+2026-02-05 10:00:08,696 [INFO] DEBUG: Sample perms_map keys: [('2dff446f-c95f-4310-ba4d-05e3395dd7eb', None, None, None), ('7ce1a0c2-50f0-40fe-a82f-df6767fcf91e', None, None, None), ('8da6c82b-2136-4a14-9670-2973682107a6', None, None, None)]
+2026-02-05 10:00:08,696 [INFO] DEBUG: About to bulk_create 19 ProviderCapabilityAccess records
+2026-02-05 10:00:08,700 [INFO] DEBUG: bulk_create completed successfully
+2026-02-05 10:00:08,705 [INFO] 🗑️ Invalidated cache for 0 employees
+2026-02-05 10:00:08,716 [INFO] ✅ Updated 19 capabilities for user a72fbed7-0394-4637-b05c-2693556e49e6
+2026-02-05 10:00:08,718 [INFO] 📋 Linked capabilities: ['VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_LABS', 'VETERINARY_VISITS', 'VETERINARY_PHARMACY', 'VETERINARY_DOCTOR', 'VETERINARY_VITALS']
+2026-02-05 10:00:08,718 [INFO] 🏥 Veterinary capabilities: ['VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_LABS', 'VETERINARY_VISITS', 'VETERINARY_PHARMACY', 'VETERINARY_DOCTOR', 'VETERINARY_VITALS']
+2026-02-05 10:00:08,718 [INFO] ✅ Auto-added VETERINARY_CORE (vet capabilities detected: ['VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_LABS', 'VETERINARY_VISITS', 'VETERINARY_PHARMACY', 'VETERINARY_DOCTOR', 'VETERINARY_VITALS'])
+2026-02-05 10:00:08,719 [INFO] ✅ Final user capabilities: ['VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_LABS', 'VETERINARY_VISITS', 'VETERINARY_PHARMACY', 'VETERINARY_DOCTOR', 'VETERINARY_VITALS', 'VETERINARY_CORE']
+2026-02-05 10:00:08,722 [INFO] ✅ Synced Subscription for user a72fbed7-0394-4637-b05c-2693556e49e6
+2026-02-05 10:00:08,722 [INFO] DEBUG: Capabilities Processing | Raw Count: 0
+2026-02-05 10:00:08,722 [INFO] 📤 Publishing Permissions Sync: 19 items enriched
+2026-02-05 10:00:08,737 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-02-05 10:00:08,737 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-02-05 10:01:40,730 [INFO] 🔥 Event: SEND_EMAIL | Role: employee | Service: auth_service
+2026-02-05 10:01:40,730 [WARNING] ⚠️ Unknown event type 'SEND_EMAIL' received.
+2026-02-05 10:01:40,739 [INFO] 🔥 Event: USER_CREATED | Role: employee | Service: auth_service
+2026-02-05 10:01:40,739 [INFO] DEBUG: Checking role 'employee' against employee list...
+2026-02-05 10:01:40,739 [INFO] DEBUG: Role matched employee list.
+2026-02-05 10:01:40,740 [INFO] 🔍 Processing Employee cc223b1a-f391-4097-be77-2edc744a56a5 for Org a72fbed7-0394-4637-b05c-2693556e49e6
+2026-02-05 10:01:40,752 [INFO] ✅ Created OrganizationEmployee cc223b1a-f391-4097-be77-2edc744a56a5 (Invited)
+2026-02-05 10:01:40,757 [INFO] ✅ Created VerifiedUser ppll@gmail.com
+2026-02-05 10:01:58,084 [INFO] 🔥 Event: EMPLOYEE_UPDATED | Role: employee | Service: None
+2026-02-05 10:01:58,087 [INFO] 🆙 Updated OrganizationEmployee cc223b1a-f391-4097-be77-2edc744a56a5
+2026-02-05 10:02:32,684 [INFO] 🔥 Event: USER_VERIFIED | Role: employee | Service: auth_service
+2026-02-05 10:02:32,684 [INFO] DEBUG: Checking role 'employee' against employee list...
+2026-02-05 10:02:32,684 [INFO] DEBUG: Role matched employee list.
+2026-02-05 10:02:32,694 [INFO] ✅ Activated OrganizationEmployee cc223b1a-f391-4097-be77-2edc744a56a5
+2026-02-05 10:02:32,697 [INFO] 🔄 Updated VerifiedUser ppll@gmail.com
+2026-02-05 10:41:55,286 [INFO] 🔥 Event: SEND_EMAIL | Role: organization | Service: auth_service
+2026-02-05 10:41:55,286 [WARNING] ⚠️ Unknown event type 'SEND_EMAIL' received.
+2026-02-05 10:41:55,294 [INFO] 🔥 Event: USER_CREATED | Role: organization | Service: auth_service
+2026-02-05 10:41:55,295 [INFO] DEBUG: Checking role 'organization' against employee list...
+2026-02-05 10:41:55,299 [INFO] ✅ Created VerifiedUser nainiv6@gmail.com
+2026-02-05 10:41:55,302 [INFO] ✅ Auto-created ServiceProvider profile for nainiv6@gmail.com
+2026-02-05 10:42:31,742 [INFO] 🔥 Event: USER_VERIFIED | Role: organization | Service: auth_service
+2026-02-05 10:42:31,742 [INFO] DEBUG: Checking role 'organization' against employee list...
+2026-02-05 10:42:31,746 [INFO] 🔄 Updated VerifiedUser nainiv6@gmail.com
+2026-02-05 10:44:29,057 [INFO] 🔥 Event: PROVIDER.PERMISSIONS.UPDATED | Role:  | Service: None
+2026-02-05 10:44:29,059 [INFO] DEBUG: [KAFKA RECV] provider.permissions.updated | User: 045198a4-b8c0-45f3-8f99-ae7305bdb490
+2026-02-05 10:44:29,059 [INFO] DEBUG: Payload Keys: ['auth_user_id', 'purchase_id', 'permissions', 'purchased_plan', 'templates', 'dynamic_capabilities']
+2026-02-05 10:44:29,059 [INFO] DEBUG: Templates Received - Services: 4, Cats: 9
+2026-02-05 10:44:29,142 [INFO] ✅ Synced Templates for user 045198a4-b8c0-45f3-8f99-ae7305bdb490
+2026-02-05 10:44:29,145 [INFO] 🧹 Cleared old permissions for user 045198a4-b8c0-45f3-8f99-ae7305bdb490 → permissions=[]
+2026-02-05 10:44:29,146 [INFO] DEBUG: perms_map size: 19
+2026-02-05 10:44:29,146 [INFO] DEBUG: Sample perms_map keys: [('2dff446f-c95f-4310-ba4d-05e3395dd7eb', None, None, None), ('7ce1a0c2-50f0-40fe-a82f-df6767fcf91e', None, None, None), ('8da6c82b-2136-4a14-9670-2973682107a6', None, None, None)]
+2026-02-05 10:44:29,147 [INFO] DEBUG: About to bulk_create 19 ProviderCapabilityAccess records
+2026-02-05 10:44:29,151 [INFO] DEBUG: bulk_create completed successfully
+2026-02-05 10:44:29,156 [INFO] 🗑️ Invalidated cache for 0 employees
+2026-02-05 10:44:29,177 [INFO] ✅ Updated 19 capabilities for user 045198a4-b8c0-45f3-8f99-ae7305bdb490
+2026-02-05 10:44:29,179 [INFO] 📋 Linked capabilities: ['VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_LABS', 'VETERINARY_VISITS', 'VETERINARY_PHARMACY', 'VETERINARY_DOCTOR', 'VETERINARY_VITALS']
+2026-02-05 10:44:29,179 [INFO] 🏥 Veterinary capabilities: ['VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_LABS', 'VETERINARY_VISITS', 'VETERINARY_PHARMACY', 'VETERINARY_DOCTOR', 'VETERINARY_VITALS']
+2026-02-05 10:44:29,179 [INFO] ✅ Auto-added VETERINARY_CORE (vet capabilities detected: ['VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_LABS', 'VETERINARY_VISITS', 'VETERINARY_PHARMACY', 'VETERINARY_DOCTOR', 'VETERINARY_VITALS'])
+2026-02-05 10:44:29,181 [INFO] ✅ Final user capabilities: ['VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_LABS', 'VETERINARY_VISITS', 'VETERINARY_PHARMACY', 'VETERINARY_DOCTOR', 'VETERINARY_VITALS', 'VETERINARY_CORE']
+2026-02-05 10:44:29,187 [INFO] ✅ Synced Subscription for user 045198a4-b8c0-45f3-8f99-ae7305bdb490
+2026-02-05 10:44:29,187 [INFO] DEBUG: Capabilities Processing | Raw Count: 0
+2026-02-05 10:44:29,188 [INFO] 📤 Publishing Permissions Sync: 19 items enriched
+2026-02-05 10:44:29,199 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-02-05 10:44:29,200 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-02-05 10:46:56,957 [INFO] 🔥 Event: SEND_EMAIL | Role: lab tech | Service: auth_service
+2026-02-05 10:46:56,957 [WARNING] ⚠️ Unknown event type 'SEND_EMAIL' received.
+2026-02-05 10:46:56,965 [INFO] 🔥 Event: USER_CREATED | Role: lab tech | Service: auth_service
+2026-02-05 10:46:56,965 [INFO] DEBUG: Checking role 'lab tech' against employee list...
+2026-02-05 10:46:56,965 [INFO] DEBUG: Role matched employee list.
+2026-02-05 10:46:56,966 [INFO] 🔍 Processing Employee 412799ab-5cd6-495e-8e40-91ab7bd0b64b for Org 045198a4-b8c0-45f3-8f99-ae7305bdb490
+2026-02-05 10:46:56,978 [INFO] ✅ Created OrganizationEmployee 412799ab-5cd6-495e-8e40-91ab7bd0b64b (Invited)
+2026-02-05 10:46:56,982 [INFO] ✅ Created VerifiedUser nainiv66@gmail.com
+2026-02-05 10:48:56,033 [INFO] 🔥 Event: EMPLOYEE_UPDATED | Role: lab tech | Service: None
+2026-02-05 10:48:56,035 [INFO] 🆙 Updated OrganizationEmployee 412799ab-5cd6-495e-8e40-91ab7bd0b64b
+2026-02-05 10:49:31,311 [INFO] 🔥 Event: USER_VERIFIED | Role: lab tech | Service: auth_service
+2026-02-05 10:49:31,311 [INFO] DEBUG: Checking role 'lab tech' against employee list...
+2026-02-05 10:49:31,311 [INFO] DEBUG: Role matched employee list.
+2026-02-05 10:49:31,320 [INFO] ✅ Activated OrganizationEmployee 412799ab-5cd6-495e-8e40-91ab7bd0b64b
+2026-02-05 10:49:31,324 [INFO] 🔄 Updated VerifiedUser nainiv66@gmail.com
+2026-02-05 12:01:05,757 [INFO] 🔥 Event: USER_UPDATED | Role: organization | Service: auth_service
+2026-02-05 12:01:05,770 [INFO] 🆙 Updated VerifiedUser 045198a4-b8c0-45f3-8f99-ae7305bdb490
+2026-02-05 12:11:13,775 [INFO] 🔥 Event: SEND_EMAIL | Role: organization | Service: auth_service
+2026-02-05 12:11:13,776 [WARNING] ⚠️ Unknown event type 'SEND_EMAIL' received.
+2026-02-05 12:11:13,787 [INFO] 🔥 Event: USER_CREATED | Role: organization | Service: auth_service
+2026-02-05 12:11:13,788 [INFO] DEBUG: Checking role 'organization' against employee list...
+2026-02-05 12:11:13,798 [INFO] ✅ Created VerifiedUser jone@gmail.com
+2026-02-05 12:11:13,804 [INFO] ✅ Auto-created ServiceProvider profile for jone@gmail.com
+2026-02-05 12:11:44,415 [INFO] 🔥 Event: USER_VERIFIED | Role: organization | Service: auth_service
+2026-02-05 12:11:44,415 [INFO] DEBUG: Checking role 'organization' against employee list...
+2026-02-05 12:11:44,419 [INFO] 🔄 Updated VerifiedUser jone@gmail.com
+2026-02-05 12:12:13,750 [INFO] 🔥 Event: PROVIDER.PERMISSIONS.UPDATED | Role:  | Service: None
+2026-02-05 12:12:13,752 [INFO] DEBUG: [KAFKA RECV] provider.permissions.updated | User: 42819f7e-bf5d-457c-959f-70f1cce74b34
+2026-02-05 12:12:13,752 [INFO] DEBUG: Payload Keys: ['auth_user_id', 'purchase_id', 'permissions', 'purchased_plan', 'templates', 'dynamic_capabilities']
+2026-02-05 12:12:13,752 [INFO] DEBUG: Templates Received - Services: 4, Cats: 9
+2026-02-05 12:12:13,837 [INFO] ✅ Synced Templates for user 42819f7e-bf5d-457c-959f-70f1cce74b34
+2026-02-05 12:12:13,840 [INFO] 🧹 Cleared old permissions for user 42819f7e-bf5d-457c-959f-70f1cce74b34 → permissions=[]
+2026-02-05 12:12:13,840 [INFO] DEBUG: perms_map size: 19
+2026-02-05 12:12:13,840 [INFO] DEBUG: Sample perms_map keys: [('2dff446f-c95f-4310-ba4d-05e3395dd7eb', None, None, None), ('7ce1a0c2-50f0-40fe-a82f-df6767fcf91e', None, None, None), ('8da6c82b-2136-4a14-9670-2973682107a6', None, None, None)]
+2026-02-05 12:12:13,841 [INFO] DEBUG: About to bulk_create 19 ProviderCapabilityAccess records
+2026-02-05 12:12:13,848 [INFO] DEBUG: bulk_create completed successfully
+2026-02-05 12:12:13,857 [INFO] 🗑️ Invalidated cache for 0 employees
+2026-02-05 12:12:13,870 [INFO] ✅ Updated 19 capabilities for user 42819f7e-bf5d-457c-959f-70f1cce74b34
+2026-02-05 12:12:13,871 [INFO] 📋 Linked capabilities: ['VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_LABS', 'VETERINARY_VISITS', 'VETERINARY_PHARMACY', 'VETERINARY_DOCTOR', 'VETERINARY_VITALS']
+2026-02-05 12:12:13,871 [INFO] 🏥 Veterinary capabilities: ['VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_LABS', 'VETERINARY_VISITS', 'VETERINARY_PHARMACY', 'VETERINARY_DOCTOR', 'VETERINARY_VITALS']
+2026-02-05 12:12:13,872 [INFO] ✅ Auto-added VETERINARY_CORE (vet capabilities detected: ['VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_LABS', 'VETERINARY_VISITS', 'VETERINARY_PHARMACY', 'VETERINARY_DOCTOR', 'VETERINARY_VITALS'])
+2026-02-05 12:12:13,873 [INFO] ✅ Final user capabilities: ['VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_LABS', 'VETERINARY_VISITS', 'VETERINARY_PHARMACY', 'VETERINARY_DOCTOR', 'VETERINARY_VITALS', 'VETERINARY_CORE']
+2026-02-05 12:12:13,876 [INFO] ✅ Synced Subscription for user 42819f7e-bf5d-457c-959f-70f1cce74b34
+2026-02-05 12:12:13,876 [INFO] DEBUG: Capabilities Processing | Raw Count: 0
+2026-02-05 12:12:13,877 [INFO] 📤 Publishing Permissions Sync: 19 items enriched
+2026-02-05 12:12:13,893 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-02-05 12:12:13,893 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-02-05 12:14:02,474 [INFO] 🔥 Event: SEND_EMAIL | Role: employee | Service: auth_service
+2026-02-05 12:14:02,475 [WARNING] ⚠️ Unknown event type 'SEND_EMAIL' received.
+2026-02-05 12:14:02,484 [INFO] 🔥 Event: USER_CREATED | Role: employee | Service: auth_service
+2026-02-05 12:14:02,484 [INFO] DEBUG: Checking role 'employee' against employee list...
+2026-02-05 12:14:02,484 [INFO] DEBUG: Role matched employee list.
+2026-02-05 12:14:02,484 [INFO] 🔍 Processing Employee 8004a3fd-9415-467a-8aa3-dd6aa5ed2d95 for Org 42819f7e-bf5d-457c-959f-70f1cce74b34
+2026-02-05 12:14:02,494 [INFO] ✅ Created OrganizationEmployee 8004a3fd-9415-467a-8aa3-dd6aa5ed2d95 (Invited)
+2026-02-05 12:14:02,497 [INFO] ✅ Created VerifiedUser joneemployee@gmail.com
+2026-02-05 12:14:20,516 [INFO] 🔥 Event: EMPLOYEE_UPDATED | Role: employee | Service: None
+2026-02-05 12:14:20,518 [INFO] 🆙 Updated OrganizationEmployee 8004a3fd-9415-467a-8aa3-dd6aa5ed2d95
+2026-02-05 12:14:51,950 [INFO] 🔥 Event: USER_VERIFIED | Role: employee | Service: auth_service
+2026-02-05 12:14:51,951 [INFO] DEBUG: Checking role 'employee' against employee list...
+2026-02-05 12:14:51,952 [INFO] DEBUG: Role matched employee list.
+2026-02-05 12:14:51,965 [INFO] ✅ Activated OrganizationEmployee 8004a3fd-9415-467a-8aa3-dd6aa5ed2d95
+2026-02-05 12:14:51,970 [INFO] 🔄 Updated VerifiedUser joneemployee@gmail.com
+2026-02-05 12:25:58,995 [INFO] 🔥 Event: SEND_EMAIL | Role: organization | Service: auth_service
+2026-02-05 12:25:58,996 [WARNING] ⚠️ Unknown event type 'SEND_EMAIL' received.
+2026-02-05 12:25:59,001 [INFO] 🔥 Event: USER_CREATED | Role: organization | Service: auth_service
+2026-02-05 12:25:59,001 [INFO] DEBUG: Checking role 'organization' against employee list...
+2026-02-05 12:25:59,007 [INFO] ✅ Created VerifiedUser rohit@gmail.com
+2026-02-05 12:25:59,010 [INFO] ✅ Auto-created ServiceProvider profile for rohit@gmail.com
+2026-02-05 12:26:15,485 [INFO] 🔥 Event: USER_VERIFIED | Role: organization | Service: auth_service
+2026-02-05 12:26:15,486 [INFO] DEBUG: Checking role 'organization' against employee list...
+2026-02-05 12:26:15,490 [INFO] 🔄 Updated VerifiedUser rohit@gmail.com
+2026-02-05 12:28:21,052 [INFO] 🔥 Event: PROVIDER.PERMISSIONS.UPDATED | Role:  | Service: None
+2026-02-05 12:28:21,055 [INFO] DEBUG: [KAFKA RECV] provider.permissions.updated | User: d0a80e3b-3971-487d-9c31-c335e9ee8e77
+2026-02-05 12:28:21,055 [INFO] DEBUG: Payload Keys: ['auth_user_id', 'purchase_id', 'permissions', 'purchased_plan', 'templates', 'dynamic_capabilities']
+2026-02-05 12:28:21,055 [INFO] DEBUG: Templates Received - Services: 3, Cats: 8
+2026-02-05 12:28:21,111 [INFO] ✅ Synced Templates for user d0a80e3b-3971-487d-9c31-c335e9ee8e77
+2026-02-05 12:28:21,114 [INFO] 🧹 Cleared old permissions for user d0a80e3b-3971-487d-9c31-c335e9ee8e77 → permissions=[]
+2026-02-05 12:28:21,115 [INFO] DEBUG: perms_map size: 15
+2026-02-05 12:28:21,115 [INFO] DEBUG: Sample perms_map keys: [('2dff446f-c95f-4310-ba4d-05e3395dd7eb', None, None, None), ('8da6c82b-2136-4a14-9670-2973682107a6', None, None, None), ('f064a9ab-1b63-4234-bbc5-ddab93f3f868', None, None, None)]
+2026-02-05 12:28:21,115 [INFO] DEBUG: About to bulk_create 15 ProviderCapabilityAccess records
+2026-02-05 12:28:21,121 [INFO] DEBUG: bulk_create completed successfully
+2026-02-05 12:28:21,126 [INFO] 🗑️ Invalidated cache for 0 employees
+2026-02-05 12:28:21,137 [INFO] ✅ Updated 15 capabilities for user d0a80e3b-3971-487d-9c31-c335e9ee8e77
+2026-02-05 12:28:21,139 [INFO] 📋 Linked capabilities: ['VETERINARY_LABS', 'VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_VISITS', 'VETERINARY_PHARMACY', 'VETERINARY_DOCTOR', 'VETERINARY_VITALS']
+2026-02-05 12:28:21,139 [INFO] 🏥 Veterinary capabilities: ['VETERINARY_LABS', 'VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_VISITS', 'VETERINARY_PHARMACY', 'VETERINARY_DOCTOR', 'VETERINARY_VITALS']
+2026-02-05 12:28:21,139 [INFO] ✅ Auto-added VETERINARY_CORE (vet capabilities detected: ['VETERINARY_LABS', 'VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_VISITS', 'VETERINARY_PHARMACY', 'VETERINARY_DOCTOR', 'VETERINARY_VITALS'])
+2026-02-05 12:28:21,141 [INFO] ✅ Final user capabilities: ['VETERINARY_LABS', 'VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_VISITS', 'VETERINARY_PHARMACY', 'VETERINARY_DOCTOR', 'VETERINARY_VITALS', 'VETERINARY_CORE']
+2026-02-05 12:28:21,144 [INFO] ✅ Synced Subscription for user d0a80e3b-3971-487d-9c31-c335e9ee8e77
+2026-02-05 12:28:21,144 [INFO] DEBUG: Capabilities Processing | Raw Count: 0
+2026-02-05 12:28:21,144 [INFO] 📤 Publishing Permissions Sync: 15 items enriched
+2026-02-05 12:28:21,156 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-02-05 12:28:21,157 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-02-05 12:30:23,666 [INFO] 🔥 Event: SEND_EMAIL | Role: employee | Service: auth_service
+2026-02-05 12:30:23,666 [WARNING] ⚠️ Unknown event type 'SEND_EMAIL' received.
+2026-02-05 12:30:23,672 [INFO] 🔥 Event: USER_CREATED | Role: employee | Service: auth_service
+2026-02-05 12:30:23,672 [INFO] DEBUG: Checking role 'employee' against employee list...
+2026-02-05 12:30:23,672 [INFO] DEBUG: Role matched employee list.
+2026-02-05 12:30:23,672 [INFO] 🔍 Processing Employee b81f0881-4071-483a-acda-2a3523dfab10 for Org d0a80e3b-3971-487d-9c31-c335e9ee8e77
+2026-02-05 12:30:23,682 [INFO] ✅ Created OrganizationEmployee b81f0881-4071-483a-acda-2a3523dfab10 (Invited)
+2026-02-05 12:30:23,685 [INFO] ✅ Created VerifiedUser hjjcgf@gmail.com
+2026-02-05 12:30:39,649 [INFO] 🔥 Event: EMPLOYEE_UPDATED | Role: employee | Service: None
+2026-02-05 12:30:39,651 [INFO] 🆙 Updated OrganizationEmployee b81f0881-4071-483a-acda-2a3523dfab10
+2026-02-05 12:31:04,979 [INFO] 🔥 Event: USER_VERIFIED | Role: employee | Service: auth_service
+2026-02-05 12:31:04,979 [INFO] DEBUG: Checking role 'employee' against employee list...
+2026-02-05 12:31:04,980 [INFO] DEBUG: Role matched employee list.
+2026-02-05 12:31:04,990 [INFO] ✅ Activated OrganizationEmployee b81f0881-4071-483a-acda-2a3523dfab10
+2026-02-05 12:31:04,996 [INFO] 🔄 Updated VerifiedUser hjjcgf@gmail.com
+2026-02-05 12:33:16,913 [INFO] 🔥 Event: SEND_EMAIL | Role: employee | Service: auth_service
+2026-02-05 12:33:16,913 [WARNING] ⚠️ Unknown event type 'SEND_EMAIL' received.
+2026-02-05 12:33:16,920 [INFO] 🔥 Event: USER_CREATED | Role: employee | Service: auth_service
+2026-02-05 12:33:16,920 [INFO] DEBUG: Checking role 'employee' against employee list...
+2026-02-05 12:33:16,920 [INFO] DEBUG: Role matched employee list.
+2026-02-05 12:33:16,920 [INFO] 🔍 Processing Employee 48a1da0b-13b3-4eec-b953-2cd6a588ad76 for Org d0a80e3b-3971-487d-9c31-c335e9ee8e77
+2026-02-05 12:33:16,931 [INFO] ✅ Created OrganizationEmployee 48a1da0b-13b3-4eec-b953-2cd6a588ad76 (Invited)
+2026-02-05 12:33:16,935 [INFO] ✅ Created VerifiedUser hjyftfgf@gmail.com
+2026-02-05 12:33:33,478 [INFO] 🔥 Event: EMPLOYEE_UPDATED | Role: employee | Service: None
+2026-02-05 12:33:33,479 [INFO] 🆙 Updated OrganizationEmployee b81f0881-4071-483a-acda-2a3523dfab10
+2026-02-05 12:33:55,727 [INFO] 🔥 Event: USER_VERIFIED | Role: employee | Service: auth_service
+2026-02-05 12:33:55,728 [INFO] DEBUG: Checking role 'employee' against employee list...
+2026-02-05 12:33:55,728 [INFO] DEBUG: Role matched employee list.
+2026-02-05 12:33:55,739 [INFO] ✅ Activated OrganizationEmployee 48a1da0b-13b3-4eec-b953-2cd6a588ad76
+2026-02-05 12:33:55,744 [INFO] 🔄 Updated VerifiedUser hjyftfgf@gmail.com
+2026-02-05 12:34:53,835 [INFO] 🔥 Event: EMPLOYEE_UPDATED | Role: employee | Service: None
+2026-02-05 12:34:53,836 [INFO] 🆙 Updated OrganizationEmployee 48a1da0b-13b3-4eec-b953-2cd6a588ad76
+2026-02-05 12:35:06,865 [INFO] 🔥 Event: EMPLOYEE_UPDATED | Role: employee | Service: None
+2026-02-05 12:35:06,867 [INFO] 🆙 Updated OrganizationEmployee b81f0881-4071-483a-acda-2a3523dfab10

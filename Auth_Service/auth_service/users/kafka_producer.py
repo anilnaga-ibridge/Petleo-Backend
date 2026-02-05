@@ -202,16 +202,22 @@ def get_role_name(role_value):
         return None
 
 # ==============================
+# ==============================
 # Publish Event
 # ==============================
-def publish_event(event_type, data: dict):
+def publish_event(event_type, data: dict, **kwargs):
+    """
+    Publish an event to Kafka.
+    Supports legacy calls with (event_type, data, role="name").
+    """
     producer = get_producer()
     if not producer:
         logger.warning(f"⚠️ Kafka producer not available. Event '{event_type}' skipped.")
         return
 
     try:
-        raw_role = data.get("role")
+        # Extract role either from data or from kwargs
+        raw_role = data.get("role") or kwargs.get("role")
         role_name = get_role_name(raw_role)
 
         if not role_name:
@@ -222,7 +228,7 @@ def publish_event(event_type, data: dict):
 
         topic = TOPIC_MAP.get(role_key)
         if not topic:
-            logger.warning(f"⚠️ No Kafka topic mapped for role '{role_name}'")
+            logger.warning(f"⚠️ No Kafka topic mapped for role '{role_name}' [key={role_key}]")
             return
 
         event = {
@@ -233,10 +239,14 @@ def publish_event(event_type, data: dict):
             "timestamp": int(time.time()),
         }
 
+        # Ensure role is in data for consumers that expect it there
+        if "role" not in event["data"]:
+            event["data"]["role"] = role_name
+
         logger.info(f"📦 Publishing event '{event_type}' → '{topic}' [role={role_name}]")
         producer.send(topic, value=event)
         producer.flush()
-        logger.info("✅ Kafka event sent")
+        logger.info(f"✅ Kafka event '{event_type}' sent successfully")
 
     except Exception as e:
-        logger.exception(f"❌ Failed to publish event: {e}")
+        logger.exception(f"❌ Failed to publish event '{event_type}': {e}")

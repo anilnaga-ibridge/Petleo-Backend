@@ -264,9 +264,11 @@ class ProviderPricingSerializer(serializers.ModelSerializer):
     # Let's add a SerializerMethodField.
     category_name = serializers.SerializerMethodField()
 
+    duration = serializers.IntegerField(source="duration_minutes", required=False, allow_null=True)
+
     class Meta:
         model = ProviderPricing
-        fields = ["id", "service_id", "category_id", "category_name", "facility", "facility_name", "facility_description", "price", "duration", "description", "is_active", "created_at"]
+        fields = ["id", "service_id", "category_id", "category_name", "facility", "facility_name", "facility_description", "price", "billing_unit", "duration", "description", "is_active", "created_at"]
         read_only_fields = ["id", "created_at"]
 
     def get_category_name(self, obj):

@@ -81,34 +81,48 @@ for message in consumer:
             # 3. Sync VeterinaryStaff & Assignments
             if auth_user_id and role not in ["customer", "organization"]:
                 # Extract permissions from payload if present
+                logger.info(f"\n{'='*80}")
+                logger.info(f"🧑‍💼 EMPLOYEE SYNC START: User={auth_user_id}, Role={role}")
+                logger.info(f"{'='*80}")
 
                 permissions = data.get("permissions", [])
+                logger.info(f"📋 Raw Permissions from Payload: {permissions}")
+                logger.info(f"📊 Permission Count: {len(permissions)}")
                 
                 clinic = None
                 if org_id:
                      # Find the primary clinic for the organization
+                     logger.info(f"🏥 Looking for org clinic: org_id={org_id}")
                      clinic = Clinic.objects.filter(organization_id=org_id, is_primary=True).first()
+                     if clinic:
+                         logger.info(f"✅ Found Clinic: {clinic.name} (ID: {clinic.id})")
+                     else:
+                         logger.warning(f"⚠️ NO CLINIC FOUND for org_id={org_id}")
                 elif role == "individual":
                      # For individuals, they are their own organization
+                     logger.info(f"🏥 Individual provider - looking for self-owned clinic")
                      clinic = Clinic.objects.filter(organization_id=auth_user_id, is_primary=True).first()
                 
-                staff, _ = VeterinaryStaff.objects.update_or_create(
+                logger.info(f"🔧 Creating/Updating VeterinaryStaff with {len(permissions)} permissions")
+                staff, staff_created = VeterinaryStaff.objects.update_or_create(
                     auth_user_id=auth_user_id,
                     defaults={
                         "role": role,
                         "clinic": clinic,
-                        "permissions": permissions  # [FIX] Save permissions to Staff
+                        "permissions": permissions
                     }
                 )
+                logger.info(f"{'✨ Created' if staff_created else '🔄 Updated'} VeterinaryStaff: {auth_user_id}")
 
                 # Auto-create assignment to the primary clinic
                 if clinic:
+                    logger.info(f"🔗 Creating/Updating StaffClinicAssignment to {clinic.name}")
                     assignment, a_created = StaffClinicAssignment.objects.get_or_create(
                         staff=staff,
                         clinic=clinic,
                         defaults={
                             "role": role,
-                            "permissions": permissions,  # [FIX] Use payload permissions explicitly
+                            "permissions": permissions,
                             "is_primary": True,
                             "is_active": True
                         }
@@ -118,13 +132,24 @@ for message in consumer:
                     if not a_created and not assignment.is_active:
                          assignment.is_active = True
                          assignment.save()
+                         logger.info(f"🔓 Activated existing assignment")
 
                     if a_created:
-                        logger.info(f"🔗 Created StaffClinicAssignment for {auth_user_id} @ {clinic.name} with {len(permissions)} perms")
-                    if a_created:
-                        logger.info(f"🔗 Created StaffClinicAssignment for {auth_user_id} @ {clinic.name}")
+                        logger.info(f"✅ Created StaffClinicAssignment for {auth_user_id} @ {clinic.name} with {len(permissions)} perms")
+                    else:
+                        logger.info(f"🔄 Updated existing StaffClinicAssignment")
+                    
+                    logger.info(f"📍 Assignment Details:")
+                    logger.info(f"   - Clinic ID: {assignment.clinic_id}")
+                    logger.info(f"   - Role: {assignment.role}")
+                    logger.info(f"   - Permissions: {assignment.permissions}")
+                    logger.info(f"   - Is Primary: {assignment.is_primary}")
+                    logger.info(f"   - Is Active: {assignment.is_active}")
+                else:
+                    logger.warning(f"⚠️ NO CLINIC - Assignment NOT created for {auth_user_id}")
 
                 logger.info(f"✅ Synced VeterinaryStaff {auth_user_id} ({role})")
+                logger.info(f"{'='*80}\n")
 
         elif event_type == "PROVIDER_CAPABILITY_UPDATED":
             provider_id = data.get("provider_id")

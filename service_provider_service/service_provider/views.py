@@ -19,6 +19,7 @@ from .models import (
     Capability,
     ProviderRole,
     OrganizationEmployee,
+    PermissionAuditLog,
 )
 from .serializers import (
     ServiceProviderSerializer, 
@@ -121,6 +122,10 @@ def get_my_permissions(request):
 
     # 1. Determine the "Subscription Owner"
     # If it's an employee, we check the Organization's subscription.
+    print("\\n" + "="*100)
+    print("🚨 NEW CODE LOADED - VINOD FIX ACTIVE 🚨")
+    print("="*100 + "\\n")
+    
     subscription_owner = user
     try:
         try:
@@ -164,10 +169,13 @@ def get_my_permissions(request):
         return Response({"permissions": [], "plan": None, "user_profile": user_profile})
 
     # 3. Fetch Capabilities using the robust helper
-    permissions_list = _build_permission_tree(user)
+    # IMPORTANT: For employees, we build the tree from the organization owner's capabilities,
+    # then filter by the employee's role permissions below
+    permissions_list = _build_permission_tree(subscription_owner)
     
     with open("debug_perms.log", "a") as f:
         f.write(f"\\n[{timezone.now()}] get_my_permissions | User: {user.email} ({user.auth_user_id})\\n")
+        f.write(f"Subscription Owner: {subscription_owner.email}\\n")
         f.write(f"Tree Count: {len(permissions_list)}\\n")
         for p in permissions_list:
             f.write(f" - {p.get('service_key')} ({p.get('service_name')})\\n")
@@ -179,62 +187,160 @@ def get_my_permissions(request):
     user_caps = set()
     try:
         emp = OrganizationEmployee.objects.get(auth_user_id=user.auth_user_id)
+        
+        print(f"\n{'='*100}")
+        print(f"🧑‍💼 EMPLOYEE PERMISSION CALCULATION: {user.email}")
+        print(f"{'='*100}")
+        print(f"   Employee ID: {emp.id}")
+        print(f"   Role Field: {emp.role}")
+        print(f"   Provider Role: {emp.provider_role}")
+        print(f"   Status: {emp.status}")
+        
         # CASE A: Employee
         # Access = Organization Plan ∩ Employee Role
         user_caps = set(emp.get_final_permissions())
-        print(f"DEBUG: Employee {user.email} permissions: {len(user_caps)}")
+        
+        print(f"   📊 Final Permissions Count: {len(user_caps)}")
+        print(f"   📋 Final Permissions: {list(user_caps)}")
+        print(f"{'='*100}\n")
+        
+        # IMPORTANT: Filter the permission tree by employee capabilities
+        # The tree was built from org plan, but we need to restrict it to role capabilities
+        print(f"🔍 Filtering permission tree by employee capabilities...")
+        print(f"   Tree size before filter: {len(permissions_list)}")
+        
+        filtered_permissions = []
+        for service in permissions_list:
+            service_key = service.get('service_key')
+            service_name = service.get('service_name')
+            
+            print(f"   🔍 Checking service: {service_name} (key: {service_key})")
+            print(f"      Service key in user_caps? {service_key in user_caps}")
+            
+            # Check if employee has access to this service
+            if service_key in user_caps:
+                print(f"      ✅ MATCH - Service accessible, now filtering categories...")
+                
+                # CRITICAL FIX: Even if service is accessible, filter categories by employee caps
+                filtered_categories = []
+                for category in service.get('categories', []):
+                    cat_key = category.get('linked_capability') or category.get('category_key')
+                    cat_name = category.get('name') or category.get('category_name')
+                    print(f"         Category: {cat_name} (key: {cat_key})")
+                    
+                    # Check if employee has this specific category capability
+                    if cat_key and cat_key in user_caps:
+                        print(f"            ✅ Category MATCH - Including")
+                        filtered_categories.append(category)
+                    else:
+                        print(f"            ❌ Category NO MATCH - Excluding")
+                
+                # Include service with filtered categories
+                filtered_service = service.copy()
+                filtered_service['categories'] = filtered_categories
+                filtered_permissions.append(filtered_service)
+                print(f"      ➕ Added service with {len(filtered_categories)} filtered categories")
+                
+            else:
+                print(f"      ❌ NO MATCH - Checking if any categories match...")
+                # Check categories - maybe they have access to specific categories
+                filtered_categories = []
+                for category in service.get('categories', []):
+                    cat_key = category.get('linked_capability') or category.get('category_key')
+                    cat_name = category.get('name') or category.get('category_name')
+                    print(f"         Category: {cat_name} (key: {cat_key})")
+                    if cat_key and cat_key in user_caps:
+                        print(f"            ✅ Category MATCH")
+                        filtered_categories.append(category)
+                    else:
+                        print(f"            ❌ Category NO MATCH")
+                
+                # If employee has access to any categories, include service with filtered categories
+                if filtered_categories:
+                    print(f"      ➕ Adding service with {len(filtered_categories)} filtered categories")
+                    filtered_service = service.copy()
+                    filtered_service['categories'] = filtered_categories
+                    filtered_permissions.append(filtered_service)
+                else:
+                    print(f"      ⏭️ SKIPPING - No matching categories")
+        
+        permissions_list = filtered_permissions
+        print(f"   Tree size after filter: {len(permissions_list)}")
+        print(f"{'='*100}\n")
         
     except OrganizationEmployee.DoesNotExist:
         # CASE B: Provider (Org or Individual)
         # Access = Purchased Plan (Upper Bound)
         # We do NOT intersect with "role defaults" anymore.
         
+        print(f"\n{'='*100}")
+        print(f"🏢 PROVIDER PERMISSION CALCULATION: {user.email}")
+        print(f"{'='*100}")
+        
         user_caps = user.get_all_plan_capabilities()
+        # Note: VETERINARY_CORE is auto-added in get_all_plan_capabilities() if vet services exist
         
-        # Ensure CORE access is always present
-        user_caps.add("VETERINARY_CORE")
+        print(f"   📊 Plan Capabilities Count: {len(user_caps)}")
+        print(f"   📋 Plan Capabilities: {list(user_caps)}")
+        print(f"{'='*100}\n")
+
+    # Load service metadata dynamically from database (100% Database-Driven)
+    # This replaces the old hardcoded simple_services dictionary
+    
+    # CRITICAL FIX: Only inject AllowedService for PROVIDERS, not employees
+    # Employees already have their filtered tree from the try block above
+    try:
+        OrganizationEmployee.objects.get(auth_user_id=user.auth_user_id)
+        is_employee = True
+    except OrganizationEmployee.DoesNotExist:
+        is_employee = False
+    
+    if not is_employee:
+        # PROVIDER PATH: Add simple services from AllowedService
+        allowed_services = AllowedService.objects.filter(verified_user=subscription_owner)
         
-        print(f"DEBUG: Provider {user.email} Plan Caps: {len(user_caps)}")
+        
+        print(f"\\n🔍 ALLOWED SERVICE INJECTION (PROVIDER ONLY)")
+        print(f"   User Caps: {list(user_caps)}")
+        print(f"   Allowed Services Count: {allowed_services.count()}")
+    
+        for allowed_svc in allowed_services:
+            # Get the capability key from the service
+            # For dynamic services, this comes from Service.linked_capability
+            cap_key = allowed_svc.name.upper().replace(" ", "_").replace("&", "")
+            
+            print(f"       Checking: {allowed_svc.name} → {cap_key}")
+            
+            # Check if user has this capability
+            if cap_key in user_caps:
+                print(f"          ✅ MATCH! Adding to tree")
+                # Skip VETERINARY_CORE if we already have a real Veterinary service from a plan
+                if cap_key == "VETERINARY_CORE" and any("VETERINARY" in (p.get("service_key") or "").upper() for p in permissions_list):
+                    print(f"          ⏭️ Skipping (already have VETERINARY service)")
+                    continue
 
-    simple_services = {
-        "GROOMING": {"name": "Grooming", "icon": "tabler-cut"},
-        "DAYCARE": {"name": "Daycare", "icon": "tabler-bone"},
-        "TRAINING": {"name": "Training", "icon": "tabler-school"},
-        "BOARDING": {"name": "Boarding", "icon": "tabler-home"},
-        "WALKING": {"name": "Walking", "icon": "tabler-walk"},
-        "AQUAMATION": {"name": "Aquamation", "icon": "tabler-droplet"},
-        "ADOPTION": {"name": "Adoption", "icon": "tabler-heart-handshake"},
-        "VETERINARY_VISITS": {"name": "Visits", "icon": "tabler-calendar"},
-        "VETERINARY_VITALS": {"name": "Vitals", "icon": "tabler-activity"},
-        "VETERINARY_PRESCRIPTIONS": {"name": "Prescriptions", "icon": "tabler-pill"},
-        "VETERINARY_LABS": {"name": "Lab Orders", "icon": "tabler-microscope"},
-        "VETERINARY_MEDICINE_REMINDERS": {"name": "Medicine", "icon": "tabler-alarm"},
-        "VETERINARY_DOCTOR": {"name": "Doctor Queue", "icon": "tabler-stethoscope"},
-        "VETERINARY_PHARMACY": {"name": "Pharmacy", "icon": "tabler-band-aid"},
-        "VETERINARY_CORE": {"name": "Veterinary", "icon": "tabler-stethoscope"}
-    }
-
-    for key, meta in simple_services.items():
-        # Check if user has this capability key
-        if key in user_caps:
-            # Skip VETERINARY_CORE if we already have a real Veterinary service from a plan
-            if key == "VETERINARY_CORE" and any("VETERINARY" in (p.get("service_key") or "").upper() for p in permissions_list):
-                continue
-
-            # Check if already present to avoid duplicates
-            if not any(p.get('service_key') == key for p in permissions_list):
-                permissions_list.append({
-                    "service_id": key, # Use Key as ID for simple services
-                    "service_name": meta["name"],
-                    "service_key": key,
-                    "icon": meta["icon"],
-                    "categories": [],
-                    "can_view": True,
-                    "can_create": True,
-                    "can_edit": True,
-                    "can_delete": True
-                })
-    # -----------------------------------------
+                # Check if already present to avoid duplicates
+                if not any(p.get('service_key') == cap_key for p in permissions_list):
+                    permissions_list.append({
+                        "service_id": str(allowed_svc.service_id),
+                        "service_name": allowed_svc.name,
+                        "service_key": cap_key,
+                        "icon": allowed_svc.icon or "tabler-box",
+                        "categories": [],
+                        "can_view": True,
+                        "can_create": True,
+                        "can_edit": True,
+                        "can_delete": True
+                    })
+                    print(f"          ➕ Added to permissions_list")
+                else:
+                    print(f"          ⏭️ Already in list")
+            else:
+                print(f"          ❌ NO MATCH (not in user_caps)")
+    
+        print(f"   Final Tree Count: {len(permissions_list)}\n")
+    else:
+        print(f"\n⏭️ SKIPPING ALLOWED SERVICE INJECTION (Employee - already filtered)\n")
     # -----------------------------------------
     
     # Construct response
@@ -254,7 +360,11 @@ def get_my_permissions(request):
         "plan": plan_data,
         "user_profile": user_profile
     }
-    
+
+    print(f"✅ DEBUG RESPONSE get_my_permissions: Found {len(permissions_list)} Services")
+    for p in permissions_list:
+        print(f"   SERVICE: {p.get('service_name')} (Key: {p.get('service_key')}, ID: {p.get('service_id')}) [View: {p.get('can_view')}]")
+
     return Response(response_data)
 
 @api_view(["GET"])
@@ -398,6 +508,15 @@ class EmployeeViewSet(viewsets.ModelViewSet):
         employee.status = 'DISABLED'
         employee.save()
         
+        # 🛡️ Audit Log
+        PermissionAuditLog.log_action(
+            actor=request.user,
+            action='EMPLOYEE_SUSPENDED',
+            target_employee=employee,
+            details={'status': 'DISABLED'},
+            request=request
+        )
+
         # Sync with Auth Service (optional, but good practice)
         from .kafka_producer import publish_employee_updated
         publish_employee_updated(employee)
@@ -410,6 +529,15 @@ class EmployeeViewSet(viewsets.ModelViewSet):
         employee.status = 'ACTIVE'
         employee.save()
         
+        # 🛡️ Audit Log
+        PermissionAuditLog.log_action(
+            actor=request.user,
+            action='EMPLOYEE_ACTIVATED',
+            target_employee=employee,
+            details={'status': 'ACTIVE'},
+            request=request
+        )
+
         # Sync with Auth Service
         from .kafka_producer import publish_employee_updated
         publish_employee_updated(employee)
@@ -426,8 +554,25 @@ class EmployeeViewSet(viewsets.ModelViewSet):
         publish_employee_deleted(auth_user_id)
 
     def perform_update(self, serializer):
-        employee = serializer.save()
+        old_employee = self.get_object()
+        old_role = old_employee.provider_role.name if old_employee.provider_role else None
         
+        employee = serializer.save()
+        new_role = employee.provider_role.name if employee.provider_role else None
+        
+        # 🛡️ Audit Log if role changed
+        if old_role != new_role:
+            PermissionAuditLog.log_action(
+                actor=self.request.user,
+                action='ROLE_ASSIGNED',
+                target_employee=employee,
+                details={
+                    'old_role': old_role,
+                    'new_role': new_role
+                },
+                request=self.request
+            )
+
         # Sync with Auth Service
         from .kafka_producer import publish_employee_updated
         publish_employee_updated(employee)
@@ -551,6 +696,18 @@ class EmployeeAssignmentViewSet(viewsets.ViewSet):
             else:
                 print(f"⚠️ Warning: Template not found for service {sid} during assignment for {emp_user.email}")
         
+        # 🛡️ Audit Log
+        PermissionAuditLog.log_action(
+            actor=request.user,
+            action='PERMISSIONS_ASSIGNED',
+            target_employee=employee,
+            details={'permission_count': created_count},
+            request=request
+        )
+
+        # 🔄 Invalidate Cache
+        employee.invalidate_permission_cache()
+
         return Response({"status": "updated", "permissions_count": created_count})
 class CapabilityViewSet(viewsets.ReadOnlyModelViewSet):
     """
@@ -577,13 +734,53 @@ class ProviderRoleViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         provider = ServiceProvider.objects.get(verified_user=self.request.user)
-        serializer.save(provider=provider)
+        role = serializer.save(provider=provider)
+        
+        # 🛡️ Audit Log
+        PermissionAuditLog.log_action(
+            actor=self.request.user,
+            action='ROLE_CREATED',
+            target_role=role,
+            details={
+                'name': role.name,
+                'description': role.description
+            },
+            request=self.request
+        )
+
+    def perform_update(self, serializer):
+        role = serializer.save()
+        
+        # 🛡️ Audit Log
+        PermissionAuditLog.log_action(
+            actor=self.request.user,
+            action='ROLE_UPDATED',
+            target_role=role,
+            details={
+                'name': role.name,
+                'description': role.description
+            },
+            request=self.request
+        )
 
     @transaction.atomic
     def perform_destroy(self, instance):
         role_name = instance.name
         role_id = instance.id
         logger.info(f"🗑️ Attempting to delete ProviderRole: {role_name} ({role_id})")
+        
+        # 🛡️ Audit Log
+        PermissionAuditLog.log_action(
+            actor=self.request.user,
+            action='ROLE_DELETED',
+            details={
+                'name': role_name,
+                'id': str(role_id)
+            },
+            request=self.request
+        )
+        
+        instance.delete()
 
         # 1. Explicit Model-based Cleanup of Capabilities
         # Avoids reverse-manager ambiguity
@@ -632,3 +829,46 @@ def get_my_access(request):
         "capabilities": list(capability_keys),
         "modules": list(modules)
     })
+
+@api_view(["GET"])
+@permission_classes([AllowAny]) 
+def resolve_role_capabilities(request):
+    """
+    Internal endpoint for other services to resolve role names to capabilities.
+    GET /api/provider/roles/resolve/?org_id=...&role_name=...
+    """
+    org_id = request.query_params.get('org_id')
+    role_name = request.query_params.get('role_name')
+    
+    if not org_id or not role_name:
+        return Response({"error": "Missing org_id or role_name"}, status=400)
+    
+    try:
+        from .models import ProviderRole, ProviderRoleCapability, OrganizationEmployee
+        
+        # 0. Special Handling for Organization Admin/Owner
+        if role_name.lower() in ['admin', 'owner', 'organization', 'individual']:
+            from .models import VerifiedUser
+            user = VerifiedUser.objects.filter(auth_user_id=org_id).first()
+            if user:
+                caps = list(user.get_all_plan_capabilities())
+                return Response({"role": role_name, "capabilities": caps, "source": "organization_plan"})
+        
+        # 1. Check for Custom Provider Role
+        role = ProviderRole.objects.filter(provider__verified_user__auth_user_id=org_id, name__iexact=role_name).first()
+        if role:
+            caps = list(ProviderRoleCapability.objects.filter(provider_role=role).values_list('capability_key', flat=True))
+            # Always ensure VETERINARY_CORE if it has any VETERINARY_* caps
+            if any(c.startswith('VETERINARY_') for c in caps) and 'VETERINARY_CORE' not in caps:
+                caps.append('VETERINARY_CORE')
+            return Response({"role": role_name, "capabilities": caps, "source": "custom_role"})
+            
+        # 2. Fallback to Legacy Map (System Defaults)
+        caps = OrganizationEmployee.LEGACY_ROLE_MAP.get(role_name.lower(), [])
+        if caps:
+             return Response({"role": role_name, "capabilities": caps, "source": "legacy_map"})
+
+        return Response({"role": role_name, "capabilities": ["VETERINARY_CORE"], "source": "fallback"})
+        
+    except Exception as e:
+        return Response({"error": str(e)}, status=500)

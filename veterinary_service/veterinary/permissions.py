@@ -3,9 +3,7 @@ from .models import Clinic
 import logging
 import datetime
 
-def log(msg):
-    with open("/Users/PraveenWorks/Anil Works/Petleo-Backend/veterinary_service/middleware_trace.log", "a") as f:
-        f.write(f"{datetime.datetime.now()} - [PERM] {msg}\n")
+from .log_utils import log_perm as log
 
 class HasVeterinaryAccess(permissions.BasePermission):
     """
@@ -102,6 +100,11 @@ class HasVeterinaryAccess(permissions.BasePermission):
              log(f"Staff Context Check: Request User Clinic ID({curr_clinic_id}) == Clinic ID({clinic.id})")
              if str(curr_clinic_id) == str(clinic.id):
                  # Check capability
+                 # [SENIOR DEV FIX] Bypass VETERINARY_MODULE check for Service-Specific Visits (e.g. Grooming)
+                 if hasattr(obj, 'service_id') and obj.service_id:
+                     log(f"Service Visit Detected ({obj.service_id}). Allowing access.")
+                     return True
+
                  capabilities = clinic.capabilities or {}
                  has_mod = capabilities.get('VETERINARY_MODULE', False)
                  log(f"VETERINARY_MODULE Check: {has_mod}")

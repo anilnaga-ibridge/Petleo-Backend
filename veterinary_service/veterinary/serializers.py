@@ -26,15 +26,8 @@ class ClinicSerializer(serializers.ModelSerializer):
         role = str(getattr(user, 'role', '')).upper()
 
         if role in ['ORGANIZATION', 'INDIVIDUAL', 'PROVIDER', 'ORGANIZATION_PROVIDER', 'ORGANIZATION_ADMIN']:
-            raw_perms = obj.capabilities or {}
-            if isinstance(raw_perms, list):
-                perms = list(raw_perms)
-            else:
-                perms = list(raw_perms.get('permissions', []))
-            
-            if "VETERINARY_CORE" not in perms:
-                perms.append("VETERINARY_CORE")
-            return perms
+            from .services import RolePermissionService
+            return RolePermissionService.get_permissions_for_role('Admin', obj.organization_id)
         
         # 2. Staff get assigned permissions
         # Use auth_user_id (UUID)
@@ -51,7 +44,8 @@ class ClinicSerializer(serializers.ModelSerializer):
                 is_active=True
             ).first()
             if assignment:
-                return assignment.permissions or []
+                from .services import RolePermissionService
+                return RolePermissionService.get_permissions_for_role(assignment.role, obj.organization_id)
         except Exception as e:
             # Fallback
             pass
@@ -62,6 +56,7 @@ class PetOwnerSerializer(serializers.ModelSerializer):
     class Meta:
         model = PetOwner
         fields = '__all__'
+        read_only_fields = ['clinic', 'created_by']
 
 class PetSerializer(serializers.ModelSerializer):
     owner = serializers.PrimaryKeyRelatedField(queryset=PetOwner.objects.all(), required=False)
@@ -71,6 +66,17 @@ class PetSerializer(serializers.ModelSerializer):
         model = Pet
         fields = ['id', 'owner', 'name', 'species', 'breed', 'sex', 'dob', 'color', 'weight', 'notes', 'tag', 'is_active', 'created_at', 'updated_at', 'dynamic_data']
         read_only_fields = ['id', 'owner', 'created_at', 'updated_at', 'dynamic_data']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        request = self.context.get('request')
+        if request:
+            from .views import get_clinic_context
+            clinic_id = get_clinic_context(request)
+            if clinic_id:
+                self.fields['owner'].queryset = PetOwner.objects.filter(clinic_id=clinic_id)
+            else:
+                self.fields['owner'].queryset = PetOwner.objects.none()
 
     def update(self, instance, validated_data):
         from .permissions import log
@@ -106,10 +112,25 @@ class VisitSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Visit
-        fields = ['id', 'clinic', 'pet', 'pet_id', 'status', 'visit_type', 'reason', 'created_at', 'updated_at', 'vitals', 'latest_lab_order']
-        extra_kwargs = {
-            'clinic': {'required': False}
-        }
+        fields = ['id', 'clinic', 'pet', 'pet_id', 'service_id', 'status', 'visit_type', 'reason', 'created_at', 'updated_at', 'vitals', 'latest_lab_order', 'checked_in_at', 'vitals_started_at', 'vitals_completed_at', 'doctor_started_at', 'closed_at']
+        read_only_fields = ['id', 'clinic', 'checked_in_at', 'vitals_started_at', 'vitals_completed_at', 'doctor_started_at', 'closed_at', 'vitals', 'latest_lab_order']
+
+    def validate(self, attrs):
+        request = self.context.get('request')
+        from .views import get_clinic_context
+        clinic_id = get_clinic_context(request)
+        
+        pet_id = attrs.get('pet_id')
+        if pet_id:
+            from .models import Pet
+            try:
+                # Ensure the pet belongs to a PetOwner in the current clinic
+                pet = Pet.objects.get(id=pet_id, owner__clinic_id=clinic_id)
+                attrs['pet'] = pet
+            except Pet.DoesNotExist:
+                raise serializers.ValidationError({"pet_id": "Pet not found in this clinic context."})
+        
+        return attrs
 
     def get_vitals(self, obj):
         # 1. Try latest VITALS form submission first (New Engine)
@@ -214,9 +235,16 @@ class FormSubmissionSerializer(serializers.ModelSerializer):
         model = FormSubmission
         fields = '__all__'
 
-    class Meta:
-        model = FormSubmission
-        fields = '__all__'
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        request = self.context.get('request')
+        if request:
+            from .views import get_clinic_context
+            clinic_id = get_clinic_context(request)
+            if clinic_id:
+                self.fields['visit'].queryset = Visit.objects.filter(clinic_id=clinic_id)
+            else:
+                self.fields['visit'].queryset = Visit.objects.none()
 
 # ========================
 # PHASE 3: EXECUTION SERIALIZERS
@@ -227,10 +255,36 @@ class PharmacyDispenseSerializer(serializers.ModelSerializer):
         model = PharmacyDispense
         fields = '__all__'
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        request = self.context.get('request')
+        if request:
+            from .views import get_clinic_context
+            clinic_id = get_clinic_context(request)
+            if clinic_id:
+                self.fields['visit'].queryset = Visit.objects.filter(clinic_id=clinic_id)
+                self.fields['prescription_submission'].queryset = FormSubmission.objects.filter(visit__clinic_id=clinic_id)
+            else:
+                self.fields['visit'].queryset = Visit.objects.none()
+                self.fields['prescription_submission'].queryset = FormSubmission.objects.none()
+
 class MedicationReminderSerializer(serializers.ModelSerializer):
     class Meta:
         model = MedicationReminder
         fields = '__all__'
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        request = self.context.get('request')
+        if request:
+            from .views import get_clinic_context
+            clinic_id = get_clinic_context(request)
+            if clinic_id:
+                self.fields['visit'].queryset = Visit.objects.filter(clinic_id=clinic_id)
+                self.fields['pet'].queryset = Pet.objects.filter(owner__clinic_id=clinic_id)
+            else:
+                self.fields['visit'].queryset = Visit.objects.none()
+                self.fields['pet'].queryset = Pet.objects.none()
 
 class VisitDetailSerializer(VisitSerializer):
     """
@@ -298,6 +352,17 @@ class LabOrderSerializer(serializers.ModelSerializer):
         model = LabOrder
         fields = '__all__'
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        request = self.context.get('request')
+        if request:
+            from .views import get_clinic_context
+            clinic_id = get_clinic_context(request)
+            if clinic_id:
+                self.fields['visit'].queryset = Visit.objects.filter(clinic_id=clinic_id)
+            else:
+                self.fields['visit'].queryset = Visit.objects.none()
+
 class StaffClinicAssignmentSerializer(serializers.ModelSerializer):
     staff_name = serializers.CharField(source='staff.auth_user_id', read_only=True)
     clinic_name = serializers.CharField(source='clinic.name', read_only=True)
@@ -313,6 +378,18 @@ class StaffClinicAssignmentSerializer(serializers.ModelSerializer):
         }
         # Disable default unique_together validator to allow manual upsert handling
         validators = []
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        request = self.context.get('request')
+        if request:
+            user = request.user
+            org_id = str(user.id)
+            if hasattr(request.auth, 'get'):
+                 org_id = request.auth.get('user_id') or org_id
+            from .models import Clinic
+            self.fields['clinic'].queryset = Clinic.objects.filter(organization_id=org_id)
+
 
     def validate(self, attrs):
         # 1. Resolve Staff
@@ -331,7 +408,9 @@ class StaffClinicAssignmentSerializer(serializers.ModelSerializer):
         role = attrs.get('role')
         if role and not attrs.get('permissions'):
             from .services import RolePermissionService
-            attrs['permissions'] = RolePermissionService.get_permissions_for_role(role)
+            clinic = attrs.get('clinic')
+            org_id = str(clinic.organization_id) if clinic else None
+            attrs['permissions'] = RolePermissionService.get_permissions_for_role(role, org_id)
             
         return attrs
 
