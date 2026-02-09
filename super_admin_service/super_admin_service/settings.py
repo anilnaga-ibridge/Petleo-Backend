@@ -119,6 +119,11 @@ DATABASES = {
         'PORT': '5432',
     }
 }
+
+# Media files
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR.parent, 'service_provider_service', 'media')
+
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = '/static/'  # Required for admin and staticfiles app
 STATICFILES_DIRS = [BASE_DIR / "static"]  # Optional: for project-level static files

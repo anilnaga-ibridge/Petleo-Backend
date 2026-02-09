@@ -22,6 +22,9 @@ from admin_core.models import VerifiedUser
 class ProviderDocumentVerificationSerializer(serializers.ModelSerializer):
     provider_name = serializers.SerializerMethodField()
     provider_role = serializers.SerializerMethodField()
+    provider_email = serializers.SerializerMethodField()
+    provider_phone = serializers.SerializerMethodField()
+    document_type = serializers.SerializerMethodField()
 
     class Meta:
         model = ProviderDocumentVerification
@@ -30,32 +33,43 @@ class ProviderDocumentVerificationSerializer(serializers.ModelSerializer):
 
     def get_provider_name(self, obj):
         try:
-            # Try fetching from local DB first (fastest)
             user = VerifiedUser.objects.get(auth_user_id=obj.auth_user_id)
             return user.full_name
         except VerifiedUser.DoesNotExist:
-            # Fallback to API call
-            try:
-                import requests
-                response = requests.get(f"http://127.0.0.1:8002/api/provider/profile/{obj.auth_user_id}/")
-                if response.status_code == 200:
-                    return response.json().get("full_name", "Unknown Provider")
-            except Exception:
-                pass
             return "Unknown Provider"
+
+    def get_provider_email(self, obj):
+        try:
+            user = VerifiedUser.objects.get(auth_user_id=obj.auth_user_id)
+            return user.email
+        except VerifiedUser.DoesNotExist:
+            return "N/A"
+
+    def get_provider_phone(self, obj):
+        try:
+            user = VerifiedUser.objects.get(auth_user_id=obj.auth_user_id)
+            return user.phone_number
+        except VerifiedUser.DoesNotExist:
+            return "N/A"
 
     def get_provider_role(self, obj):
         try:
-            # Try fetching from local DB first
             user = VerifiedUser.objects.get(auth_user_id=obj.auth_user_id)
             return user.role
         except VerifiedUser.DoesNotExist:
-            # Fallback to API call
-            try:
-                import requests
-                response = requests.get(f"http://127.0.0.1:8000/auth/roles/public/{obj.auth_user_id}")
-                if response.status_code == 200:
-                    return response.json().get("role", "Unknown Role")
-            except Exception:
-                pass
             return "Unknown Role"
+
+    def get_document_type(self, obj):
+        try:
+            # Safely get definition_id
+            def_id = getattr(obj, 'definition_id', None)
+            if not def_id:
+                return "Unknown Type (No ID)"
+
+            definition = ProviderDocumentDefinition.objects.get(id=def_id)
+            return definition.label
+        except ProviderDocumentDefinition.DoesNotExist:
+            return f"Unknown Type ({def_id})"
+        except Exception:
+            return "Error Resolving Type"
+

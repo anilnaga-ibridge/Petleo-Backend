@@ -74,27 +74,35 @@ RESET_TOKEN_CACHE_PREFIX = "reset_token:"
 # ---------------------
 def is_pin_valid_today(user):
     """
-    Return True if the user's PIN is valid (not expired).
+    Return True if the user's PIN is valid AND it was SET today.
+    PINs are strictly temporary and valid only for the calendar day they were set.
     """
-    with open("auth_debug_live.log", "a") as f:
-        f.write(f"\\n[{timezone.now()}] Checking PIN validity for {user.email}\\n")
-        f.write(f"  pin_expires_at: {user.pin_expires_at}\\n")
-    
-    if not user.pin_expires_at:
-        with open("auth_debug_live.log", "a") as f:
-            f.write("  RESULT: False (No Check set)\\n")
-        print(f"DEBUG: PIN check failed. No pin_expires_at for user {user.username}")
+    if not user.pin_hash:
         return False
     
-    now = timezone.now()
-    is_valid = now < user.pin_expires_at
+    tz = timezone.get_current_timezone()
+    now_local = timezone.now().astimezone(tz)
     
-    with open("auth_debug_live.log", "a") as f:
-        f.write(f"  Now: {now}\\n")
-        f.write(f"  RESULT: {is_valid}\\n")
+    # 1. Check if PIN was SET today
+    if not user.pin_set_at:
+        return False
+        
+    pin_set_local = user.pin_set_at.astimezone(tz)
+    
+    # STRICT comparison: PIN must have been set on the same calendar date as 'now'
+    if pin_set_local.date() != now_local.date():
+        return False
+        
+    return True
 
-    print(f"DEBUG: PIN Validity Check | User: {user.username} | Now: {now} | Expires: {user.pin_expires_at} | Valid: {is_valid}")
-    return is_valid
+def has_pin_set_today(user):
+    """
+    Helper to check if user explicitly set a PIN today.
+    """
+    return is_pin_valid_today(user)
+
+def is_pin_unlocked_today(user):
+    return False # Deprecated by strict daily flow
 
 
 # ---------------------- REGISTER ----------------------
@@ -131,6 +139,12 @@ class RegisterView(APIView):
 
         employee_roles = ["employee", "receptionist", "veterinarian", "groomer", "doctor", "labtech", "lab tech", "pharmacy", "vitalsstaff", "vitals staff"]
         
+        if role_name == "superadmin":
+             return Response(
+                {"detail": "Cannot register as superadmin."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
         if role_name in employee_roles:
             if not request.user.is_authenticated:
                 return Response(
@@ -393,14 +407,25 @@ class VerifyOTPView(APIView):
 
         # Save last OTP login with correct local timezone
         tz = timezone.get_current_timezone()
-        user.last_otp_login = timezone.now().astimezone(tz)
-        user.save(update_fields=["last_otp_login"])
+        now_local = timezone.now().astimezone(tz)
+        user.last_otp_login = now_local
+
+        # ✅ Auto-activate PENDING users upon successful OTP login
+        if user.status == 'PENDING':
+            user.status = 'ACTIVE'
+            user.is_active = True
+            if hasattr(user, 'is_verified'):
+                user.is_verified = True
+            logger.info(f"🔓 Auto-activated PENDING user {user.phone_number} upon login")
+
+        user.save(update_fields=["last_otp_login", "status", "is_active"] + (["is_verified"] if hasattr(user, "is_verified") else []))
+        
+        # NOTE: We do NOT extend PIN validity here. 
+        # If the PIN was set yesterday, it is invalid today. User must set a new one.
 
         tokens = get_tokens_for_user(user, request=request, remember_me=remember_me)
 
-        require_set_pin = not is_pin_valid_today(user)
-
-        res = transform_for_frontend(tokens, user, require_set_pin=require_set_pin)
+        res = transform_for_frontend(tokens, user)
         res["message"] = "OTP verified. Login successful."
         res["remember_me"] = remember_me
         return Response(res, status=status.HTTP_200_OK)
@@ -435,14 +460,13 @@ class VerifyOTPView(APIView):
 
         # Save last OTP login with correct timezone
         tz = timezone.get_current_timezone()
-        user.last_otp_login = timezone.now().astimezone(tz)
+        now_local = timezone.now().astimezone(tz)
+        user.last_otp_login = now_local
         user.save(update_fields=["last_otp_login"])
 
         tokens = get_tokens_for_user(user, request=request, remember_me=remember_me)
 
-        require_set_pin = not is_pin_valid_today(user)
-
-        res = transform_for_frontend(tokens, user, require_set_pin=require_set_pin)
+        res = transform_for_frontend(tokens, user)
         res["message"] = "OTP verified. Account verified and logged in."
         res["remember_me"] = remember_me
         return Response(res, status=status.HTTP_200_OK)
@@ -505,7 +529,10 @@ class SetPinView(APIView):
         user.pin_expires_at = midnight
 
         user.last_pin_login = None
-        user.save(update_fields=["pin_hash", "pin_set_at", "pin_expires_at", "last_pin_login"])
+        user.pin_length = len(pin)
+        user.save(update_fields=["pin_hash", "pin_set_at", "pin_expires_at", "last_pin_login", "pin_length"])
+        
+        logger.info(f"✅ PIN set successfully for user: {user.phone_number}")
 
         return Response({"message": "PIN set successfully."}, status=status.HTTP_200_OK)
 
@@ -601,10 +628,10 @@ class LoginWithPinView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Check Expiry
+        # Check Validity (Strict Daily Check - Date Only)
         if not is_pin_valid_today(user):
              return Response(
-                {"detail": "PIN expired. Please login via OTP.", "code": "PIN_EXPIRED"},
+                {"detail": "PIN expired (valid for 1 day only). Please login via OTP.", "code": "PIN_EXPIRED"},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -645,21 +672,28 @@ class ChangePinView(APIView):
         old_pin = request.data.get("old_pin")
         new_pin = request.data.get("new_pin")
         confirm_pin = request.data.get("confirm_new_pin")
+        
+        # DEBUG LOGGING
+        import logging
+        logger = logging.getLogger(__name__)
 
         # Validate fields
         if not old_pin or not new_pin or not confirm_pin:
+            logger.error(f"❌ ChangePin Failed: Missing fields. Data: {request.data}")
             return Response(
                 {"detail": "old_pin, new_pin and confirm_new_pin are required."},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
         if new_pin != confirm_pin:
+            logger.error(f"❌ ChangePin Failed: Mismatch. new={new_pin}, confirm={confirm_pin}")
             return Response(
                 {"detail": "New PINs do not match."},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
         if not new_pin.isdigit() or len(new_pin) not in (4, 6):
+            logger.error(f"❌ ChangePin Failed: Invalid Format. new_pin={new_pin}")
             return Response(
                 {"detail": "New PIN must be 4 or 6 digits."},
                 status=status.HTTP_400_BAD_REQUEST
@@ -669,6 +703,7 @@ class ChangePinView(APIView):
 
         # Check old PIN
         if not user.pin_hash or not check_password(old_pin, user.pin_hash):
+            logger.error(f"❌ ChangePin Failed: Incorrect Old PIN for user {user.phone_number}")
             return Response(
                 {"detail": "Old PIN is incorrect."},
                 status=status.HTTP_400_BAD_REQUEST
@@ -686,12 +721,36 @@ class ChangePinView(APIView):
         user.pin_expires_at = midnight
 
         user.last_pin_login = None
-        user.save(update_fields=["pin_hash", "pin_set_at", "pin_expires_at", "last_pin_login"])
+        user.pin_length = len(new_pin)
+        user.save(update_fields=["pin_hash", "pin_set_at", "pin_expires_at", "last_pin_login", "pin_length"])
 
         return Response(
             {"message": "PIN changed successfully."},
             status=status.HTTP_200_OK
         )
+
+
+# ---------------------- CHECK PIN LENGTH ----------------------
+class CheckPinLengthView(APIView):
+    """
+    Returns the PIN length for a given phone number.
+    Used by login page to show correct number of boxes.
+    """
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        phone = request.query_params.get("phone_number")
+        if not phone:
+            return Response({"detail": "phone_number is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user = User.objects.get(phone_number=phone)
+            # Return pin_length if set, otherwise default to 4
+            pin_length = user.pin_length if user.pin_length else 4
+            return Response({"pin_length": pin_length}, status=status.HTTP_200_OK)
+        except User.DoesNotExist:
+            # User not found, return default
+            return Response({"pin_length": 4}, status=status.HTTP_200_OK)
 
 
 # ---------------------- RESET PIN ----------------------
@@ -994,7 +1053,7 @@ def public_roles(request):
     Return only roles that can be selected during user registration
     (organization and individual).
     """
-    allowed_roles = ["organization", "individual"]
+    allowed_roles = ["organization", "individual", "employee", "superadmin"]
     roles = Role.objects.filter(name__in=allowed_roles)
     serializer = RoleSerializer(roles, many=True)
     return Response(serializer.data)
@@ -1190,12 +1249,14 @@ def transform_for_frontend(tokens, user, require_set_pin=False):
             "id": str(user.id),
             "auth_user_id": str(user.id),
             "fullName": user.full_name,
-            "username": user.full_name,
-            "avatar": "/images/avatars/avatar-1.png",
+            "username": user.username,
+            "avatar": None,
             "email": user.email or f"{user.phone_number}@demo.com",
             "role": user.role.name.upper() if user.role else None,
             "permissions": [p.codename for p in user.role.permissions.all()] if user.role else [],
             "phoneNumber": user.phone_number,
+            "phone_number": user.phone_number,
+            "pin_length": user.pin_length or 4,
             "provider_id": str(user.organization_id) if user.organization_id else str(user.id),
             "capabilities": capabilities,
             "provider_type": (
@@ -1204,9 +1265,8 @@ def transform_for_frontend(tokens, user, require_set_pin=False):
                 else None
             ),
         },
-        "has_pin": bool(user.pin_hash),
-        "pin_valid_today": is_pin_valid_today(user),
-        "require_set_pin": require_set_pin,
+        # Frontend needs to know if PIN was set TODAY
+        "pin_set_today": has_pin_set_today(user), 
     }
 
 class UnifiedLoginView(APIView):
@@ -1244,8 +1304,19 @@ class UnifiedLoginView(APIView):
         elif pin:
             if not user.pin_hash:
                 return Response({"detail": "No PIN set. Login via OTP first."}, status=status.HTTP_400_BAD_REQUEST)
+            # Check Daily Validity
+            if not is_pin_valid_today(user):
+                logger.warning(f"❌ PIN Expired for user {phone}")
+                return Response(
+                    {"detail": "PIN expired (valid for 1 day only). Please login via OTP.", "code": "PIN_EXPIRED"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
             if not check_password(pin, user.pin_hash):
+                logger.warning(f"❌ Invalid PIN attempt for user {phone}")
                 return Response({"detail": "Invalid PIN."}, status=status.HTTP_400_BAD_REQUEST)
+            
+            logger.info(f"✅ PIN Verified for user {phone}")
             
             user.last_pin_login = timezone.now()
             user.save(update_fields=["last_pin_login"])

@@ -11,6 +11,7 @@ class ProviderFieldDefinition(models.Model):
         ("individual", "Individual Provider"),
         ("organization", "Organization Provider"),
         ("employee", "Organization Employee"),
+        ("superadmin", "Super Admin"),
     ]
 
     FIELD_TYPES = [
@@ -52,6 +53,7 @@ class ProviderDocumentDefinition(models.Model):
         ("individual", "Individual Provider"),
         ("organization", "Organization Provider"),
         ("employee", "Organization Employee"),
+        ("superadmin", "Super Admin"),
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -89,6 +91,7 @@ class ProviderDocumentVerification(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     auth_user_id = models.UUIDField()  # auth_user_id from Service Provider
     document_id = models.UUIDField()  # ID of the document in Service Provider DB
+    definition_id = models.UUIDField(null=True, blank=True)  # Link to ProviderDocumentDefinition
     
     file_url = models.URLField(max_length=1024, blank=True, null=True)
     filename = models.CharField(max_length=512, blank=True, null=True)

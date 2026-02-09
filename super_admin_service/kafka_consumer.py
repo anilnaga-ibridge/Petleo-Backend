@@ -402,6 +402,8 @@ while not consumer:
         consumer = KafkaConsumer(
             "service_provider_events",
             "admin_events",
+            "organization_events",
+            "individual_events",
             bootstrap_servers="localhost:9093",
             group_id="superadmin-service-group",
             auto_offset_reset="latest",
@@ -439,9 +441,6 @@ while True:
             # -----------------------------
             # FILTER: Only Admin/SuperAdmin (EXCEPT DELETION)
             # -----------------------------
-            if role in ["individual", "organization", "employee"] and event_type != "USER_DELETED":
-                logger.info(f"⏭️ Skipping {role} event (handled by Service Provider Service)")
-                continue
 
             # -----------------------------
             # CREATE OR UPDATE USER
@@ -465,9 +464,9 @@ while True:
                         logger.info(f"🔄 Updated VerifiedUser: {user.email}")
 
             # -----------------------------
-            # USER UPDATED
+            # USER UPDATED / EMPLOYEE UPDATED
             # -----------------------------
-            elif event_type == "USER_UPDATED":
+            elif event_type in ["USER_UPDATED", "EMPLOYEE_UPDATED"]:
                 updated = VerifiedUser.objects.filter(auth_user_id=auth_user_id).update(
                     full_name=data.get("full_name"),
                     email=data.get("email"),
@@ -494,14 +493,20 @@ while True:
             elif event_type == "PROVIDER.DOCUMENT.UPLOADED":
                 from dynamic_fields.models import ProviderDocumentVerification
                 
-                ProviderDocumentVerification.objects.create(
-                    auth_user_id=data.get("auth_user_id"),
-                    document_id=data.get("document_id"),
-                    file_url=data.get("file_url"),
-                    filename=data.get("filename"),
-                    status="pending"
+                # Use update_or_create to prevent duplicates if manual resync or re-processing happens
+                doc_id = data.get("document_id")
+                
+                ProviderDocumentVerification.objects.update_or_create(
+                    document_id=doc_id,
+                    defaults={
+                        "auth_user_id": data.get("auth_user_id"),
+                        "definition_id": data.get("definition_id"),
+                        "file_url": data.get("file_url"),
+                        "filename": data.get("filename"),
+                        "status": "pending" if not VerifiedUser.objects.filter(auth_user_id=data.get("auth_user_id"), status="approved").exists() else "pending" # Keep it pending for admin review
+                    }
                 )
-                logger.info(f"✅ Document Verification Created: {data.get('filename')}")
+                logger.info(f"✅ Document Verification Synced: {data.get('filename')} (ID: {doc_id})")
 
             else:
                 logger.warning(f"⚠️ Unknown event type: {event_type}")

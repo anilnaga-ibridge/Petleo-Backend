@@ -1,0 +1,23 @@
+Target          | Name                 | Label                | Required  
+---------------------------------------------------------------------------
+employee        | first_name           | First Name           | True      
+employee        | last_name            | Last Name            | True      
+employee        | email                | Email                | True      
+employee        | phone_number         | Phone Number         | True      
+employee        | profile_image        | Profile Picture      | False     
+individual      | first_name           | First Name           | True      
+individual      | last_name            | Last Name            | True      
+individual      | email                | Email                | True      
+individual      | phone_number         | Phone Number         | True      
+individual      | profile_image        | Profile Picture      | False     
+organization    | organization_name    | Organization Name    | True      
+organization    | first_name           | First Name           | True      
+organization    | last_name            | Last Name            | True      
+organization    | email                | Email                | True      
+organization    | phone_number         | Phone Number         | True      
+organization    | profile_image        | Profile Picture      | False     
+superadmin      | first_name           | First Name           | True      
+superadmin      | last_name            | Last Name            | True      
+superadmin      | email                | Email                | True      
+superadmin      | phone_number         | Phone Number         | True      
+superadmin      | profile_image        | Profile Picture      | False     

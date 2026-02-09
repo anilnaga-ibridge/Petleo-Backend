@@ -14,6 +14,7 @@ from provider_dynamic_fields.models import (
 
 from provider_dynamic_fields.serializers import ProviderDocumentSerializer
 from service_provider.models import VerifiedUser
+from service_provider.kafka_producer import publish_user_profile_updated
 import json
 
 
@@ -22,7 +23,7 @@ def normalize_target(request):
     target = request.GET.get("target") or request.GET.get("role")
     if target:
         target = target.strip().lower()
-    return target if target in ["individual", "organization", "employee"] else None
+    return target if target in ["individual", "organization", "employee", "superadmin"] else None
 
 
 class ProviderProfileView(generics.GenericAPIView):
@@ -114,6 +115,27 @@ class ProviderProfileView(generics.GenericAPIView):
                 metadata = saved_value.metadata if saved_value else {}
                 value = saved_value.value if saved_value else None
 
+                # 🔥 SOURCE OF TRUTH: Use VerifiedUser for basic fields
+                field_name = field.get("name")
+                if field_name in ["first_name", "last_name", "email", "phone_number", "country", "language"]:
+                    full_name = verified.full_name or ""
+                    parts = full_name.split(" ", 1)
+                    first = parts[0] if parts else ""
+                    last = parts[1] if len(parts) > 1 else ""
+
+                    if field_name == "first_name":
+                        value = first
+                    elif field_name == "last_name":
+                        value = last
+                    elif field_name == "email":
+                        value = verified.email
+                    elif field_name == "phone_number":
+                        value = verified.phone_number
+                    elif field_name == "country":
+                        value = value or "India"
+                    elif field_name == "language":
+                        value = value or "English"
+
             fields_data.append({
                 **field,
                 "value": value,
@@ -139,7 +161,7 @@ class ProviderProfileView(generics.GenericAPIView):
     # POST PROFILE
     # -------------------------------------------------------
     def post(self, request):
-        user_id = request.GET.get("user")
+        user_id = request.GET.get("user") or request.data.get("user") or request.data.get("auth_user_id")
         verified, error = self.get_verified_user(user_id)
         if error:
             return error
@@ -175,8 +197,50 @@ class ProviderProfileView(generics.GenericAPIView):
                 field_id=field_id,
                 defaults={"value": value, "metadata": metadata}
             )
-
             saved_fields.append({"field_id": field_id, "value": value})
+
+        # -----------------------------------------------
+        # 🔥 SYNC BASIC FIELDS back to VerifiedUser
+        # -----------------------------------------------
+        user_updated = False
+        full_name = verified.full_name or ""
+        parts = full_name.split(" ", 1)
+        first = parts[0] if parts else ""
+        last = parts[1] if len(parts) > 1 else ""
+
+        for item in fields_data:
+            field_id = item.get("field_id")
+            value = item.get("value")
+            try:
+                field_def = LocalFieldDefinition.objects.get(id=field_id)
+            except:
+                continue
+            
+            field_name = field_def.name
+            if field_name == "first_name":
+                first = value
+                user_updated = True
+            elif field_name == "last_name":
+                last = value
+                user_updated = True
+            elif field_name == "email":
+                verified.email = value
+                user_updated = True
+            elif field_name == "phone_number":
+                verified.phone_number = value
+                user_updated = True
+
+        if user_updated:
+            verified.full_name = f"{first} {last}".strip()
+            verified.save()
+            
+            # Publish to Kafka for Auth Service sync
+            publish_user_profile_updated(
+                auth_user_id=verified.auth_user_id,
+                full_name=verified.full_name,
+                email=verified.email,
+                phone_number=verified.phone_number
+            )
 
         field_ids_set = set(str(f["field_id"]) for f in fields_data)
 
@@ -197,6 +261,27 @@ class ProviderProfileView(generics.GenericAPIView):
                 provider, _ = ServiceProvider.objects.get_or_create(verified_user=verified)
                 provider.avatar = upload_file
                 provider.save()
+
+                # 🔥 SYNC BACK to dynamic field "profile_image"
+                try:
+                    target = getattr(verified, "provider_type", "individual")
+                    field_def = LocalFieldDefinition.objects.filter(target=target, name="profile_image").first()
+                    if field_def:
+                        ProviderFieldValue.objects.update_or_create(
+                            verified_user=verified,
+                            field_id=field_def.id,
+                            defaults={
+                                "file": upload_file,
+                                "value": {"filename": upload_file.name},
+                                "metadata": {
+                                    "content_type": getattr(upload_file, "content_type", ""),
+                                    "size": upload_file.size
+                                }
+                            }
+                        )
+                except Exception as e:
+                    print(f"Error syncing avatar to profile_image field: {e}")
+                
                 continue
 
             # ============================
@@ -217,6 +302,17 @@ class ProviderProfileView(generics.GenericAPIView):
                         }
                     }
                 )
+
+                # 🔥 SYNC TO ServiceProvider.avatar if this is the "profile_image" field
+                try:
+                    field_def = LocalFieldDefinition.objects.get(id=key)
+                    if field_def.name == "profile_image":
+                        from service_provider.models import ServiceProvider
+                        provider, _ = ServiceProvider.objects.get_or_create(verified_user=verified)
+                        provider.avatar = upload_file
+                        provider.save()
+                except Exception as e:
+                    print(f"Error syncing profile_image to avatar: {e}")
 
                 uploaded_profile_files.append({
                     "field_id": key,
@@ -263,6 +359,7 @@ class ProviderProfileView(generics.GenericAPIView):
                 publish_document_uploaded(
                     provider_id=verified.auth_user_id,
                     document_id=doc.id,
+                    definition_id=doc.definition_id,
                     file_url=request.build_absolute_uri(doc.file.url),
                     filename=doc.filename
                 )
@@ -274,8 +371,26 @@ class ProviderProfileView(generics.GenericAPIView):
                     "file_url": request.build_absolute_uri(doc.file.url),
                 })
 
+        # Fetch Avatar URL for immediate frontend refresh
+        avatar_url = None
+        try:
+            from service_provider.models import ServiceProvider
+            provider = ServiceProvider.objects.filter(verified_user=verified).first()
+            if provider and provider.avatar:
+                avatar_url = request.build_absolute_uri(provider.avatar.url)
+        except Exception:
+            pass
+
         return Response({
+            "message": "Profile updated successfully",
             "saved_fields": saved_fields,
             "uploaded_profile_files": uploaded_profile_files,
-            "uploaded_files": uploaded_docs
+            "uploaded_files": uploaded_docs,
+            "avatar": avatar_url,
+            "user_profile": {
+                "fullName": verified.full_name,
+                "email": verified.email,
+                "phoneNumber": verified.phone_number,
+                "avatar": avatar_url
+            }
         }, status=status.HTTP_201_CREATED)

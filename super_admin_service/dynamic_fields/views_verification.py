@@ -19,7 +19,8 @@ class ProviderDocumentVerificationViewSet(viewsets.ModelViewSet):
     http_method_names = ['get', 'post', 'head', 'options']
 
     def get_queryset(self):
-        qs = super().get_queryset()
+        qs = ProviderDocumentVerification.objects.all()
+        
         status_param = self.request.query_params.get("status")
         auth_user_id = self.request.query_params.get("auth_user_id")
         
@@ -61,5 +62,22 @@ class ProviderDocumentVerificationViewSet(viewsets.ModelViewSet):
             payload=payload,
             service=SERVICE
         )
+
+        # ✅ Check if all documents for this user are now approved
+        all_docs = ProviderDocumentVerification.objects.filter(auth_user_id=document.auth_user_id)
+        if all_docs.exists() and not all_docs.exclude(status='approved').exists():
+            # Trigger USER_VERIFIED
+            verify_payload = {
+                "auth_user_id": str(document.auth_user_id),
+                "status": "ACTIVE",
+                "is_verified": True
+            }
+            publish_event(
+                topic=TOPIC,
+                event="USER_VERIFIED",
+                payload=verify_payload,
+                service=SERVICE
+            )
+            print(f"📡 Published USER_VERIFIED for {document.auth_user_id}")
 
         return Response(ProviderDocumentVerificationSerializer(document).data)

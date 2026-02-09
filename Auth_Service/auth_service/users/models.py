@@ -64,6 +64,7 @@ class User(AbstractUser):
 
     # PIN fields
     pin_hash = models.CharField(max_length=255, null=True, blank=True)
+    pin_length = models.IntegerField(default=4, null=True, blank=True) # New field to store PIN length
     pin_set_at = models.DateTimeField(null=True, blank=True)
     pin_expires_at = models.DateTimeField(null=True, blank=True)
     last_pin_login = models.DateTimeField(null=True, blank=True)

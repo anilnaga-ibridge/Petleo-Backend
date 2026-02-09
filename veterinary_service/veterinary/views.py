@@ -328,33 +328,16 @@ class VisitQueueViewSet(viewsets.ViewSet):
             role = str(getattr(request.user, 'role', '')).upper()
 
             # 2. BYPASS FOR OWNERS (Organization/Individual)
-            if role in ['ORGANIZATION', 'INDIVIDUAL', 'PROVIDER', 'ORGANIZATION_PROVIDER']:
-                # Optional: Double check Clinic permissions if needed, but owners usually have full access
+            if role in ['ORGANIZATION', 'INDIVIDUAL', 'PROVIDER', 'ORGANIZATION_PROVIDER', 'ORGANIZATION_ADMIN']:
+                # Owners have implicit access
                 pass 
             else:
-                # 3. DIRECT DB CHECK FOR STAFF
-                # Do NOT rely on request.user.permissions which might be stale
-                from .models import VeterinaryStaff, StaffClinicAssignment
-                
-                has_permission = False
-                
-                # A. Check Specific Assignment for this Clinic
-                assignment = StaffClinicAssignment.objects.filter(
-                    staff__auth_user_id=user_id,
-                    clinic_id=clinic_id,
-                    is_active=True
-                ).first()
-                
-                if assignment and required_cap in (assignment.permissions or []):
-                    has_permission = True
-                
-                # B. Fallback to Staff Profile (if no specific assignment overrides or global perms)
-                if not has_permission:
-                    staff_profile = VeterinaryStaff.objects.filter(auth_user_id=user_id).first()
-                    if staff_profile and required_cap in (staff_profile.permissions or []):
-                        has_permission = True
-
-                if not has_permission:
+                # 3. USE MIDDLEWARE PERMISSIONS (Preferred)
+                # The VeterinaryPermissionMiddleware already resolves StaffClinicAssignment and populates request.user.permissions
+                user_perms = getattr(request.user, 'permissions', [])
+                if required_cap in user_perms:
+                    pass # Access Granted
+                else:
                     return Response({'error': f'Permission denied. Missing capability: {required_cap}'}, status=status.HTTP_403_FORBIDDEN)
         
         date_param = request.query_params.get('date')

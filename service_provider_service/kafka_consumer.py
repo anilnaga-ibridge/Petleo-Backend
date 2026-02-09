@@ -59,12 +59,10 @@ for message in consumer:
         
         logger.info(f"🔥 Event: {event_type} | Role: {role} | Service: {service}")
 
-        # -----------------------------
-        # SKIP ADMIN EVENTS (EXCEPT DELETION)
-        # -----------------------------
-        if role in ["admin", "super_admin"] and event_type.startswith("USER_") and event_type != "USER_DELETED":
-            logger.info("⏭️ Skipping admin/super_admin user event")
-            continue
+        # logger.info(f"🔥 Event: {event_type} | Role: {role} | Service: {service}")
+        
+        # [MODIFIED] Do NOT skip admin/super_admin anymore. 
+        # We need their VerifiedUser record to stay in sync for Account Settings.
 
         # ==========================
         # USER EVENTS
@@ -153,7 +151,7 @@ for message in consumer:
             # ==========================
             # VERIFIED USER SYNC (ALL ROLES)
             # ==========================
-            if role in ["individual", "organization", "serviceprovider", "pet_owner", "employee", "receptionist", "veterinarian", "groomer", "doctor", "labtech", "lab tech", "pharmacy", "vitalsstaff", "vitals staff"]:
+            if role in ["individual", "organization", "serviceprovider", "pet_owner", "employee", "receptionist", "veterinarian", "groomer", "doctor", "labtech", "lab tech", "pharmacy", "vitalsstaff", "vitals staff", "superadmin", "super_admin", "admin"]:
                 with transaction.atomic():
                     user, created = VerifiedUser.objects.update_or_create(
                         auth_user_id=auth_user_id,

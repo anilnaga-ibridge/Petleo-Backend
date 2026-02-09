@@ -1,0 +1,28 @@
+Target          | Name                 | Label                | Required  
+---------------------------------------------------------------------------
+individual      | first_name           | First Name           | True      
+individual      | last_name            | Last Name            | True      
+individual      | email                | Email                | True      
+individual      | phone_number         | Phone Number         | True      
+individual      | address              | Address              | True      
+individual      | city                 | City                 | True      
+individual      | state                | State                | True      
+individual      | zip_code             | Zip Code             | True      
+individual      | country              | Country              | True      
+individual      | language             | Language             | True      
+individual      | timezone             | Timezone             | True      
+individual      | currency             | Currency             | True      
+organization    | organization_name    | Organization Name    | True      
+organization    | ProfileImage         | Profile Pic          | False     
+organization    | first_name           | First Name           | True      
+organization    | last_name            | Last Name            | True      
+organization    | email                | Email                | True      
+organization    | phone_number         | Phone Number         | True      
+organization    | address              | Address              | True      
+organization    | city                 | City                 | True      
+organization    | state                | State                | True      
+organization    | zip_code             | Zip Code             | True      
+organization    | country              | Country              | True      
+organization    | language             | Language             | True      
+organization    | timezone             | Timezone             | True      
+organization    | currency             | Currency             | True      

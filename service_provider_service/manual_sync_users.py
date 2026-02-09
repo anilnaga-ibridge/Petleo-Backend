@@ -14,7 +14,7 @@ from service_provider.models import VerifiedUser
 # Missing users identified from manual comparison
 # Format: (email, auth_user_id, role, full_name, phone_number)
 missing_users = [
-    ("superadmin@example.com", "55bdf699-d21f-4cc3-a7b4-65bc37c3394b", "superadmin", "Super Admin", "9999999999"),
+    ("superadmin@example.com", "55bdf699-d21f-4cc3-a7b4-65bc37c3394b", "superadmin", "Super Admin", "9876543210"),
     ("mahesh@gmail.com", "e0515a9b-665b-495b-9ff2-af995f04bf19", "receptionist", "Mahesh", "1234567890"),
     ("clinic@test.com", "6d2d8c21-d908-48eb-9791-4b149dc4a9a0", "organization", "Clinic Org", "1122334455"),
     ("das@gmail.com", "66874c90-2059-4b18-a17b-34963fc0c9af", "organization", "Das Org", "2233445566"),

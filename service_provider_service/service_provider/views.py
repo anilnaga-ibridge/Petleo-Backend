@@ -114,11 +114,37 @@ def get_my_permissions(request):
     except OrganizationEmployee.DoesNotExist:
         pass
 
+    # Get avatar
+    avatar_url = None
+    try:
+        from service_provider.models import ServiceProvider
+        # Corrected lookup: verified_user__auth_user_id
+        provider = ServiceProvider.objects.filter(verified_user__auth_user_id=user.auth_user_id).first()
+        if provider and provider.avatar:
+            avatar_url = request.build_absolute_uri(provider.avatar.url)
+            print(f"✅ [Port 8002] AVATAR READY for {user.email}: {avatar_url}")
+        else:
+            print(f"⚠️ [Port 8002] NO AVATAR found for {user.email}")
+    except Exception as e:
+        print(f"❌ [Port 8002] AVATAR ERROR for {user.email}: {str(e)}")
+
     user_profile = {
         "fullName": user.full_name,
         "email": user.email,
-        "role": display_role
+        "phoneNumber": user.phone_number,
+        "role": display_role,
+        "avatar": avatar_url
     }
+    
+    # [LOGGING] Verify what we are sending back to the frontend
+    try:
+        with open("debug_perms.log", "a") as f:
+            f.write(f"👤 [USER_PROFILE] {user.email}: {json.dumps(user_profile, indent=2)}\n")
+    except Exception as log_err:
+        print(f"❌ Logging error: {log_err}")
+    
+    # [LOGGING] Verify what we are sending back
+    print(f"👤 [Port 8002] User Profile for {user.email}: {user_profile}")
 
     # 1. Determine the "Subscription Owner"
     # If it's an employee, we check the Organization's subscription.

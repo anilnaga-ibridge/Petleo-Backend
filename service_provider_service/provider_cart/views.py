@@ -60,6 +60,52 @@ def get_my_cart(request):
 @permission_classes([IsAuthenticated])
 def add_to_cart(request):
     verified_user = get_verified_user(request)
+
+    # -----------------------------------------------------
+    # 0. STRICT DOCUMENT VERIFICATION CHECK
+    # -----------------------------------------------------
+    from provider_dynamic_fields.models import LocalDocumentDefinition, ProviderDocument
+
+    # Determine target (individual vs organization)
+    # Default to 'individual' if role is 'provider' or missing
+    role_map = {
+        'provider': 'individual',
+        'individual': 'individual',
+        'organization': 'organization'
+    }
+    user_role = (verified_user.role or 'individual').lower()
+    target = role_map.get(user_role, 'individual')
+
+    # 1. Get Required Definitions for this target
+    required_defs = LocalDocumentDefinition.objects.filter(
+        target=target, 
+        is_required=True
+    ).values_list('id', flat=True)
+
+    if required_defs:
+        # 2. Get User's Uploaded Documents
+        user_docs = ProviderDocument.objects.filter(verified_user=verified_user)
+        uploaded_def_ids = set(user_docs.values_list('definition_id', flat=True))
+
+        # Check A: Are all required docs present?
+        missing_required = set(required_defs) - uploaded_def_ids
+        if missing_required:
+             return Response({
+                 "error": "You must upload all required documents before purchasing a plan."
+             }, status=400)
+
+        # Check B: Are ANY docs rejected or pending?
+        # We enforce that ALL uploaded docs must be 'approved'.
+        # (Or at least the required ones? Requirement says "if super admin will accept... then only provider can purchase")
+        # Let's be strict: All current docs must be approved.
+        not_approved = user_docs.exclude(status='approved')
+        if not_approved.exists():
+            return Response({
+                "error": "Your documents are currently under review. You can purchase a plan once they are approved by the admin."
+            }, status=400)
+    
+    # -----------------------------------------------------
+
     data = request.data
     plan_id = data["plan_id"]
 

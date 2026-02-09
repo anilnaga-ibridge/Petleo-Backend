@@ -1,0 +1,4 @@
+Target          | Name                 | Label                | Required  
+---------------------------------------------------------------------------
+individual      | profile_image        | Profile Picture      | False     
+organization    | profile_image        | Profile Picture      | False     

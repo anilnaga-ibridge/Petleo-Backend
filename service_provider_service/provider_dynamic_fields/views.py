@@ -8,6 +8,8 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from provider_dynamic_fields.models import (
     LocalFieldDefinition,
     ProviderFieldValue,
+    LocalDocumentDefinition,
+    ProviderDocument,
 )
 
 from provider_dynamic_fields.serializers import (
@@ -17,6 +19,7 @@ from provider_dynamic_fields.serializers import (
 )
 
 from service_provider.models import VerifiedUser, OrganizationEmployee
+from service_provider.kafka_producer import publish_user_profile_updated, publish_document_uploaded
 
 import json
 
@@ -116,37 +119,133 @@ class ProviderFieldSubmitView(generics.GenericAPIView):
             })
 
         # ----------------------------
+        # 🔥 SYNC TO VerifiedUser
+        # ----------------------------
+        user_updated = False
+        full_name = verified.full_name or ""
+        parts = full_name.split(" ", 1)
+        first = parts[0] if parts else ""
+        last = parts[1] if len(parts) > 1 else ""
+
+        for item in fields_data:
+            field_id = item.get("field_id")
+            value = item.get("value")
+            try:
+                field_def = LocalFieldDefinition.objects.get(id=field_id)
+            except:
+                continue
+
+            field_name = field_def.name
+            if field_name == "first_name":
+                first = value
+                user_updated = True
+            elif field_name == "last_name":
+                last = value
+                user_updated = True
+            elif field_name == "email":
+                verified.email = value
+                user_updated = True
+            elif field_name == "phone_number":
+                verified.phone_number = value
+                user_updated = True
+
+        if user_updated:
+            verified.full_name = f"{first} {last}".strip()
+            verified.save()
+            
+            # Publish to Kafka for Auth Service sync
+            publish_user_profile_updated(
+                auth_user_id=verified.auth_user_id,
+                full_name=verified.full_name,
+                email=verified.email,
+                phone_number=verified.phone_number
+            )
+
+        # ----------------------------
         # SAVE FILE FIELDS
         # ----------------------------
         saved_files = []
         field_ids = {str(item["field_id"]) for item in fields_data}
 
         for key, files in request.FILES.lists():
-            if key not in field_ids:
-                continue   # Not a profile field
-
             upload_file = files[0]
 
-            obj, created = ProviderFieldValue.objects.update_or_create(
-                verified_user=verified,
-                field_id=key,
-                defaults={
-                    "file": upload_file,
-                    "value": {"filename": upload_file.name},
-                    "metadata": {
-                        "size": upload_file.size,
-                        "content_type": upload_file.content_type or ""
+            # --------------------------
+            # CASE A: Profile Field
+            # --------------------------
+            if key in field_ids:
+                obj, created = ProviderFieldValue.objects.update_or_create(
+                    verified_user=verified,
+                    field_id=key,
+                    defaults={
+                        "file": upload_file,
+                        "value": {"filename": upload_file.name},
+                        "metadata": {
+                            "size": upload_file.size,
+                            "content_type": upload_file.content_type or ""
+                        }
                     }
-                }
-            )
+                )
 
-            saved_files.append({
-                "field_id": key,
-                "filename": upload_file.name,
-                "size": upload_file.size,
-                "content_type": getattr(upload_file, "content_type", ""),
-                "file_url": request.build_absolute_uri(obj.file.url),
-            })
+                saved_files.append({
+                    "field_id": key,
+                    "filename": upload_file.name,
+                    "size": upload_file.size,
+                    "content_type": getattr(upload_file, "content_type", ""),
+                    "file_url": request.build_absolute_uri(obj.file.url),
+                })
+                continue
+
+            # --------------------------
+            # CASE B: Document Upload
+            # --------------------------
+            # If not a profile field, check if it's a valid document definition
+            try:
+                # Verify definition exists (optional but safer)
+                doc_def = LocalDocumentDefinition.objects.get(id=key)
+
+                doc_obj, created = ProviderDocument.objects.update_or_create(
+                    verified_user=verified,
+                    definition_id=key,
+                    defaults={
+                        "file": upload_file,
+                        "filename": upload_file.name,
+                        "content_type": getattr(upload_file, "content_type", ""),
+                        "size": upload_file.size,
+                        "status": "pending"  # Reset status on new upload
+                    }
+                )
+
+                saved_files.append({
+                    "document_id": str(doc_obj.id),
+                    "definition_id": key,
+                    "filename": upload_file.name,
+                    "size": upload_file.size,
+                    "status": "pending",
+                    "file_url": request.build_absolute_uri(doc_obj.file.url),
+                })
+
+            except LocalDocumentDefinition.DoesNotExist:
+                # Not a profile field AND not a document def. Ignore.
+                pass
+            except Exception as e:
+                print(f"Error saving document {key}: {e}")
+
+        # ----------------------------
+        # 🔥 SYNC TO Super Admin (NEW)
+        # ----------------------------
+        for f in saved_files:
+            if "document_id" in f and "definition_id" in f: # It's a document upload case
+                try:
+                    publish_document_uploaded(
+                        provider_id=verified.auth_user_id,
+                        document_id=f.get("document_id"),
+                        definition_id=f.get("definition_id"),
+                        file_url=f.get("file_url"),
+                        filename=f.get("filename")
+                    )
+                except Exception as e:
+                    print(f"Error publishing document upload: {e}")
 
         return Response({
             "saved_fields": saved_fields,

@@ -31,7 +31,7 @@ class GlobalKafkaProducer:
 def get_kafka_producer():
     return GlobalKafkaProducer.instance()
 
-def publish_document_uploaded(provider_id, document_id, file_url, filename):
+def publish_document_uploaded(provider_id, document_id, definition_id, file_url, filename):
     producer = get_kafka_producer()
     
     if not producer:
@@ -47,6 +47,7 @@ def publish_document_uploaded(provider_id, document_id, file_url, filename):
             "auth_user_id": str(provider_id),
             "provider_id": str(provider_id),
             "document_id": str(document_id),
+            "definition_id": str(definition_id) if definition_id else None,
             "file_url": file_url,
             "filename": filename
         }
@@ -139,3 +140,34 @@ def publish_permissions_synced(auth_user_id, permissions):
         logger.info(f"📤 Published USER_PERMISSIONS_SYNCED for {auth_user_id}")
     except Exception as e:
         logger.error(f"❌ Failed to publish permission sync event: {e}")
+
+def publish_user_profile_updated(auth_user_id, full_name=None, email=None, phone_number=None, role=None):
+    """
+    Publishes an EMPLOYEE_UPDATED event to sync profile changes back to Auth Service.
+    The Auth Service consumer listens for EMPLOYEE_UPDATED and updates the User model.
+    """
+    producer = get_kafka_producer()
+    if not producer:
+        logger.warning(f"⚠️ Kafka not connected. Profile update for '{auth_user_id}' skipped.")
+        return
+
+    topic = "service_provider_events"
+    
+    data = {"auth_user_id": str(auth_user_id)}
+    if full_name is not None: data["full_name"] = full_name
+    if email is not None: data["email"] = email
+    if phone_number is not None: data["phone_number"] = phone_number
+    if role is not None: data["role"] = role
+
+    payload = {
+        "event_type": "EMPLOYEE_UPDATED", # Auth Service consumer expects this
+        "role": role or "provider",
+        "data": data
+    }
+    
+    try:
+        producer.send(topic, payload)
+        producer.flush()
+        logger.info(f"📤 Published EMPLOYEE_UPDATED (Profile Sync) for {auth_user_id}")
+    except Exception as e:
+        logger.error(f"❌ Failed to publish profile update event: {e}")

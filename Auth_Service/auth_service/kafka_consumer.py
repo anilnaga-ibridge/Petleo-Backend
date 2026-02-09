@@ -30,6 +30,7 @@ while not consumer:
     try:
         consumer = KafkaConsumer(
             "service_provider_events",
+            "admin_events",
             bootstrap_servers="localhost:9093",
             group_id="auth-service-group",
             auto_offset_reset="latest",
@@ -71,7 +72,7 @@ for message in consumer:
                     except Role.DoesNotExist:
                         logger.warning(f"⚠️ Role '{role_name}' not found in Auth Service")
 
-                user.save()
+                user.save(update_fields=["full_name", "phone_number", "email", "role"])
                 logger.info(f"✅ Updated User {auth_user_id}")
             except User.DoesNotExist:
                 logger.warning(f"⚠️ User {auth_user_id} not found for update")
@@ -83,7 +84,7 @@ for message in consumer:
             try:
                 user = User.objects.get(id=auth_user_id)
                 user.is_active = False # Deactivate instead of delete to preserve history/integrity
-                user.save()
+                user.save(update_fields=["is_active"])
                 logger.info(f"🚫 Deactivated User {auth_user_id}")
             except User.DoesNotExist:
                 logger.warning(f"⚠️ User {auth_user_id} not found for deletion")
@@ -100,6 +101,22 @@ for message in consumer:
                     logger.warning(f"⚠️ User {user_id} not found for email sending")
                 except Exception as e:
                     logger.error(f"❌ Failed to send email for User {user_id}: {e}")
+
+        elif event_type == "USER_VERIFIED":
+            auth_user_id = data.get("auth_user_id")
+            if not auth_user_id: continue
+
+            try:
+                user = User.objects.get(id=auth_user_id)
+                user.is_active = True
+                user.status = "ACTIVE"
+                if hasattr(user, "is_verified"):
+                    user.is_verified = True
+                
+                user.save(update_fields=["is_active", "status"] + (["is_verified"] if hasattr(user, "is_verified") else []))
+                logger.info(f"✅ Verified User {auth_user_id}")
+            except User.DoesNotExist:
+                logger.warning(f"⚠️ User {auth_user_id} not found for verification")
 
     except Exception as e:
         logger.exception(f"❌ Error processing Kafka message: {e}")

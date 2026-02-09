@@ -1,0 +1,26 @@
+Target          | Name                 | Label                | Required  
+---------------------------------------------------------------------------
+individual      | FirstName            | First Name           | False     
+individual      | SecondName           | Second Name          | False     
+individual      | email                | Email                | True      
+individual      | phone_number         | Phone Number         | True      
+individual      | address              | Address              | True      
+individual      | country              | Country              | True      
+individual      | language             | Language             | True      
+individual      | organization         | Organization         | False     
+individual      | state                | State                | True      
+individual      | timezone             | Timezone             | True      
+individual      | zip_code             | Zip Code             | True      
+organization    | organization         | Organization         | False     
+organization    | address              | Address              | True      
+organization    | state                | State                | True      
+organization    | zip_code             | Zip Code             | True      
+organization    | country              | Country              | True      
+organization    | language             | Language             | True      
+organization    | timezone             | Timezone             | True      
+organization    | currency             | Currency             | True      
+organization    | ProfileImage         | Profile Pic          | False     
+organization    | email                | Email                | True      
+organization    | phone_number         | Phone Number         | True      
+organization    | SecondName           | Second Name          | False     
+organization    | PhoneNumber          | Phone umber          | False     

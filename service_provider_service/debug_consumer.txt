@@ -1867,3 +1867,558 @@ LINE 1: DELETE FROM "service_provider_billingprofile" WHERE "service...
 2026-02-05 12:34:53,836 [INFO] 🆙 Updated OrganizationEmployee 48a1da0b-13b3-4eec-b953-2cd6a588ad76
 2026-02-05 12:35:06,865 [INFO] 🔥 Event: EMPLOYEE_UPDATED | Role: employee | Service: None
 2026-02-05 12:35:06,867 [INFO] 🆙 Updated OrganizationEmployee b81f0881-4071-483a-acda-2a3523dfab10
+2026-02-05 13:52:48,290 [INFO] 🔥 Event: SEND_EMAIL | Role: individual | Service: auth_service
+2026-02-05 13:52:48,293 [WARNING] ⚠️ Unknown event type 'SEND_EMAIL' received.
+2026-02-05 13:52:48,299 [INFO] 🔥 Event: USER_CREATED | Role: individual | Service: auth_service
+2026-02-05 13:52:48,300 [INFO] DEBUG: Checking role 'individual' against employee list...
+2026-02-05 13:52:48,322 [INFO] ✅ Created VerifiedUser sfg@gmail.com
+2026-02-05 13:53:15,833 [INFO] 🔥 Event: USER_VERIFIED | Role: individual | Service: auth_service
+2026-02-05 13:53:15,834 [INFO] DEBUG: Checking role 'individual' against employee list...
+2026-02-05 13:53:15,838 [INFO] 🔄 Updated VerifiedUser sfg@gmail.com
+2026-02-06 04:58:16,865 [INFO] 🚀 Starting Service Provider Unified Kafka Consumer...
+2026-02-06 04:58:16,879 [INFO] ✅ Connected to Kafka broker.
+2026-02-06 05:16:36,099 [INFO] 🔥 Event: SEND_EMAIL | Role: organization | Service: auth_service
+2026-02-06 05:16:36,100 [WARNING] ⚠️ Unknown event type 'SEND_EMAIL' received.
+2026-02-06 05:16:36,111 [INFO] 🔥 Event: USER_CREATED | Role: organization | Service: auth_service
+2026-02-06 05:16:36,112 [INFO] DEBUG: Checking role 'organization' against employee list...
+2026-02-06 05:16:36,213 [INFO] ✅ Created VerifiedUser pandya@gmail.com
+2026-02-06 05:16:36,224 [INFO] ✅ Auto-created ServiceProvider profile for pandya@gmail.com
+2026-02-06 05:16:58,210 [INFO] 🔥 Event: USER_VERIFIED | Role: organization | Service: auth_service
+2026-02-06 05:16:58,210 [INFO] DEBUG: Checking role 'organization' against employee list...
+2026-02-06 05:16:58,219 [INFO] 🔄 Updated VerifiedUser pandya@gmail.com
+2026-02-06 05:22:55,117 [INFO] 🔥 Event: USER_DELETED | Role: organization | Service: auth_service
+2026-02-06 05:22:55,184 [INFO] 🗑️ Deleted user records for 29fa719c-45f7-4e74-960a-48fa30aa0957
+2026-02-06 05:23:22,654 [INFO] 🔥 Event: SEND_EMAIL | Role: individual | Service: auth_service
+2026-02-06 05:23:22,654 [WARNING] ⚠️ Unknown event type 'SEND_EMAIL' received.
+2026-02-06 05:23:22,663 [INFO] 🔥 Event: USER_CREATED | Role: individual | Service: auth_service
+2026-02-06 05:23:22,664 [INFO] DEBUG: Checking role 'individual' against employee list...
+2026-02-06 05:23:22,669 [INFO] ✅ Created VerifiedUser jhvgsv@gmail.com
+2026-02-06 05:23:40,330 [INFO] 🔥 Event: USER_VERIFIED | Role: individual | Service: auth_service
+2026-02-06 05:23:40,330 [INFO] DEBUG: Checking role 'individual' against employee list...
+2026-02-06 05:23:40,333 [INFO] 🔄 Updated VerifiedUser jhvgsv@gmail.com
+2026-02-06 06:28:38,871 [INFO] 🔥 Event: SEND_EMAIL | Role: individual | Service: auth_service
+2026-02-06 06:28:38,873 [WARNING] ⚠️ Unknown event type 'SEND_EMAIL' received.
+2026-02-06 06:28:38,878 [INFO] 🔥 Event: USER_CREATED | Role: individual | Service: auth_service
+2026-02-06 06:28:38,879 [INFO] DEBUG: Checking role 'individual' against employee list...
+2026-02-06 06:28:38,883 [INFO] ✅ Created VerifiedUser deeede@gmil.com
+2026-02-06 06:29:03,672 [INFO] 🔥 Event: USER_VERIFIED | Role: individual | Service: auth_service
+2026-02-06 06:29:03,673 [INFO] DEBUG: Checking role 'individual' against employee list...
+2026-02-06 06:29:03,678 [INFO] 🔄 Updated VerifiedUser deeede@gmil.com
+2026-02-06 10:27:52,018 [INFO] 🚀 Starting Service Provider Unified Kafka Consumer...
+2026-02-06 10:27:52,031 [INFO] ✅ Connected to Kafka broker.
+2026-02-06 11:04:48,213 [INFO] 🔥 Event: FIELD_DEFINITION_CREATED | Role:  | Service: super_admin_service
+2026-02-06 11:04:48,262 [INFO] ✅ Synced Field Definition: First Name
+2026-02-06 11:04:48,268 [INFO] 🔥 Event: FIELD_DEFINITION_CREATED | Role:  | Service: super_admin_service
+2026-02-06 11:04:48,273 [INFO] ✅ Synced Field Definition: Last Name
+2026-02-06 11:04:48,273 [INFO] 🔥 Event: FIELD_DEFINITION_UPDATED | Role:  | Service: super_admin_service
+2026-02-06 11:04:48,277 [INFO] ✅ Synced Field Definition: Email
+2026-02-06 11:04:48,277 [INFO] 🔥 Event: FIELD_DEFINITION_UPDATED | Role:  | Service: super_admin_service
+2026-02-06 11:04:48,280 [INFO] ✅ Synced Field Definition: Phone Number
+2026-02-06 11:04:48,281 [INFO] 🔥 Event: FIELD_DEFINITION_UPDATED | Role:  | Service: super_admin_service
+2026-02-06 11:04:48,283 [INFO] ✅ Synced Field Definition: Address
+2026-02-06 11:04:48,284 [INFO] 🔥 Event: FIELD_DEFINITION_CREATED | Role:  | Service: super_admin_service
+2026-02-06 11:04:48,287 [INFO] ✅ Synced Field Definition: City
+2026-02-06 11:04:48,292 [INFO] 🔥 Event: FIELD_DEFINITION_UPDATED | Role:  | Service: super_admin_service
+2026-02-06 11:04:48,296 [INFO] ✅ Synced Field Definition: State
+2026-02-06 11:04:48,296 [INFO] 🔥 Event: FIELD_DEFINITION_UPDATED | Role:  | Service: super_admin_service
+2026-02-06 11:04:48,300 [INFO] ✅ Synced Field Definition: Zip Code
+2026-02-06 11:04:48,300 [INFO] 🔥 Event: FIELD_DEFINITION_UPDATED | Role:  | Service: super_admin_service
+2026-02-06 11:04:48,303 [INFO] ✅ Synced Field Definition: Country
+2026-02-06 11:04:48,307 [INFO] 🔥 Event: FIELD_DEFINITION_UPDATED | Role:  | Service: super_admin_service
+2026-02-06 11:04:48,310 [INFO] ✅ Synced Field Definition: Language
+2026-02-06 11:04:48,310 [INFO] 🔥 Event: FIELD_DEFINITION_UPDATED | Role:  | Service: super_admin_service
+2026-02-06 11:04:48,314 [INFO] ✅ Synced Field Definition: Timezone
+2026-02-06 11:04:48,318 [INFO] 🔥 Event: FIELD_DEFINITION_CREATED | Role:  | Service: super_admin_service
+2026-02-06 11:04:48,321 [INFO] ✅ Synced Field Definition: Currency
+2026-02-06 11:04:48,325 [INFO] 🔥 Event: FIELD_DEFINITION_CREATED | Role:  | Service: super_admin_service
+2026-02-06 11:04:48,328 [INFO] ✅ Synced Field Definition: First Name
+2026-02-06 11:04:48,334 [INFO] 🔥 Event: FIELD_DEFINITION_CREATED | Role:  | Service: super_admin_service
+2026-02-06 11:04:48,337 [INFO] ✅ Synced Field Definition: Last Name
+2026-02-06 11:04:48,344 [INFO] 🔥 Event: FIELD_DEFINITION_UPDATED | Role:  | Service: super_admin_service
+2026-02-06 11:04:48,347 [INFO] ✅ Synced Field Definition: Email
+2026-02-06 11:04:48,354 [INFO] 🔥 Event: FIELD_DEFINITION_UPDATED | Role:  | Service: super_admin_service
+2026-02-06 11:04:48,358 [INFO] ✅ Synced Field Definition: Phone Number
+2026-02-06 11:04:48,365 [INFO] 🔥 Event: FIELD_DEFINITION_UPDATED | Role:  | Service: super_admin_service
+2026-02-06 11:04:48,369 [INFO] ✅ Synced Field Definition: Address
+2026-02-06 11:04:48,376 [INFO] 🔥 Event: FIELD_DEFINITION_CREATED | Role:  | Service: super_admin_service
+2026-02-06 11:04:48,380 [INFO] ✅ Synced Field Definition: City
+2026-02-06 11:04:48,385 [INFO] 🔥 Event: FIELD_DEFINITION_UPDATED | Role:  | Service: super_admin_service
+2026-02-06 11:04:48,389 [INFO] ✅ Synced Field Definition: State
+2026-02-06 11:04:48,395 [INFO] 🔥 Event: FIELD_DEFINITION_UPDATED | Role:  | Service: super_admin_service
+2026-02-06 11:04:48,398 [INFO] ✅ Synced Field Definition: Zip Code
+2026-02-06 11:04:48,403 [INFO] 🔥 Event: FIELD_DEFINITION_UPDATED | Role:  | Service: super_admin_service
+2026-02-06 11:04:48,407 [INFO] ✅ Synced Field Definition: Country
+2026-02-06 11:04:48,412 [INFO] 🔥 Event: FIELD_DEFINITION_UPDATED | Role:  | Service: super_admin_service
+2026-02-06 11:04:48,416 [INFO] ✅ Synced Field Definition: Language
+2026-02-06 11:04:48,421 [INFO] 🔥 Event: FIELD_DEFINITION_UPDATED | Role:  | Service: super_admin_service
+2026-02-06 11:04:48,424 [INFO] ✅ Synced Field Definition: Timezone
+2026-02-06 11:04:48,430 [INFO] 🔥 Event: FIELD_DEFINITION_UPDATED | Role:  | Service: super_admin_service
+2026-02-06 11:04:48,433 [INFO] ✅ Synced Field Definition: Currency
+2026-02-06 11:04:48,439 [INFO] 🔥 Event: FIELD_DEFINITION_CREATED | Role:  | Service: super_admin_service
+2026-02-06 11:04:48,443 [INFO] ✅ Synced Field Definition: Organization Name
+2026-02-06 11:04:48,448 [INFO] 🔥 Event: FIELD_DEFINITION_DELETED | Role:  | Service: super_admin_service
+2026-02-06 11:04:48,451 [INFO] 🗑️ Deleted Field Definition: 3d469d1b-c26e-43a1-8877-2898ec3fcbd0
+2026-02-06 11:04:48,454 [INFO] 🔥 Event: FIELD_DEFINITION_DELETED | Role:  | Service: super_admin_service
+2026-02-06 11:04:48,456 [INFO] 🗑️ Deleted Field Definition: 15ecdc8a-fbf4-4221-ad71-cdc2ec27e767
+2026-02-06 11:04:48,459 [INFO] 🔥 Event: FIELD_DEFINITION_DELETED | Role:  | Service: super_admin_service
+2026-02-06 11:04:48,461 [INFO] 🗑️ Deleted Field Definition: 119c894d-0991-409a-b6a4-7071567ea790
+2026-02-06 11:04:48,468 [INFO] 🔥 Event: FIELD_DEFINITION_DELETED | Role:  | Service: super_admin_service
+2026-02-06 11:04:48,469 [INFO] 🗑️ Deleted Field Definition: ffc35ef1-8814-4215-9f8a-c7fea4892cb7
+2026-02-06 11:04:48,473 [INFO] 🔥 Event: FIELD_DEFINITION_DELETED | Role:  | Service: super_admin_service
+2026-02-06 11:04:48,475 [INFO] 🗑️ Deleted Field Definition: fe7c077a-7451-49ec-920e-72d2feeb521c
+2026-02-06 11:04:48,476 [INFO] 🔥 Event: FIELD_DEFINITION_DELETED | Role:  | Service: super_admin_service
+2026-02-06 11:04:48,477 [INFO] 🗑️ Deleted Field Definition: f00fd6cd-0ebc-4194-83e9-7c6f05ba4a91
+2026-02-06 11:07:04,810 [INFO] 🔥 Event: FIELD_DEFINITION_CREATED | Role:  | Service: super_admin_service
+2026-02-06 11:07:04,812 [INFO] ✅ Synced Field Definition: Profile Picture
+2026-02-06 11:07:04,817 [INFO] 🔥 Event: FIELD_DEFINITION_DELETED | Role:  | Service: super_admin_service
+2026-02-06 11:07:04,819 [INFO] 🗑️ Deleted Field Definition: fa6629bd-745c-4112-ab29-dce3ef655921
+2026-02-06 11:07:04,822 [INFO] 🔥 Event: FIELD_DEFINITION_DELETED | Role:  | Service: super_admin_service
+2026-02-06 11:07:04,824 [INFO] 🗑️ Deleted Field Definition: deed4e2d-a971-4326-904a-4755f70d645a
+2026-02-06 11:07:04,827 [INFO] 🔥 Event: FIELD_DEFINITION_DELETED | Role:  | Service: super_admin_service
+2026-02-06 11:07:04,830 [INFO] 🗑️ Deleted Field Definition: d3b5893f-eb04-464a-8fa3-fa367267cb03
+2026-02-06 11:07:04,830 [INFO] 🔥 Event: FIELD_DEFINITION_DELETED | Role:  | Service: super_admin_service
+2026-02-06 11:07:04,832 [INFO] 🗑️ Deleted Field Definition: c2890f34-1254-43e5-be4d-7a4b1190746c
+2026-02-06 11:07:04,835 [INFO] 🔥 Event: FIELD_DEFINITION_DELETED | Role:  | Service: super_admin_service
+2026-02-06 11:07:04,837 [INFO] 🗑️ Deleted Field Definition: 9e791dde-7c8c-4a2c-b7a5-cea975c6bc7c
+2026-02-06 11:07:04,837 [INFO] 🔥 Event: FIELD_DEFINITION_DELETED | Role:  | Service: super_admin_service
+2026-02-06 11:07:04,839 [INFO] 🗑️ Deleted Field Definition: 928f704f-0674-4ee7-b44b-7fa6bc3af2c9
+2026-02-06 11:07:04,842 [INFO] 🔥 Event: FIELD_DEFINITION_DELETED | Role:  | Service: super_admin_service
+2026-02-06 11:07:04,844 [INFO] 🗑️ Deleted Field Definition: 842b4b6b-9825-4b90-b507-a5b1cf605763
+2026-02-06 11:07:04,845 [INFO] 🔥 Event: FIELD_DEFINITION_DELETED | Role:  | Service: super_admin_service
+2026-02-06 11:07:04,846 [INFO] 🗑️ Deleted Field Definition: 7c69181a-c874-44b5-a078-17ec9c001151
+2026-02-06 11:07:04,847 [INFO] 🔥 Event: FIELD_DEFINITION_DELETED | Role:  | Service: super_admin_service
+2026-02-06 11:07:04,849 [INFO] 🗑️ Deleted Field Definition: 728078f7-8c4f-4dae-8b14-170c5f856d8f
+2026-02-06 11:07:04,852 [INFO] 🔥 Event: FIELD_DEFINITION_DELETED | Role:  | Service: super_admin_service
+2026-02-06 11:07:04,853 [INFO] 🗑️ Deleted Field Definition: 5f240c2a-322d-4f21-967d-4cee3c217d53
+2026-02-06 11:07:04,853 [INFO] 🔥 Event: FIELD_DEFINITION_DELETED | Role:  | Service: super_admin_service
+2026-02-06 11:07:04,855 [INFO] 🗑️ Deleted Field Definition: 5ae0538c-95ce-445c-956b-c3c9959b93fd
+2026-02-06 11:07:04,855 [INFO] 🔥 Event: FIELD_DEFINITION_DELETED | Role:  | Service: super_admin_service
+2026-02-06 11:07:04,856 [INFO] 🗑️ Deleted Field Definition: 184acecd-3f69-4863-91e1-f76321a83c72
+2026-02-06 11:07:04,859 [INFO] 🔥 Event: FIELD_DEFINITION_CREATED | Role:  | Service: super_admin_service
+2026-02-06 11:07:04,861 [INFO] ✅ Synced Field Definition: Profile Picture
+2026-02-06 11:07:04,867 [INFO] 🔥 Event: FIELD_DEFINITION_DELETED | Role:  | Service: super_admin_service
+2026-02-06 11:07:04,868 [INFO] 🗑️ Deleted Field Definition: f8b18f28-456b-4d73-b7ef-35e01e564acd
+2026-02-06 11:07:04,871 [INFO] 🔥 Event: FIELD_DEFINITION_DELETED | Role:  | Service: super_admin_service
+2026-02-06 11:07:04,873 [INFO] 🗑️ Deleted Field Definition: eec3bfe1-3b80-4a25-9acd-dd00825ec3c6
+2026-02-06 11:07:04,876 [INFO] 🔥 Event: FIELD_DEFINITION_DELETED | Role:  | Service: super_admin_service
+2026-02-06 11:07:04,879 [INFO] 🗑️ Deleted Field Definition: bf3f9bb8-4bec-410f-8d7a-64f4cdc3b389
+2026-02-06 11:07:04,880 [INFO] 🔥 Event: FIELD_DEFINITION_DELETED | Role:  | Service: super_admin_service
+2026-02-06 11:07:04,881 [INFO] 🗑️ Deleted Field Definition: adaa1e82-5509-4f09-ad89-d4a48d378fc4
+2026-02-06 11:07:04,884 [INFO] 🔥 Event: FIELD_DEFINITION_DELETED | Role:  | Service: super_admin_service
+2026-02-06 11:07:04,886 [INFO] 🗑️ Deleted Field Definition: 962c091e-a8c8-4635-8eaa-1c537043c13f
+2026-02-06 11:07:04,886 [INFO] 🔥 Event: FIELD_DEFINITION_DELETED | Role:  | Service: super_admin_service
+2026-02-06 11:07:04,888 [INFO] 🗑️ Deleted Field Definition: 8744fa89-0f56-4d36-8483-2e5e1def44e3
+2026-02-06 11:07:04,892 [INFO] 🔥 Event: FIELD_DEFINITION_DELETED | Role:  | Service: super_admin_service
+2026-02-06 11:07:04,893 [INFO] 🗑️ Deleted Field Definition: 7b1dad91-de41-4048-a7b4-10f56e304518
+2026-02-06 11:07:04,893 [INFO] 🔥 Event: FIELD_DEFINITION_DELETED | Role:  | Service: super_admin_service
+2026-02-06 11:07:04,894 [INFO] 🗑️ Deleted Field Definition: 6d7cd037-a6d1-4bcc-bb12-29a13406f470
+2026-02-06 11:07:04,895 [INFO] 🔥 Event: FIELD_DEFINITION_DELETED | Role:  | Service: super_admin_service
+2026-02-06 11:07:04,896 [INFO] 🗑️ Deleted Field Definition: 6239cd68-ce7a-46ac-899c-e3085170acef
+2026-02-06 11:07:04,900 [INFO] 🔥 Event: FIELD_DEFINITION_DELETED | Role:  | Service: super_admin_service
+2026-02-06 11:07:04,901 [INFO] 🗑️ Deleted Field Definition: 58b9a34b-6791-4583-9340-96879f9ffb16
+2026-02-06 11:07:04,902 [INFO] 🔥 Event: FIELD_DEFINITION_DELETED | Role:  | Service: super_admin_service
+2026-02-06 11:07:04,903 [INFO] 🗑️ Deleted Field Definition: 39e6e4ef-eb96-4239-9e45-3f546a12d8f8
+2026-02-06 11:07:04,906 [INFO] 🔥 Event: FIELD_DEFINITION_DELETED | Role:  | Service: super_admin_service
+2026-02-06 11:07:04,908 [INFO] 🗑️ Deleted Field Definition: 23f5111f-b6fa-42db-b44d-1ea2dfec2bb9
+2026-02-06 11:07:04,908 [INFO] 🔥 Event: FIELD_DEFINITION_DELETED | Role:  | Service: super_admin_service
+2026-02-06 11:07:04,909 [INFO] 🗑️ Deleted Field Definition: 10eb8534-d4ac-4aaf-b468-f2b003aa5b75
+2026-02-06 11:07:04,909 [INFO] 🔥 Event: FIELD_DEFINITION_DELETED | Role:  | Service: super_admin_service
+2026-02-06 11:07:04,910 [INFO] 🗑️ Deleted Field Definition: 017fcbaa-cd91-424f-9a1c-55cd661c16b2
+2026-02-06 11:08:56,890 [INFO] 🔥 Event: FIELD_DEFINITION_UPDATED | Role:  | Service: super_admin_service
+2026-02-06 11:08:56,894 [INFO] ✅ Synced Field Definition: Profile Picture
+2026-02-06 11:09:02,936 [INFO] 🔥 Event: FIELD_DEFINITION_UPDATED | Role:  | Service: super_admin_service
+2026-02-06 11:09:02,940 [INFO] ✅ Synced Field Definition: Profile Picture
+2026-02-06 11:10:16,822 [INFO] 🔥 Event: FIELD_DEFINITION_CREATED | Role:  | Service: super_admin_service
+2026-02-06 11:10:16,825 [INFO] ✅ Synced Field Definition: First Name
+2026-02-06 11:10:16,830 [INFO] 🔥 Event: FIELD_DEFINITION_CREATED | Role:  | Service: super_admin_service
+2026-02-06 11:10:16,832 [INFO] ✅ Synced Field Definition: Last Name
+2026-02-06 11:10:16,837 [INFO] 🔥 Event: FIELD_DEFINITION_CREATED | Role:  | Service: super_admin_service
+2026-02-06 11:10:16,840 [INFO] ✅ Synced Field Definition: Email
+2026-02-06 11:10:16,845 [INFO] 🔥 Event: FIELD_DEFINITION_CREATED | Role:  | Service: super_admin_service
+2026-02-06 11:10:16,849 [INFO] ✅ Synced Field Definition: Phone Number
+2026-02-06 11:10:16,854 [INFO] 🔥 Event: FIELD_DEFINITION_UPDATED | Role:  | Service: super_admin_service
+2026-02-06 11:10:16,857 [INFO] ✅ Synced Field Definition: Profile Picture
+2026-02-06 11:10:16,864 [INFO] 🔥 Event: FIELD_DEFINITION_CREATED | Role:  | Service: super_admin_service
+2026-02-06 11:10:16,868 [INFO] ✅ Synced Field Definition: Organization Name
+2026-02-06 11:10:16,874 [INFO] 🔥 Event: FIELD_DEFINITION_CREATED | Role:  | Service: super_admin_service
+2026-02-06 11:10:16,877 [INFO] ✅ Synced Field Definition: First Name
+2026-02-06 11:10:16,883 [INFO] 🔥 Event: FIELD_DEFINITION_CREATED | Role:  | Service: super_admin_service
+2026-02-06 11:10:16,885 [INFO] ✅ Synced Field Definition: Last Name
+2026-02-06 11:10:16,891 [INFO] 🔥 Event: FIELD_DEFINITION_CREATED | Role:  | Service: super_admin_service
+2026-02-06 11:10:16,893 [INFO] ✅ Synced Field Definition: Email
+2026-02-06 11:10:16,899 [INFO] 🔥 Event: FIELD_DEFINITION_CREATED | Role:  | Service: super_admin_service
+2026-02-06 11:10:16,902 [INFO] ✅ Synced Field Definition: Phone Number
+2026-02-06 11:10:16,907 [INFO] 🔥 Event: FIELD_DEFINITION_UPDATED | Role:  | Service: super_admin_service
+2026-02-06 11:10:16,909 [INFO] ✅ Synced Field Definition: Profile Picture
+2026-02-06 11:15:12,249 [INFO] 🔥 Event: FIELD_DEFINITION_UPDATED | Role:  | Service: super_admin_service
+2026-02-06 11:15:12,252 [INFO] ✅ Synced Field Definition: First Name
+2026-02-06 11:15:12,278 [INFO] 🔥 Event: FIELD_DEFINITION_UPDATED | Role:  | Service: super_admin_service
+2026-02-06 11:15:12,282 [INFO] ✅ Synced Field Definition: Last Name
+2026-02-06 11:15:12,288 [INFO] 🔥 Event: FIELD_DEFINITION_UPDATED | Role:  | Service: super_admin_service
+2026-02-06 11:15:12,291 [INFO] ✅ Synced Field Definition: Email
+2026-02-06 11:15:12,296 [INFO] 🔥 Event: FIELD_DEFINITION_UPDATED | Role:  | Service: super_admin_service
+2026-02-06 11:15:12,299 [INFO] ✅ Synced Field Definition: Phone Number
+2026-02-06 11:15:12,305 [INFO] 🔥 Event: FIELD_DEFINITION_UPDATED | Role:  | Service: super_admin_service
+2026-02-06 11:15:12,309 [INFO] ✅ Synced Field Definition: Profile Picture
+2026-02-06 11:15:12,317 [INFO] 🔥 Event: FIELD_DEFINITION_UPDATED | Role:  | Service: super_admin_service
+2026-02-06 11:15:12,319 [INFO] ✅ Synced Field Definition: Organization Name
+2026-02-06 11:15:12,324 [INFO] 🔥 Event: FIELD_DEFINITION_UPDATED | Role:  | Service: super_admin_service
+2026-02-06 11:15:12,326 [INFO] ✅ Synced Field Definition: First Name
+2026-02-06 11:15:12,331 [INFO] 🔥 Event: FIELD_DEFINITION_UPDATED | Role:  | Service: super_admin_service
+2026-02-06 11:15:12,335 [INFO] ✅ Synced Field Definition: Last Name
+2026-02-06 11:15:12,339 [INFO] 🔥 Event: FIELD_DEFINITION_UPDATED | Role:  | Service: super_admin_service
+2026-02-06 11:15:12,341 [INFO] ✅ Synced Field Definition: Email
+2026-02-06 11:15:12,347 [INFO] 🔥 Event: FIELD_DEFINITION_UPDATED | Role:  | Service: super_admin_service
+2026-02-06 11:15:12,349 [INFO] ✅ Synced Field Definition: Phone Number
+2026-02-06 11:15:12,354 [INFO] 🔥 Event: FIELD_DEFINITION_UPDATED | Role:  | Service: super_admin_service
+2026-02-06 11:15:12,357 [INFO] ✅ Synced Field Definition: Profile Picture
+2026-02-06 11:15:12,363 [INFO] 🔥 Event: FIELD_DEFINITION_CREATED | Role:  | Service: super_admin_service
+2026-02-06 11:15:12,367 [INFO] ✅ Synced Field Definition: First Name
+2026-02-06 11:15:12,372 [INFO] 🔥 Event: FIELD_DEFINITION_CREATED | Role:  | Service: super_admin_service
+2026-02-06 11:15:12,374 [INFO] ✅ Synced Field Definition: Last Name
+2026-02-06 11:15:12,380 [INFO] 🔥 Event: FIELD_DEFINITION_CREATED | Role:  | Service: super_admin_service
+2026-02-06 11:15:12,382 [INFO] ✅ Synced Field Definition: Email
+2026-02-06 11:15:12,387 [INFO] 🔥 Event: FIELD_DEFINITION_CREATED | Role:  | Service: super_admin_service
+2026-02-06 11:15:12,390 [INFO] ✅ Synced Field Definition: Phone Number
+2026-02-06 11:15:12,395 [INFO] 🔥 Event: FIELD_DEFINITION_CREATED | Role:  | Service: super_admin_service
+2026-02-06 11:15:12,398 [INFO] ✅ Synced Field Definition: Profile Picture
+2026-02-06 11:15:12,404 [INFO] 🔥 Event: FIELD_DEFINITION_CREATED | Role:  | Service: super_admin_service
+2026-02-06 11:15:12,407 [INFO] ✅ Synced Field Definition: First Name
+2026-02-06 11:15:12,412 [INFO] 🔥 Event: FIELD_DEFINITION_CREATED | Role:  | Service: super_admin_service
+2026-02-06 11:15:12,415 [INFO] ✅ Synced Field Definition: Last Name
+2026-02-06 11:15:12,420 [INFO] 🔥 Event: FIELD_DEFINITION_CREATED | Role:  | Service: super_admin_service
+2026-02-06 11:15:12,422 [INFO] ✅ Synced Field Definition: Email
+2026-02-06 11:15:12,427 [INFO] 🔥 Event: FIELD_DEFINITION_CREATED | Role:  | Service: super_admin_service
+2026-02-06 11:15:12,431 [INFO] ✅ Synced Field Definition: Phone Number
+2026-02-06 11:15:12,435 [INFO] 🔥 Event: FIELD_DEFINITION_CREATED | Role:  | Service: super_admin_service
+2026-02-06 11:15:12,438 [INFO] ✅ Synced Field Definition: Profile Picture
+2026-02-06 12:47:38,364 [INFO] 🔥 Event: FIELD_DEFINITION_UPDATED | Role:  | Service: super_admin_service
+2026-02-06 12:47:38,375 [INFO] ✅ Synced Field Definition: First Name
+2026-02-06 12:47:38,378 [INFO] 🔥 Event: FIELD_DEFINITION_UPDATED | Role:  | Service: super_admin_service
+2026-02-06 12:47:38,382 [INFO] ✅ Synced Field Definition: Last Name
+2026-02-06 12:47:38,385 [INFO] 🔥 Event: FIELD_DEFINITION_UPDATED | Role:  | Service: super_admin_service
+2026-02-06 12:47:38,388 [INFO] ✅ Synced Field Definition: Email
+2026-02-06 12:47:38,392 [INFO] 🔥 Event: FIELD_DEFINITION_UPDATED | Role:  | Service: super_admin_service
+2026-02-06 12:47:38,395 [INFO] ✅ Synced Field Definition: Phone Number
+2026-02-06 12:47:38,400 [INFO] 🔥 Event: FIELD_DEFINITION_CREATED | Role:  | Service: super_admin_service
+2026-02-06 12:47:38,403 [INFO] ✅ Synced Field Definition: Country
+2026-02-06 12:47:38,408 [INFO] 🔥 Event: FIELD_DEFINITION_CREATED | Role:  | Service: super_admin_service
+2026-02-06 12:47:38,411 [INFO] ✅ Synced Field Definition: Language
+2026-02-06 12:47:38,417 [INFO] 🔥 Event: FIELD_DEFINITION_UPDATED | Role:  | Service: super_admin_service
+2026-02-06 12:47:38,419 [INFO] ✅ Synced Field Definition: Profile Picture
+2026-02-06 12:47:38,426 [INFO] 🔥 Event: FIELD_DEFINITION_UPDATED | Role:  | Service: super_admin_service
+2026-02-06 12:47:38,429 [INFO] ✅ Synced Field Definition: Organization Name
+2026-02-06 12:47:38,434 [INFO] 🔥 Event: FIELD_DEFINITION_UPDATED | Role:  | Service: super_admin_service
+2026-02-06 12:47:38,437 [INFO] ✅ Synced Field Definition: First Name
+2026-02-06 12:47:38,442 [INFO] 🔥 Event: FIELD_DEFINITION_UPDATED | Role:  | Service: super_admin_service
+2026-02-06 12:47:38,445 [INFO] ✅ Synced Field Definition: Last Name
+2026-02-06 12:47:38,450 [INFO] 🔥 Event: FIELD_DEFINITION_UPDATED | Role:  | Service: super_admin_service
+2026-02-06 12:47:38,452 [INFO] ✅ Synced Field Definition: Email
+2026-02-06 12:47:38,457 [INFO] 🔥 Event: FIELD_DEFINITION_UPDATED | Role:  | Service: super_admin_service
+2026-02-06 12:47:38,460 [INFO] ✅ Synced Field Definition: Phone Number
+2026-02-06 12:47:38,465 [INFO] 🔥 Event: FIELD_DEFINITION_CREATED | Role:  | Service: super_admin_service
+2026-02-06 12:47:38,468 [INFO] ✅ Synced Field Definition: Country
+2026-02-06 12:47:38,473 [INFO] 🔥 Event: FIELD_DEFINITION_CREATED | Role:  | Service: super_admin_service
+2026-02-06 12:47:38,476 [INFO] ✅ Synced Field Definition: Language
+2026-02-06 12:47:38,480 [INFO] 🔥 Event: FIELD_DEFINITION_UPDATED | Role:  | Service: super_admin_service
+2026-02-06 12:47:38,483 [INFO] ✅ Synced Field Definition: Profile Picture
+2026-02-06 12:47:38,490 [INFO] 🔥 Event: FIELD_DEFINITION_UPDATED | Role:  | Service: super_admin_service
+2026-02-06 12:47:38,493 [INFO] ✅ Synced Field Definition: First Name
+2026-02-06 12:47:38,497 [INFO] 🔥 Event: FIELD_DEFINITION_UPDATED | Role:  | Service: super_admin_service
+2026-02-06 12:47:38,500 [INFO] ✅ Synced Field Definition: Last Name
+2026-02-06 12:47:38,506 [INFO] 🔥 Event: FIELD_DEFINITION_UPDATED | Role:  | Service: super_admin_service
+2026-02-06 12:47:38,509 [INFO] ✅ Synced Field Definition: Email
+2026-02-06 12:47:38,513 [INFO] 🔥 Event: FIELD_DEFINITION_UPDATED | Role:  | Service: super_admin_service
+2026-02-06 12:47:38,517 [INFO] ✅ Synced Field Definition: Phone Number
+2026-02-06 12:47:38,522 [INFO] 🔥 Event: FIELD_DEFINITION_CREATED | Role:  | Service: super_admin_service
+2026-02-06 12:47:38,525 [INFO] ✅ Synced Field Definition: Country
+2026-02-06 12:47:38,529 [INFO] 🔥 Event: FIELD_DEFINITION_CREATED | Role:  | Service: super_admin_service
+2026-02-06 12:47:38,533 [INFO] ✅ Synced Field Definition: Language
+2026-02-06 12:47:38,538 [INFO] 🔥 Event: FIELD_DEFINITION_UPDATED | Role:  | Service: super_admin_service
+2026-02-06 12:47:38,541 [INFO] ✅ Synced Field Definition: Profile Picture
+2026-02-06 12:47:38,546 [INFO] 🔥 Event: FIELD_DEFINITION_UPDATED | Role:  | Service: super_admin_service
+2026-02-06 12:47:38,549 [INFO] ✅ Synced Field Definition: First Name
+2026-02-06 12:47:38,554 [INFO] 🔥 Event: FIELD_DEFINITION_UPDATED | Role:  | Service: super_admin_service
+2026-02-06 12:47:38,557 [INFO] ✅ Synced Field Definition: Last Name
+2026-02-06 12:47:38,561 [INFO] 🔥 Event: FIELD_DEFINITION_UPDATED | Role:  | Service: super_admin_service
+2026-02-06 12:47:38,564 [INFO] ✅ Synced Field Definition: Email
+2026-02-06 12:47:38,569 [INFO] 🔥 Event: FIELD_DEFINITION_UPDATED | Role:  | Service: super_admin_service
+2026-02-06 12:47:38,572 [INFO] ✅ Synced Field Definition: Phone Number
+2026-02-06 12:47:38,577 [INFO] 🔥 Event: FIELD_DEFINITION_CREATED | Role:  | Service: super_admin_service
+2026-02-06 12:47:38,580 [INFO] ✅ Synced Field Definition: Country
+2026-02-06 12:47:38,584 [INFO] 🔥 Event: FIELD_DEFINITION_CREATED | Role:  | Service: super_admin_service
+2026-02-06 12:47:38,588 [INFO] ✅ Synced Field Definition: Language
+2026-02-06 12:47:38,593 [INFO] 🔥 Event: FIELD_DEFINITION_UPDATED | Role:  | Service: super_admin_service
+2026-02-06 12:47:38,595 [INFO] ✅ Synced Field Definition: Profile Picture
+2026-02-06 12:57:23,351 [INFO] 🔥 Event: FIELD_DEFINITION_CREATED | Role:  | Service: super_admin_service
+2026-02-06 12:57:23,355 [INFO] ✅ Synced Field Definition: lblb
+2026-02-06 13:04:03,473 [INFO] 🔥 Event: FIELD_DEFINITION_CREATED | Role:  | Service: super_admin_service
+2026-02-06 13:04:03,477 [INFO] ✅ Synced Field Definition: ghdsghd
+2026-02-07 06:47:07,565 [INFO] 🚀 Starting Service Provider Unified Kafka Consumer...
+2026-02-07 06:47:07,578 [INFO] ✅ Connected to Kafka broker.
+2026-02-09 05:00:09,441 [INFO] 🚀 Starting Service Provider Unified Kafka Consumer...
+2026-02-09 05:00:11,445 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-02-09 05:00:18,452 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-02-09 05:00:25,460 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-02-09 05:00:32,466 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-02-09 05:00:39,469 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-02-09 05:00:46,479 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-02-09 05:00:53,487 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-02-09 05:01:00,491 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-02-09 05:01:07,499 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-02-09 05:01:14,504 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-02-09 05:01:21,509 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-02-09 05:01:28,517 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-02-09 05:01:35,524 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-02-09 05:01:42,528 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-02-09 05:01:49,533 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-02-09 05:01:56,538 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-02-09 05:02:03,541 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-02-09 05:02:10,545 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-02-09 05:02:17,550 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-02-09 05:02:24,554 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-02-09 05:02:31,563 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-02-09 05:02:38,565 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-02-09 05:02:45,569 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-02-09 05:02:52,576 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-02-09 05:02:59,584 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-02-09 05:03:06,589 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-02-09 05:03:13,595 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-02-09 05:03:20,598 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-02-09 05:03:27,603 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-02-09 05:03:34,607 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-02-09 05:03:41,610 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-02-09 05:03:48,616 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-02-09 05:03:55,622 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-02-09 05:04:02,630 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-02-09 05:04:09,637 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-02-09 05:04:16,648 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-02-09 05:04:23,652 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-02-09 05:04:28,683 [INFO] ✅ Connected to Kafka broker.
+2026-02-09 06:26:39,932 [INFO] 🔥 Event: EMPLOYEE_UPDATED | Role: provider | Service: None
+2026-02-09 06:26:39,966 [WARNING] ⚠️ OrganizationEmployee eaa037c7-6524-4557-af2b-d900f7731328 not found for update
+2026-02-09 06:28:29,079 [INFO] 🔥 Event: EMPLOYEE_UPDATED | Role: provider | Service: None
+2026-02-09 06:28:29,082 [WARNING] ⚠️ OrganizationEmployee 045198a4-b8c0-45f3-8f99-ae7305bdb490 not found for update
+2026-02-09 06:30:10,605 [INFO] 🔥 Event: FIELD_DEFINITION_CREATED | Role:  | Service: super_admin_service
+2026-02-09 06:30:10,613 [INFO] ✅ Synced Field Definition: hdghdg
+2026-02-09 06:30:35,601 [INFO] 🔥 Event: EMPLOYEE_UPDATED | Role: provider | Service: None
+2026-02-09 06:30:35,606 [WARNING] ⚠️ OrganizationEmployee 045198a4-b8c0-45f3-8f99-ae7305bdb490 not found for update
+2026-02-09 06:35:02,516 [INFO] 🔥 Event: PROVIDER.DOCUMENT.UPLOADED | Role: service_provider | Service: None
+2026-02-09 06:35:02,517 [WARNING] ⚠️ Unknown event type 'PROVIDER.DOCUMENT.UPLOADED' received.
+2026-02-09 06:35:02,522 [INFO] 🔥 Event: PROVIDER.DOCUMENT.UPLOADED | Role: service_provider | Service: None
+2026-02-09 06:35:02,523 [WARNING] ⚠️ Unknown event type 'PROVIDER.DOCUMENT.UPLOADED' received.
+2026-02-09 06:35:02,529 [INFO] 🔥 Event: PROVIDER.DOCUMENT.UPLOADED | Role: service_provider | Service: None
+2026-02-09 06:35:02,529 [WARNING] ⚠️ Unknown event type 'PROVIDER.DOCUMENT.UPLOADED' received.
+2026-02-09 06:35:02,535 [INFO] 🔥 Event: PROVIDER.DOCUMENT.UPLOADED | Role: service_provider | Service: None
+2026-02-09 06:35:02,536 [WARNING] ⚠️ Unknown event type 'PROVIDER.DOCUMENT.UPLOADED' received.
+2026-02-09 06:35:02,540 [INFO] 🔥 Event: PROVIDER.DOCUMENT.UPLOADED | Role: service_provider | Service: None
+2026-02-09 06:35:02,540 [WARNING] ⚠️ Unknown event type 'PROVIDER.DOCUMENT.UPLOADED' received.
+2026-02-09 06:35:02,546 [INFO] 🔥 Event: PROVIDER.DOCUMENT.UPLOADED | Role: service_provider | Service: None
+2026-02-09 06:35:02,546 [WARNING] ⚠️ Unknown event type 'PROVIDER.DOCUMENT.UPLOADED' received.
+2026-02-09 06:37:05,703 [INFO] 🔥 Event: ADMIN.DOCUMENT.VERIFIED | Role:  | Service: super_admin_service
+2026-02-09 06:37:05,706 [INFO] ✅ Document 023d6fe8-666b-4061-97d2-8e55f4ef52aa verified: approved
+2026-02-09 06:37:07,531 [INFO] 🔥 Event: ADMIN.DOCUMENT.VERIFIED | Role:  | Service: super_admin_service
+2026-02-09 06:37:07,533 [INFO] ✅ Document 9b6d4243-5522-421c-a3f6-477651ab5a41 verified: approved
+2026-02-09 06:37:09,380 [INFO] 🔥 Event: ADMIN.DOCUMENT.VERIFIED | Role:  | Service: super_admin_service
+2026-02-09 06:37:09,381 [INFO] ✅ Document 2d14aa61-61cc-4972-940b-209863e3c2c7 verified: approved
+2026-02-09 06:37:10,902 [INFO] 🔥 Event: ADMIN.DOCUMENT.VERIFIED | Role:  | Service: super_admin_service
+2026-02-09 06:37:10,904 [INFO] ✅ Document 5c8c684e-6bc5-4ddf-8a3a-455715cdce94 verified: approved
+2026-02-09 06:40:07,913 [INFO] 🔥 Event: SEND_EMAIL | Role: organization | Service: auth_service
+2026-02-09 06:40:07,914 [WARNING] ⚠️ Unknown event type 'SEND_EMAIL' received.
+2026-02-09 06:40:07,920 [INFO] 🔥 Event: USER_CREATED | Role: organization | Service: auth_service
+2026-02-09 06:40:07,921 [INFO] DEBUG: Checking role 'organization' against employee list...
+2026-02-09 06:40:07,930 [INFO] ✅ Created VerifiedUser raj@gmail.com
+2026-02-09 06:40:07,933 [INFO] ✅ Auto-created ServiceProvider profile for raj@gmail.com
+2026-02-09 06:40:33,073 [INFO] 🔥 Event: USER_VERIFIED | Role: organization | Service: auth_service
+2026-02-09 06:40:33,074 [INFO] DEBUG: Checking role 'organization' against employee list...
+2026-02-09 06:40:33,078 [INFO] 🔄 Updated VerifiedUser raj@gmail.com
+2026-02-09 06:42:04,857 [INFO] 🔥 Event: EMPLOYEE_UPDATED | Role: provider | Service: None
+2026-02-09 06:42:04,860 [WARNING] ⚠️ OrganizationEmployee 70d3ded9-0dc0-4c1d-94b7-12b4e668cfce not found for update
+2026-02-09 06:42:04,897 [INFO] 🔥 Event: PROVIDER.DOCUMENT.UPLOADED | Role: service_provider | Service: None
+2026-02-09 06:42:04,897 [WARNING] ⚠️ Unknown event type 'PROVIDER.DOCUMENT.UPLOADED' received.
+2026-02-09 06:42:04,904 [INFO] 🔥 Event: PROVIDER.DOCUMENT.UPLOADED | Role: service_provider | Service: None
+2026-02-09 06:42:04,904 [WARNING] ⚠️ Unknown event type 'PROVIDER.DOCUMENT.UPLOADED' received.
+2026-02-09 06:42:04,910 [INFO] 🔥 Event: PROVIDER.DOCUMENT.UPLOADED | Role: service_provider | Service: None
+2026-02-09 06:42:04,910 [WARNING] ⚠️ Unknown event type 'PROVIDER.DOCUMENT.UPLOADED' received.
+2026-02-09 06:48:39,436 [INFO] 🔥 Event: ADMIN.DOCUMENT.VERIFIED | Role:  | Service: super_admin_service
+2026-02-09 06:48:39,438 [WARNING] ⚠️ Document 613a3216-1bbf-4bc2-b85a-1cd68136b8bc not found for verification update
+2026-02-09 06:48:40,719 [INFO] 🔥 Event: ADMIN.DOCUMENT.VERIFIED | Role:  | Service: super_admin_service
+2026-02-09 06:48:40,721 [WARNING] ⚠️ Document 4ffe99a1-5665-4526-87e5-d1d8f4905ba0 not found for verification update
+2026-02-09 06:48:41,352 [INFO] 🔥 Event: ADMIN.DOCUMENT.VERIFIED | Role:  | Service: super_admin_service
+2026-02-09 06:48:41,354 [WARNING] ⚠️ Document 78852237-d07e-4c6e-8265-741cc15af75a not found for verification update
+2026-02-09 06:59:46,583 [INFO] 🔥 Event: ADMIN.DOCUMENT.VERIFIED | Role:  | Service: super_admin_service
+2026-02-09 06:59:46,586 [INFO] ✅ Document 6227517d-6bca-47e9-bbfe-47d7b96b091b verified: approved
+2026-02-09 06:59:46,593 [INFO] 🔥 Event: USER_VERIFIED | Role:  | Service: super_admin_service
+2026-02-09 06:59:46,593 [INFO] DEBUG: Checking role '' against employee list...
+2026-02-09 06:59:46,632 [INFO] 🔥 Event: ADMIN.DOCUMENT.VERIFIED | Role:  | Service: super_admin_service
+2026-02-09 06:59:46,634 [INFO] ✅ Document 6409eabe-1d06-4665-a69f-a0d535f83124 verified: approved
+2026-02-09 06:59:46,637 [INFO] 🔥 Event: USER_VERIFIED | Role:  | Service: super_admin_service
+2026-02-09 06:59:46,638 [INFO] DEBUG: Checking role '' against employee list...
+2026-02-09 06:59:46,655 [INFO] 🔥 Event: ADMIN.DOCUMENT.VERIFIED | Role:  | Service: super_admin_service
+2026-02-09 06:59:46,656 [INFO] ✅ Document 3c382f2e-99b2-40b5-8803-fbe93b25371c verified: approved
+2026-02-09 06:59:46,660 [INFO] 🔥 Event: USER_VERIFIED | Role:  | Service: super_admin_service
+2026-02-09 06:59:46,660 [INFO] DEBUG: Checking role '' against employee list...
+2026-02-09 07:00:26,774 [INFO] 🔥 Event: ADMIN.DOCUMENT.VERIFIED | Role:  | Service: super_admin_service
+2026-02-09 07:00:26,776 [INFO] ✅ Document 6227517d-6bca-47e9-bbfe-47d7b96b091b verified: approved
+2026-02-09 07:00:26,781 [INFO] 🔥 Event: USER_VERIFIED | Role:  | Service: super_admin_service
+2026-02-09 07:00:26,781 [INFO] DEBUG: Checking role '' against employee list...
+2026-02-09 07:00:26,801 [INFO] 🔥 Event: ADMIN.DOCUMENT.VERIFIED | Role:  | Service: super_admin_service
+2026-02-09 07:00:26,802 [INFO] ✅ Document 6409eabe-1d06-4665-a69f-a0d535f83124 verified: approved
+2026-02-09 07:00:26,806 [INFO] 🔥 Event: USER_VERIFIED | Role:  | Service: super_admin_service
+2026-02-09 07:00:26,806 [INFO] DEBUG: Checking role '' against employee list...
+2026-02-09 07:00:26,825 [INFO] 🔥 Event: ADMIN.DOCUMENT.VERIFIED | Role:  | Service: super_admin_service
+2026-02-09 07:00:26,827 [INFO] ✅ Document 3c382f2e-99b2-40b5-8803-fbe93b25371c verified: approved
+2026-02-09 07:00:26,831 [INFO] 🔥 Event: USER_VERIFIED | Role:  | Service: super_admin_service
+2026-02-09 07:00:26,831 [INFO] DEBUG: Checking role '' against employee list...
+2026-02-09 07:09:35,151 [INFO] 🔥 Event: PROVIDER.PERMISSIONS.UPDATED | Role:  | Service: None
+2026-02-09 07:09:35,153 [INFO] DEBUG: [KAFKA RECV] provider.permissions.updated | User: 70d3ded9-0dc0-4c1d-94b7-12b4e668cfce
+2026-02-09 07:09:35,153 [INFO] DEBUG: Payload Keys: ['auth_user_id', 'purchase_id', 'permissions', 'purchased_plan', 'templates', 'dynamic_capabilities']
+2026-02-09 07:09:35,153 [INFO] DEBUG: Templates Received - Services: 4, Cats: 9
+2026-02-09 07:09:35,251 [INFO] ✅ Synced Templates for user 70d3ded9-0dc0-4c1d-94b7-12b4e668cfce
+2026-02-09 07:09:35,256 [INFO] 🧹 Cleared old permissions for user 70d3ded9-0dc0-4c1d-94b7-12b4e668cfce → permissions=[]
+2026-02-09 07:09:35,256 [INFO] DEBUG: perms_map size: 19
+2026-02-09 07:09:35,256 [INFO] DEBUG: Sample perms_map keys: [('2dff446f-c95f-4310-ba4d-05e3395dd7eb', None, None, None), ('7ce1a0c2-50f0-40fe-a82f-df6767fcf91e', None, None, None), ('8da6c82b-2136-4a14-9670-2973682107a6', None, None, None)]
+2026-02-09 07:09:35,257 [INFO] DEBUG: About to bulk_create 19 ProviderCapabilityAccess records
+2026-02-09 07:09:35,276 [INFO] DEBUG: bulk_create completed successfully
+2026-02-09 07:09:35,373 [INFO] 🗑️ Invalidated cache for 0 employees
+2026-02-09 07:09:35,394 [INFO] ✅ Updated 19 capabilities for user 70d3ded9-0dc0-4c1d-94b7-12b4e668cfce
+2026-02-09 07:09:35,397 [INFO] 📋 Linked capabilities: ['VETERINARY_VITALS', 'VETERINARY_PHARMACY', 'VETERINARY_DOCTOR', 'VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_VISITS', 'VETERINARY_LABS']
+2026-02-09 07:09:35,398 [INFO] 🏥 Veterinary capabilities: ['VETERINARY_VITALS', 'VETERINARY_PHARMACY', 'VETERINARY_DOCTOR', 'VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_VISITS', 'VETERINARY_LABS']
+2026-02-09 07:09:35,398 [INFO] ✅ Auto-added VETERINARY_CORE (vet capabilities detected: ['VETERINARY_VITALS', 'VETERINARY_PHARMACY', 'VETERINARY_DOCTOR', 'VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_VISITS', 'VETERINARY_LABS'])
+2026-02-09 07:09:35,400 [INFO] ✅ Final user capabilities: ['VETERINARY_VITALS', 'VETERINARY_PHARMACY', 'VETERINARY_DOCTOR', 'VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_VISITS', 'VETERINARY_LABS', 'VETERINARY_CORE']
+2026-02-09 07:09:35,410 [INFO] ✅ Synced Subscription for user 70d3ded9-0dc0-4c1d-94b7-12b4e668cfce
+2026-02-09 07:09:35,410 [INFO] DEBUG: Capabilities Processing | Raw Count: 0
+2026-02-09 07:09:35,410 [INFO] 📤 Publishing Permissions Sync: 19 items enriched
+2026-02-09 07:09:35,544 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-02-09 07:09:35,545 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-02-09 07:13:06,522 [INFO] 🔥 Event: SEND_EMAIL | Role: employee | Service: auth_service
+2026-02-09 07:13:06,522 [WARNING] ⚠️ Unknown event type 'SEND_EMAIL' received.
+2026-02-09 07:13:06,529 [INFO] 🔥 Event: USER_CREATED | Role: employee | Service: auth_service
+2026-02-09 07:13:06,529 [INFO] DEBUG: Checking role 'employee' against employee list...
+2026-02-09 07:13:06,529 [INFO] DEBUG: Role matched employee list.
+2026-02-09 07:13:06,529 [INFO] 🔍 Processing Employee e455105a-6ba3-4881-91af-287538c3c0d9 for Org 70d3ded9-0dc0-4c1d-94b7-12b4e668cfce
+2026-02-09 07:13:06,542 [INFO] ✅ Created OrganizationEmployee e455105a-6ba3-4881-91af-287538c3c0d9 (Invited)
+2026-02-09 07:13:06,549 [INFO] ✅ Created VerifiedUser bhema@gmail.com
+2026-02-09 07:13:38,820 [INFO] 🔥 Event: EMPLOYEE_UPDATED | Role: employee | Service: None
+2026-02-09 07:13:38,822 [INFO] 🆙 Updated OrganizationEmployee e455105a-6ba3-4881-91af-287538c3c0d9
+2026-02-09 07:14:25,428 [INFO] 🔥 Event: SEND_EMAIL | Role: employee | Service: auth_service
+2026-02-09 07:14:25,428 [WARNING] ⚠️ Unknown event type 'SEND_EMAIL' received.
+2026-02-09 07:14:25,441 [INFO] 🔥 Event: USER_CREATED | Role: employee | Service: auth_service
+2026-02-09 07:14:25,442 [INFO] DEBUG: Checking role 'employee' against employee list...
+2026-02-09 07:14:25,442 [INFO] DEBUG: Role matched employee list.
+2026-02-09 07:14:25,442 [INFO] 🔍 Processing Employee 0862728b-6a0b-404b-94cd-4d13e5a1bd9b for Org 70d3ded9-0dc0-4c1d-94b7-12b4e668cfce
+2026-02-09 07:14:25,458 [INFO] ✅ Created OrganizationEmployee 0862728b-6a0b-404b-94cd-4d13e5a1bd9b (Invited)
+2026-02-09 07:14:25,464 [INFO] ✅ Created VerifiedUser bhemudu@gmail.com
+2026-02-09 07:14:45,430 [INFO] 🔥 Event: EMPLOYEE_UPDATED | Role: employee | Service: None
+2026-02-09 07:14:45,432 [INFO] 🆙 Updated OrganizationEmployee 0862728b-6a0b-404b-94cd-4d13e5a1bd9b
+2026-02-09 07:15:31,911 [INFO] 🔥 Event: SEND_EMAIL | Role: employee | Service: auth_service
+2026-02-09 07:15:31,912 [WARNING] ⚠️ Unknown event type 'SEND_EMAIL' received.
+2026-02-09 07:15:31,918 [INFO] 🔥 Event: USER_CREATED | Role: employee | Service: auth_service
+2026-02-09 07:15:31,919 [INFO] DEBUG: Checking role 'employee' against employee list...
+2026-02-09 07:15:31,920 [INFO] DEBUG: Role matched employee list.
+2026-02-09 07:15:31,920 [INFO] 🔍 Processing Employee 6c6320e4-c3e7-4455-bc49-bccbd053d9fe for Org 70d3ded9-0dc0-4c1d-94b7-12b4e668cfce
+2026-02-09 07:15:31,930 [INFO] ✅ Created OrganizationEmployee 6c6320e4-c3e7-4455-bc49-bccbd053d9fe (Invited)
+2026-02-09 07:15:31,933 [INFO] ✅ Created VerifiedUser bhem@gmail.com
+2026-02-09 07:15:50,067 [INFO] 🔥 Event: EMPLOYEE_UPDATED | Role: employee | Service: None
+2026-02-09 07:15:50,069 [INFO] 🆙 Updated OrganizationEmployee 6c6320e4-c3e7-4455-bc49-bccbd053d9fe
+2026-02-09 07:17:40,293 [INFO] 🔥 Event: USER_VERIFIED | Role: employee | Service: auth_service
+2026-02-09 07:17:40,293 [INFO] DEBUG: Checking role 'employee' against employee list...
+2026-02-09 07:17:40,293 [INFO] DEBUG: Role matched employee list.
+2026-02-09 07:17:40,306 [INFO] ✅ Activated OrganizationEmployee 0862728b-6a0b-404b-94cd-4d13e5a1bd9b
+2026-02-09 07:17:40,320 [INFO] 🔄 Updated VerifiedUser bhemudu@gmail.com
+2026-02-09 07:19:38,015 [INFO] 🔥 Event: USER_VERIFIED | Role: employee | Service: auth_service
+2026-02-09 07:19:38,015 [INFO] DEBUG: Checking role 'employee' against employee list...
+2026-02-09 07:19:38,015 [INFO] DEBUG: Role matched employee list.
+2026-02-09 07:19:38,023 [INFO] ✅ Activated OrganizationEmployee e455105a-6ba3-4881-91af-287538c3c0d9
+2026-02-09 07:19:38,026 [INFO] 🔄 Updated VerifiedUser bhema@gmail.com
+2026-02-09 07:23:15,514 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-02-09 07:23:15,514 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-02-09 07:23:15,528 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-02-09 07:23:15,528 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-02-09 07:23:15,542 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-02-09 07:23:15,542 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-02-09 07:23:15,556 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-02-09 07:23:15,556 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-02-09 07:23:15,570 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-02-09 07:23:15,570 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-02-09 07:23:15,584 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-02-09 07:23:15,584 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-02-09 07:23:15,598 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-02-09 07:23:15,598 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-02-09 07:23:15,612 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-02-09 07:23:15,612 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-02-09 07:23:15,626 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-02-09 07:23:15,626 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-02-09 07:23:15,638 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-02-09 07:23:15,638 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-02-09 07:23:15,648 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-02-09 07:23:15,648 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-02-09 07:23:15,656 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-02-09 07:23:15,657 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-02-09 07:23:15,665 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-02-09 07:23:15,666 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-02-09 07:23:15,676 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-02-09 07:23:15,676 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-02-09 07:23:15,684 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-02-09 07:23:15,684 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-02-09 07:23:15,693 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-02-09 07:23:15,693 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-02-09 07:23:15,702 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-02-09 07:23:15,702 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-02-09 07:23:15,710 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-02-09 07:23:15,710 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-02-09 07:23:15,720 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-02-09 07:23:15,720 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-02-09 07:23:15,728 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-02-09 07:23:15,729 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-02-09 07:23:15,737 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-02-09 07:23:15,737 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-02-09 07:23:15,747 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-02-09 07:23:15,747 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-02-09 07:23:15,756 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-02-09 07:23:15,756 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-02-09 07:23:15,765 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-02-09 07:23:15,765 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-02-09 07:23:15,774 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-02-09 07:23:15,774 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-02-09 07:23:15,783 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-02-09 07:23:15,783 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-02-09 07:23:15,793 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-02-09 07:23:15,793 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-02-09 07:23:15,803 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-02-09 07:23:15,803 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-02-09 07:23:15,812 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-02-09 07:23:15,813 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-02-09 07:23:15,821 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-02-09 07:23:15,822 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-02-09 07:23:15,831 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-02-09 07:23:15,832 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-02-09 07:23:15,841 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-02-09 07:23:15,841 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-02-09 07:23:15,849 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-02-09 07:23:15,849 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-02-09 07:23:15,856 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-02-09 07:23:15,857 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-02-09 07:23:15,864 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-02-09 07:23:15,864 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-02-09 07:23:15,874 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-02-09 07:23:15,875 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-02-09 07:23:15,882 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-02-09 07:23:15,882 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-02-09 07:23:15,891 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-02-09 07:23:15,892 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-02-09 07:23:15,902 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-02-09 07:23:15,902 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-02-09 07:23:15,911 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-02-09 07:23:15,911 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-02-09 07:23:15,921 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-02-09 07:23:15,922 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-02-09 07:27:44,590 [INFO] 🔥 Event: USER_VERIFIED | Role: employee | Service: auth_service
+2026-02-09 07:27:44,590 [INFO] DEBUG: Checking role 'employee' against employee list...
+2026-02-09 07:27:44,590 [INFO] DEBUG: Role matched employee list.
+2026-02-09 07:27:44,600 [INFO] ✅ Activated OrganizationEmployee 6c6320e4-c3e7-4455-bc49-bccbd053d9fe
+2026-02-09 07:27:44,610 [INFO] 🔄 Updated VerifiedUser bhem@gmail.com
+2026-02-09 07:42:01,440 [INFO] 🔥 Event: FIELD_DEFINITION_CREATED | Role:  | Service: super_admin_service
+2026-02-09 07:42:01,446 [INFO] ✅ Synced Field Definition: Test Field Sync
+2026-02-09 07:44:14,753 [INFO] 🔥 Event: FIELD_DEFINITION_DELETED | Role:  | Service: super_admin_service
+2026-02-09 07:44:14,755 [INFO] 🗑️ Deleted Field Definition: 06473790-956b-4d5f-a496-6f328b6dd848

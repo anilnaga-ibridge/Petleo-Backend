@@ -42,6 +42,7 @@ from .views import (
     UserViewSet,ResendOTPView,RoleViewSet,PermissionViewSet, SetPinView,
     LoginWithPinView,
     ResetPinView,ChangePinView,EmailTemplateViewSet, SendManualEmailView,CheckSessionView,
+    CheckPinLengthView,
 )
 router = DefaultRouter()
 router.register(r'users', UserViewSet, basename='user')
@@ -75,6 +76,7 @@ urlpatterns = [
     path("api/auth/login-with-pin/", LoginWithPinView.as_view(), name="login-with-pin"),
     path("api/auth/reset-pin/", ResetPinView.as_view(), name="reset-pin"),
     path("api/auth/change-pin/", ChangePinView.as_view(), name="change-pin"),
+    path("api/auth/check-pin-length/", views.CheckPinLengthView.as_view(), name="check-pin-length"),
     # Authenticated user changes PIN (old PIN + new PIN)
     
     

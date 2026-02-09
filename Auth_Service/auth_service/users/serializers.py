@@ -234,7 +234,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'full_name', 'phone_number', 'email', 'role', 'role_name', 'is_active', 'last_otp_login', 'pin_set_at', 'is_verified']
+        fields = ['id', 'full_name', 'phone_number', 'email', 'role', 'role_name', 'is_active', 'last_otp_login', 'pin_set_at', 'is_verified', 'pin_length']
 
     def get_is_verified(self, obj):
         # Consider verified if they have OTP login history, PIN set, OR are currently active

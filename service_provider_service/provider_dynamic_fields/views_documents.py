@@ -106,6 +106,7 @@ class ProviderDocumentUploadView(generics.GenericAPIView):
         publish_document_uploaded(
             provider_id=verified.auth_user_id,
             document_id=pd.id,
+            definition_id=pd.definition_id,
             file_url=request.build_absolute_uri(pd.file.url),
             filename=pd.filename
         )
