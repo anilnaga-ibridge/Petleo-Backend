@@ -3,8 +3,12 @@ import uuid
 from django.db import models
 from django.utils import timezone
 import re
+import logging
 from django.core.exceptions import ValidationError
 from django.core.cache import cache
+from .models_scheduling import EmployeeWeeklySchedule, EmployeeLeave, EmployeeBlockTime
+
+logger = logging.getLogger(__name__)
 class VerifiedUser(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     auth_user_id = models.UUIDField(unique=True)
@@ -12,6 +16,7 @@ class VerifiedUser(models.Model):
     email = models.EmailField(blank=True, null=True)
     phone_number = models.CharField(max_length=15, blank=True, null=True)
     role = models.CharField(max_length=50, blank=True, null=True)
+    avatar_url = models.URLField(max_length=500, null=True, blank=True)
     permissions = models.JSONField(default=list, blank=True)
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
@@ -54,11 +59,14 @@ class VerifiedUser(models.Model):
         SERVICE_CAPABILITY_MAP = {
             "Grooming": "GROOMING",
             "Daycare": "DAYCARE",
+            "Day care": "DAY_CARE",
+            "DAT_CARE": "DAY_CARE",
             "Training": "TRAINING",
             "Boarding": "BOARDING",
             "Walking": "WALKING",
             "Aquamation": "AQUAMATION",
             "Adoption": "ADOPTION",
+            "Veterinary": "VETERINARY_CORE",
         }
         
         if service_ids:
@@ -82,6 +90,26 @@ class VerifiedUser(models.Model):
         )
 
 
+class ProviderAvailability(models.Model):
+    """Weekly working hours for individual providers"""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    provider = models.ForeignKey(
+        "service_provider.ServiceProvider",
+        on_delete=models.CASCADE,
+        related_name="individual_availability"
+    )
+    day_of_week = models.IntegerField(help_text="0-6 (Mon-Sun)")
+    start_time = models.TimeField()
+    end_time = models.TimeField()
+    slot_duration_minutes = models.IntegerField(default=30)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        unique_together = ("provider", "day_of_week")
+        ordering = ["day_of_week", "start_time"]
+
+
+
 # service_provider/models.py
 
 class ServiceProvider(models.Model):
@@ -100,6 +128,17 @@ class ServiceProvider(models.Model):
     )
 
     # Profile-specific data (No direct modification of personal data here)
+    PROVIDER_TYPE_CHOICES = (
+        ("INDIVIDUAL", "Individual"),
+        ("ORGANIZATION", "Organization"),
+    )
+
+    provider_type = models.CharField(
+        max_length=20,
+        choices=PROVIDER_TYPE_CHOICES,
+        default="INDIVIDUAL"
+    )
+
     profile_status = models.CharField(
         max_length=20,
         choices=[("pending", "Pending"), ("active", "Active"), ("blocked", "Blocked")],
@@ -109,12 +148,55 @@ class ServiceProvider(models.Model):
     avatar = models.ImageField(upload_to="provider_avatars/", null=True, blank=True)
     avatar_size = models.CharField(max_length=100, null=True, blank=True)
 
+    banner_image = models.ImageField(upload_to="provider_banners/", null=True, blank=True)
+    banner_image_size = models.CharField(max_length=100, null=True, blank=True)
+
     is_fully_verified = models.BooleanField(default=False)
+    
+    # Rating metadata
+    average_rating = models.FloatField(default=0.0)
+    total_ratings = models.IntegerField(default=0)
+
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f"{self.verified_user.full_name or 'Unknown'} ({self.profile_status})"
+
+
+class ProviderRating(models.Model):
+    """
+    Stores individual ratings and reviews for service providers.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    provider = models.ForeignKey(
+        ServiceProvider,
+        on_delete=models.CASCADE,
+        related_name="ratings"
+    )
+    customer_id = models.UUIDField()  # Auth ID of the student/customer
+    customer_name = models.CharField(max_length=255, null=True, blank=True)
+    customer_email = models.EmailField(null=True, blank=True)
+    customer_role = models.CharField(max_length=50, null=True, blank=True)
+    
+    service_id = models.UUIDField(null=True, blank=True)  # Optional link to a specific service
+    assigned_employee_id = models.UUIDField(null=True, blank=True) # ID of staff member being rated
+    
+    rating = models.IntegerField(choices=[(i, i) for i in range(1, 6)])
+    review = models.TextField(blank=True, null=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    provider_response = models.TextField(blank=True, null=True)
+    responded_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = "provider_ratings"
+        # Customer can rate a specific service only once (if service_id is provided)
+        unique_together = ("customer_id", "provider", "service_id")
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"Rating {self.rating} from {self.customer_id} for {self.provider}"
 
 
     def __str__(self):
@@ -194,6 +276,34 @@ class Capability(models.Model):
 
     def __str__(self):
         return f"[{self.group}] {self.label}"
+
+
+
+class ConsultationType(models.Model):
+    """
+    Provider-defined consultation types for veterinary/doctor bookings.
+    e.g. 'General Checkup', 'Emergency', 'Follow-up', 'Specialist Consultation'.
+    Pet owners choose one of these when booking a vet service.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    provider = models.ForeignKey(
+        ServiceProvider,
+        on_delete=models.CASCADE,
+        related_name="consultation_types"
+    )
+    name = models.CharField(max_length=100, help_text="e.g. 'General Checkup', 'Emergency'")
+    description = models.TextField(blank=True, null=True)
+    duration_minutes = models.PositiveIntegerField(default=30, help_text="Typical consultation duration in minutes")
+    consultation_fee = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, help_text="Fee for this consultation type")
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("provider", "name")
+        ordering = ["name"]
+
+    def __str__(self):
+        return f"{self.name} ({self.provider})"
 
 
 class ProviderRole(models.Model):
@@ -302,6 +412,14 @@ class OrganizationEmployee(models.Model):
     # Computed + Override permissions
     permissions_json = models.JSONField(default=dict, blank=True)
     
+    # Pro Doctor Features
+    specialization = models.CharField(max_length=255, blank=True, null=True, help_text="Doctor specialization (e.g. Cardiologist, Surgeon)")
+    consultation_fee = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, help_text="Individual doctor's consultation fee")
+    
+    # Rating stats
+    average_rating = models.FloatField(default=0.0)
+    total_ratings = models.IntegerField(default=0)
+    
     status = models.CharField(
         max_length=20,
         choices=[("PENDING", "Pending"), ("ACTIVE", "Active"), ("DISABLED", "Disabled")],
@@ -319,7 +437,7 @@ class OrganizationEmployee(models.Model):
         ordering = ["-created_at"]
 
     def __str__(self):
-        return f"Employee {self.auth_user_id} of {self.organization}"
+        return f"Employee {self.full_name or self.auth_user_id} of {self.organization}"
 
     # @deprecated - prevent new usage
     LEGACY_ROLE_MAP = {
@@ -455,10 +573,63 @@ class OrganizationEmployee(models.Model):
 
     def invalidate_permission_cache(self):
         """Invalidates the permission cache for this employee."""
+        from django.core.cache import cache
         cache_key = f"employee_perms_{self.id}"
         cache.delete(cache_key)
-        import logging
-        logging.getLogger(__name__).info(f"🗑️ Invalidated permission cache for employee {self.auth_user_id}")
+        logger.info(f"🗑️ Invalidated permission cache for employee {self.auth_user_id}")
+
+
+class EmployeeServiceMapping(models.Model):
+    """
+    Mapping between employees and the services (facilities) they are qualified to perform.
+    Enables Model 2: Service-First Smart Assignment.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    employee = models.ForeignKey(
+        OrganizationEmployee, 
+        on_delete=models.CASCADE, 
+        related_name="service_mappings"
+    )
+    facility = models.ForeignKey(
+        'provider_dynamic_fields.ProviderTemplateFacility', 
+        on_delete=models.CASCADE, 
+        related_name="employee_mappings"
+    )
+    
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('employee', 'facility')
+        verbose_name = "Employee Service Mapping"
+        verbose_name_plural = "Employee Service Mappings"
+
+    def __str__(self):
+        return f"{self.employee.full_name} -> {self.facility.name}"
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        # Invalidate the employee's permission cache when mappings change
+        self.employee.invalidate_permission_cache()
+
+
+class EmployeeAvailability(models.Model):
+    """Weekly working hours for organization employees"""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    employee = models.ForeignKey(
+        "service_provider.OrganizationEmployee",
+        on_delete=models.CASCADE,
+        related_name="availability"
+    )
+    day_of_week = models.IntegerField(help_text="0-6 (Mon-Sun)")
+    start_time = models.TimeField()
+    end_time = models.TimeField()
+    slot_duration_minutes = models.IntegerField(default=30)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        unique_together = ("employee", "day_of_week")
+        ordering = ["day_of_week", "start_time"]
 
 
 class ProviderSubscription(models.Model):
@@ -605,3 +776,130 @@ class PermissionAuditLog(models.Model):
             details=details or {},
             ip_address=ip
         )
+
+
+class ProviderProfile(models.Model):
+    """
+    Detailed profile information for a provider.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    provider = models.OneToOneField(
+        ServiceProvider,
+        on_delete=models.CASCADE,
+        related_name="detailed_profile"
+    )
+    about_text = models.TextField(blank=True, null=True)
+    years_of_experience = models.IntegerField(default=0)
+    specializations = models.TextField(blank=True, null=True)
+    clinic_name = models.CharField(max_length=255, blank=True, null=True)
+    tagline = models.CharField(max_length=255, blank=True, null=True)
+    
+    profile_image = models.ImageField(upload_to="provider_profiles/", null=True, blank=True)
+    cover_image = models.ImageField(upload_to="provider_covers/", null=True, blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Profile of {self.provider}"
+
+
+class ProviderService(models.Model):
+    """
+    Provider-specific configuration for a service.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    provider = models.ForeignKey(
+        ServiceProvider,
+        on_delete=models.CASCADE,
+        related_name="custom_services"
+    )
+    template_service_id = models.UUIDField()
+    custom_description = models.TextField(blank=True, null=True)
+    starting_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    is_active = models.BooleanField(default=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ("provider", "template_service_id")
+
+    def __str__(self):
+        return f"{self.provider} - Service {self.template_service_id}"
+
+
+class ProviderServiceImage(models.Model):
+    """
+    Images for a specific provider service.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    provider_service = models.ForeignKey(
+        ProviderService,
+        on_delete=models.CASCADE,
+        related_name="images"
+    )
+    image = models.ImageField(upload_to="service_images/")
+    caption = models.CharField(max_length=255, blank=True, null=True)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
+
+
+class ProviderCertification(models.Model):
+    """
+    Professional certifications and documents.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    provider = models.ForeignKey(
+        ServiceProvider,
+        on_delete=models.CASCADE,
+        related_name="certifications"
+    )
+    title = models.CharField(max_length=255)
+    document = models.FileField(upload_to="provider_certs/")
+    issued_by = models.CharField(max_length=255, blank=True, null=True)
+    issue_date = models.DateField(null=True, blank=True)
+    expiry_date = models.DateField(null=True, blank=True)
+    verified_by_admin = models.BooleanField(default=False)
+    
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.title} - {self.provider}"
+
+
+class ProviderGallery(models.Model):
+    """
+    General professional gallery.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    provider = models.ForeignKey(
+        ServiceProvider,
+        on_delete=models.CASCADE,
+        related_name="gallery"
+    )
+    image = models.ImageField(upload_to="provider_gallery/")
+    caption = models.CharField(max_length=255, blank=True, null=True)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
+
+
+class ProviderPolicy(models.Model):
+    """
+    Business policies.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    provider = models.OneToOneField(
+        ServiceProvider,
+        on_delete=models.CASCADE,
+        related_name="policy"
+    )
+    cancellation_policy = models.TextField(blank=True, null=True)
+    reschedule_policy = models.TextField(blank=True, null=True)
+    safety_measures = models.TextField(blank=True, null=True)
+    house_rules = models.TextField(blank=True, null=True)
+    
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Policies for {self.provider}"

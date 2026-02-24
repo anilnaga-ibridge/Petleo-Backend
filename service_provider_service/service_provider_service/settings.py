@@ -72,7 +72,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",  # Vue dev server
     "http://127.0.0.1:5174",
 ]
-ALLOWED_HOSTS = ["localhost", "127.0.0.1", "host.docker.internal"]
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", "host.docker.internal", "testserver"]
 
 CORS_ALLOW_ALL_ORIGINS = True
 TEMPLATES = [

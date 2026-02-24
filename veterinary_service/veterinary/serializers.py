@@ -1,13 +1,43 @@
-
 from rest_framework import serializers
 from .models import (
-    Clinic, PetOwner, Pet, Visit, 
-    DynamicFieldDefinition, DynamicFieldValue,
-    FormDefinition, FormField, FieldValidation, FormSubmission,
-    PharmacyDispense, MedicationReminder, VisitInvoice, VisitCharge,
-    LabTestTemplate, LabTestField, LabOrder, LabResult
+    StaffClinicAssignment, Clinic, PetOwner, Pet, Visit, 
+    DynamicFieldDefinition, DynamicFieldValue, # Retain DynamicFieldValue
+    FormDefinition, FormField, FieldValidation, FormSubmission, # Retain FieldValidation
+    PharmacyDispense, MedicationReminder, VisitInvoice, InvoiceLineItem, # Use InvoiceLineItem, remove VisitCharge
+    LabTestTemplate, LabTestField, LabOrder, LabResult, MedicalAppointment,
+    LabTest, Medicine, Prescription, PrescriptionItem, PharmacyTransaction
 )
 from .services import DynamicEntityService
+
+class LabTestSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LabTest
+        fields = '__all__'
+
+class MedicineSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Medicine
+        fields = '__all__'
+
+class PrescriptionItemSerializer(serializers.ModelSerializer):
+    medicine_name = serializers.CharField(source='medicine.name', read_only=True)
+    class Meta:
+        model = PrescriptionItem
+        fields = '__all__'
+
+class PrescriptionSerializer(serializers.ModelSerializer):
+    items = PrescriptionItemSerializer(many=True, read_only=True)
+    pet_name = serializers.CharField(source='visit.pet.name', read_only=True)
+    
+    class Meta:
+        model = Prescription
+        fields = '__all__'
+
+class PharmacyTransactionSerializer(serializers.ModelSerializer):
+    medicine_name = serializers.CharField(source='medicine.name', read_only=True)
+    class Meta:
+        model = PharmacyTransaction
+        fields = '__all__'
 
 class ClinicSerializer(serializers.ModelSerializer):
     permissions = serializers.SerializerMethodField()
@@ -109,11 +139,13 @@ class VisitSerializer(serializers.ModelSerializer):
     pet_id = serializers.UUIDField(write_only=True)
     vitals = serializers.SerializerMethodField()
     latest_lab_order = serializers.SerializerMethodField()
+    provider_id = serializers.CharField(source='clinic.organization_id', read_only=True)
+    assigned_employee_id = serializers.CharField(source='created_by', read_only=True)
     
     class Meta:
         model = Visit
-        fields = ['id', 'clinic', 'pet', 'pet_id', 'service_id', 'status', 'visit_type', 'reason', 'created_at', 'updated_at', 'vitals', 'latest_lab_order', 'checked_in_at', 'vitals_started_at', 'vitals_completed_at', 'doctor_started_at', 'closed_at']
-        read_only_fields = ['id', 'clinic', 'checked_in_at', 'vitals_started_at', 'vitals_completed_at', 'doctor_started_at', 'closed_at', 'vitals', 'latest_lab_order']
+        fields = ['id', 'clinic', 'provider_id', 'pet', 'pet_id', 'service_id', 'status', 'visit_type', 'reason', 'created_at', 'updated_at', 'vitals', 'latest_lab_order', 'checked_in_at', 'vitals_started_at', 'vitals_completed_at', 'doctor_started_at', 'closed_at', 'assigned_employee_id']
+        read_only_fields = ['id', 'clinic', 'provider_id', 'checked_in_at', 'vitals_started_at', 'vitals_completed_at', 'doctor_started_at', 'closed_at', 'vitals', 'latest_lab_order', 'assigned_employee_id']
 
     def validate(self, attrs):
         request = self.context.get('request')
@@ -302,13 +334,13 @@ class VisitDetailSerializer(VisitSerializer):
 # PHASE 4: BILLING SERIALIZERS
 # ========================
 
-class VisitChargeSerializer(serializers.ModelSerializer):
+class InvoiceLineItemSerializer(serializers.ModelSerializer):
     class Meta:
-        model = VisitCharge
+        model = InvoiceLineItem
         fields = '__all__'
 
 class VisitInvoiceSerializer(serializers.ModelSerializer):
-    charges = VisitChargeSerializer(many=True, read_only=True)
+    items = InvoiceLineItemSerializer(many=True, read_only=True)
 
     class Meta:
         model = VisitInvoice
@@ -371,7 +403,11 @@ class StaffClinicAssignmentSerializer(serializers.ModelSerializer):
     class Meta:
         from .models import StaffClinicAssignment
         model = StaffClinicAssignment
-        fields = '__all__'
+        fields = [
+            'id', 'staff', 'clinic', 'role', 'permissions', 'staff_name', 
+            'clinic_name', 'staff_auth_id', 'is_active', 'is_primary',
+            'specialization', 'consultation_fee'
+        ]
         extra_kwargs = {
             'permissions': {'required': False},
             'staff': {'required': False} # We derive this from staff_auth_id
@@ -433,3 +469,23 @@ class StaffClinicAssignmentSerializer(serializers.ModelSerializer):
             defaults=validated_data
         )
         return assignment
+
+
+class MedicalAppointmentSerializer(serializers.ModelSerializer):
+    pet_name = serializers.CharField(source='pet.name', read_only=True)
+    doctor_name = serializers.CharField(source='doctor.staff.auth_user_id', read_only=True)
+    
+    class Meta:
+        model = MedicalAppointment
+        fields = '__all__'
+        read_only_fields = ['id', 'clinic', 'end_time']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        request = self.context.get('request')
+        if request:
+            from .views import get_clinic_context
+            clinic_id = get_clinic_context(request)
+            if clinic_id:
+                self.fields['pet'].queryset = Pet.objects.filter(owner__clinic_id=clinic_id)
+                self.fields['doctor'].queryset = StaffClinicAssignment.objects.filter(clinic_id=clinic_id, role='DOCTOR')

@@ -55,7 +55,21 @@ class ProviderProfileView(generics.GenericAPIView):
         if error:
             return error
 
-        target = normalize_target(request) or getattr(verified, "provider_type", "individual")
+        # [FIX] Prioritize ServiceProvider.provider_type over request param
+        from service_provider.models import ServiceProvider
+        
+        # Default from request or role
+        target = normalize_target(request)
+        
+        try:
+            sp = ServiceProvider.objects.get(verified_user=verified)
+            if sp.provider_type:
+                target = sp.provider_type.lower()
+        except ServiceProvider.DoesNotExist:
+            pass
+            
+        if not target:
+             target = "individual"
 
         # 1. Fetch Field Definitions from Local DB (Synced)
         from .models import LocalFieldDefinition, LocalDocumentDefinition

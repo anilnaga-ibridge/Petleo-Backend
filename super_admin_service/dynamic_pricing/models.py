@@ -1,6 +1,6 @@
 import uuid
 from django.db import models
-from dynamic_services.models import Service, BillingUnit
+from dynamic_services.models import Service, BillingUnit, ServiceDurationType, PricingModel
 from dynamic_categories.models import Category
 from dynamic_facilities.models import Facility
 
@@ -15,9 +15,29 @@ class PricingRule(models.Model):
         choices=BillingUnit.choices,
         default=BillingUnit.PER_SESSION
     )
+    
+    # Behavior & Strategy
+    service_duration_type = models.CharField(
+        max_length=50,
+        choices=ServiceDurationType.choices,
+        default=ServiceDurationType.MINUTES
+    )
+    
+    pricing_model = models.CharField(
+        max_length=50,
+        choices=PricingModel.choices,
+        default=PricingModel.PER_UNIT
+    )
+    
     base_price = models.DecimalField(max_digits=10, decimal_places=2)
-    duration_minutes = models.IntegerField(null=True, blank=True, help_text="Duration in minutes for PER_SESSION or HOURLY")
+    duration_minutes = models.IntegerField(null=True, blank=True, help_text="Duration in minutes for MINUTES type (slots)")
+    duration_value = models.IntegerField(null=True, blank=True, help_text="Default value for HOURS, SESSIONS, etc.")
+    
+    daily_capacity = models.IntegerField(null=True, blank=True, help_text="Max bookings per day for this facility")
+    monthly_limit = models.IntegerField(null=True, blank=True)
+    
     currency_code = models.CharField(max_length=3, default="INR")
+    description = models.TextField(blank=True, null=True)
     
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)

@@ -32,7 +32,7 @@ urlpatterns = [
     
     
     #combined profile
-    path("profile/", ProviderProfileView.as_view(), name="provider-profile"),
+    path("profile/dynamic/", ProviderProfileView.as_view(), name="provider-profile-dynamic"),
 ]
 
 # ==========================================================

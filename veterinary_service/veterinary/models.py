@@ -49,6 +49,10 @@ class StaffClinicAssignment(TimeStampedModel):
     permissions = models.JSONField(default=list, blank=True)
     is_active = models.BooleanField(default=True)
     is_primary = models.BooleanField(default=False)
+    
+    # Pro Doctor Features (Synced from Service Provider)
+    specialization = models.CharField(max_length=255, blank=True, null=True)
+    consultation_fee = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
 
     class Meta:
         unique_together = ('staff', 'clinic')
@@ -75,6 +79,10 @@ class PetOwner(TimeStampedModel):
 class Pet(TimeStampedModel):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     owner = models.ForeignKey(PetOwner, on_delete=models.CASCADE, related_name='pets')
+    external_id = models.CharField(
+        max_length=255, null=True, blank=True, db_index=True,
+        help_text="ID from customer_service for cross-service lookup"
+    )
     name = models.CharField(max_length=255, default="Unknown Pet")
     species = models.CharField(max_length=100, blank=True, null=True)
     breed = models.CharField(max_length=100, blank=True, null=True)
@@ -112,6 +120,12 @@ class Visit(TimeStampedModel):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     clinic = models.ForeignKey(Clinic, on_delete=models.CASCADE, related_name='visits')
     pet = models.ForeignKey(Pet, on_delete=models.CASCADE, related_name='visits')
+    appointment = models.OneToOneField(
+        'MedicalAppointment', 
+        on_delete=models.SET_NULL, 
+        null=True, blank=True, 
+        related_name='visit'
+    )
     service_id = models.CharField(max_length=255, null=True, blank=True, help_text="ID of the service (Grooming, Veterinary, etc.)")
     status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='CREATED')
     visit_type = models.CharField(max_length=20, choices=VISIT_TYPE_CHOICES, default='OFFLINE')
@@ -131,6 +145,72 @@ class Visit(TimeStampedModel):
     
     def __str__(self):
         return f"Visit {self.id} ({self.status})"
+
+
+class MedicalAppointment(TimeStampedModel):
+    """
+    Schedule-based appointments for Veterinary/Doctor consultations.
+    Differs from generic bookings by requiring a specific Pet and Doctor role.
+    """
+    STATUS_CHOICES = [
+        ('CONFIRMED', 'Confirmed'),
+        ('CANCELLED', 'Cancelled'),
+        ('COMPLETED', 'Completed'),
+    ]
+
+    CREATOR_CHOICES = [
+        ('ONLINE', 'Online'),
+        ('RECEPTIONIST', 'Receptionist'),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    clinic = models.ForeignKey(Clinic, on_delete=models.CASCADE, related_name='appointments')
+    doctor = models.ForeignKey(
+        'StaffClinicAssignment', 
+        on_delete=models.PROTECT, 
+        related_name='medical_appointments',
+        help_text="The specific doctor assigned to this appointment"
+    )
+    pet = models.ForeignKey(Pet, on_delete=models.CASCADE, related_name='appointments')
+    service_id = models.UUIDField(help_text="Reference to ProviderTemplateFacility in service_provider service")
+    
+    appointment_date = models.DateField()
+    start_time = models.TimeField()
+    end_time = models.TimeField()
+    
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='CONFIRMED')
+    created_by = models.CharField(max_length=20, choices=CREATOR_CHOICES, default='ONLINE')
+    notes = models.TextField(blank=True, null=True)
+
+    # Online booking linkage fields
+    online_booking_id = models.UUIDField(
+        null=True, blank=True,
+        help_text="Links back to Booking.id in customer_service when created from online booking"
+    )
+    pet_owner_auth_id = models.CharField(
+        max_length=255, null=True, blank=True,
+        help_text="Auth user ID of the pet owner who made the online booking"
+    )
+    consultation_type = models.CharField(
+        max_length=100, null=True, blank=True,
+        help_text="Consultation type chosen by pet owner (e.g. General Checkup, Emergency)"
+    )
+    consultation_type_id = models.UUIDField(
+        null=True, blank=True,
+        help_text="Original ConsultationType UUID from service_provider_service"
+    )
+    consultation_fee = models.DecimalField(
+        max_digits=12, decimal_places=2, default=0.00,
+        help_text="Fee for this consultation (snapshotted at time of appointment)"
+    )
+
+    class Meta:
+        ordering = ['appointment_date', 'start_time']
+        verbose_name = "Medical Appointment"
+        verbose_name_plural = "Medical Appointments"
+
+    def __str__(self):
+        return f"Appt {self.appointment_date} with {self.doctor} for {self.pet.name}"
 
 # ========================
 # DYNAMIC FIELD ENGINE
@@ -291,7 +371,84 @@ class MedicationReminder(TimeStampedModel):
     def __str__(self):
         return f"Reminder for {self.medicine_name} ({self.pet.id})"
 
+# ========================
+# LAB & PHARMACY MASTER MODELS
+# ========================
+
+class LabTest(TimeStampedModel):
+    """
+    Master list of available Lab Tests (created by Super Admin or Clinic Admin).
+    """
+    CATEGORY_CHOICES = [
+        ('BLOOD', 'Blood Test'),
+        ('XRAY', 'X-Ray'),
+        ('SCAN', 'Imaging/Scan'),
+        ('URINE', 'Urine Analysis'),
+        ('OTHER', 'Other'),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    clinic = models.ForeignKey(Clinic, on_delete=models.CASCADE, related_name='lab_tests', null=True, blank=True)
+    name = models.CharField(max_length=255)
+    category = models.CharField(max_length=50, choices=CATEGORY_CHOICES, default='BLOOD')
+    base_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    duration_minutes = models.PositiveIntegerField(default=60)
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"{self.name} ({self.category})"
+
+class Medicine(TimeStampedModel):
+    """
+    Pharmacy Inventory Master.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    clinic = models.ForeignKey(Clinic, on_delete=models.CASCADE, related_name='medicines')
+    name = models.CharField(max_length=255)
+    stock_quantity = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    unit_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    expiry_date = models.DateField(null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"{self.name} (Stock: {self.stock_quantity})"
+
+class Prescription(TimeStampedModel):
+    """
+    Formal Prescription Record created during consultation.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    visit = models.ForeignKey(Visit, on_delete=models.CASCADE, related_name='prescriptions')
+    doctor_auth_id = models.CharField(max_length=255)
+    notes = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return f"Prescription for Visit {self.visit.id}"
+
+class PrescriptionItem(models.Model):
+    prescription = models.ForeignKey(Prescription, on_delete=models.CASCADE, related_name='items')
+    medicine = models.ForeignKey(Medicine, on_delete=models.PROTECT)
+    dosage = models.CharField(max_length=255, help_text="e.g. 1-0-1")
+    duration_days = models.PositiveIntegerField(default=5)
+    instructions = models.TextField(blank=True, null=True)
+
+class PharmacyTransaction(TimeStampedModel):
+    """
+    Record of medicines dispensed, with price snapshot.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    visit = models.ForeignKey(Visit, on_delete=models.CASCADE, related_name='pharmacy_transactions')
+    medicine = models.ForeignKey(Medicine, on_delete=models.PROTECT)
+    quantity = models.DecimalField(max_digits=12, decimal_places=2)
+    unit_price_snapshot = models.DecimalField(max_digits=12, decimal_places=2)
+    total_price = models.DecimalField(max_digits=12, decimal_places=2)
+    dispensed_by = models.CharField(max_length=255)
+
+    def __str__(self):
+        return f"Dispensed {self.quantity} x {self.medicine.name}"
+
 class VeterinaryAuditLog(TimeStampedModel):
+    # (Rest of the file follows)
     ACTION_TYPES = [
         ('VISIT_CREATED', 'Visit Created'),
         ('STATUS_CHANGE', 'Status Change'),
@@ -322,51 +479,65 @@ class VeterinaryAuditLog(TimeStampedModel):
 class VisitInvoice(TimeStampedModel):
     STATUS_CHOICES = [
         ('DRAFT', 'Draft'),
+        ('FINALIZED', 'Finalized'),
         ('PAID', 'Paid'),
         ('CANCELLED', 'Cancelled'),
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     visit = models.OneToOneField(Visit, on_delete=models.CASCADE, related_name='invoice')
-    subtotal = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
-    tax = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
-    total = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    subtotal = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    tax = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    total = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='DRAFT')
 
     def __str__(self):
         return f"Invoice {self.id} for Visit {self.visit.id}"
 
+    def finalize(self):
+        """Locks the invoice and prepares it for payment."""
+        self.recalculate_totals()
+        self.status = 'FINALIZED'
+        self.save()
+
     def recalculate_totals(self):
-        charges = self.charges.all()
-        self.subtotal = sum(charge.amount for charge in charges)
+        items = self.items.all()
+        self.subtotal = sum(item.total_price for item in items)
         # Assuming 0% tax for now, or can be configured
         self.tax = 0 
         self.total = self.subtotal + self.tax
         self.save()
 
 
-class VisitCharge(TimeStampedModel):
+class InvoiceLineItem(TimeStampedModel):
     CHARGE_TYPE_CHOICES = [
         ('CONSULTATION', 'Consultation'),
         ('LAB', 'Lab Test'),
         ('MEDICINE', 'Medicine'),
-        ('VITALS', 'Vitals'),
+        ('PROCEDURE', 'Procedure'),
         ('OTHER', 'Other'),
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    visit_invoice = models.ForeignKey(VisitInvoice, on_delete=models.CASCADE, related_name='charges')
+    invoice = models.ForeignKey(VisitInvoice, on_delete=models.CASCADE, related_name='items')
     charge_type = models.CharField(max_length=30, choices=CHARGE_TYPE_CHOICES)
-    reference_id = models.UUIDField(null=True, blank=True, help_text="ID of lab_id / prescription_id / etc.")
-    amount = models.DecimalField(max_digits=10, decimal_places=2)
-    description = models.CharField(max_length=255, blank=True, null=True)
+    reference_id = models.UUIDField(null=True, blank=True, help_text="ID of lab_order / pharmacy_txn / etc.")
+    
+    description = models.CharField(max_length=255)
+    quantity = models.DecimalField(max_digits=12, decimal_places=2, default=1.00)
+    unit_price = models.DecimalField(max_digits=12, decimal_places=2)
+    total_price = models.DecimalField(max_digits=12, decimal_places=2)
+    
+    metadata = models.JSONField(default=dict, blank=True)
 
     def __str__(self):
-        return f"{self.charge_type} Charge: {self.amount}"
+        return f"{self.description} ({self.total_price})"
 
     def save(self, *args, **kwargs):
+        if not self.total_price:
+            self.total_price = self.unit_price * self.quantity
         super().save(*args, **kwargs)
-        self.visit_invoice.recalculate_totals()
+        self.invoice.recalculate_totals()
 
 # ========================
 # PHASE 3.5: PROFESSIONAL LAB SYSTEM
@@ -407,6 +578,7 @@ class LabOrder(TimeStampedModel):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     visit = models.ForeignKey(Visit, on_delete=models.CASCADE, related_name='lab_orders')
     template = models.ForeignKey(LabTestTemplate, on_delete=models.PROTECT, related_name='orders')
+    price_snapshot = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
     status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='LAB_REQUESTED')
     requested_by = models.CharField(max_length=255, help_text="Doctor Auth ID", blank=True, null=True)
     performed_by = models.CharField(max_length=255, help_text="Lab Tech Auth ID", blank=True, null=True)

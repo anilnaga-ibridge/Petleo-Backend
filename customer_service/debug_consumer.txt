@@ -1,0 +1,32 @@
+2026-02-11 04:59:59,155 [INFO] 🚀 Starting Customer Service Kafka Consumer...
+2026-02-11 04:59:59,170 [INFO] ✅ Connected to Kafka broker.
+2026-02-12 04:40:31,936 [INFO] 🚀 Starting Customer Service Kafka Consumer...
+2026-02-12 04:40:31,950 [INFO] ✅ Connected to Kafka broker.
+2026-02-13 04:58:43,935 [INFO] 🚀 Starting Customer Service Kafka Consumer...
+2026-02-13 04:58:43,948 [INFO] ✅ Connected to Kafka broker.
+2026-02-13 08:34:21,059 [INFO] 🔥 Event: USER_CREATED | User: 5a50989c-82be-413a-b5d4-1f5e6b863aa9 | Role: petowner
+2026-02-13 08:34:21,126 [ERROR] ❌ Error processing Kafka message: Invalid field name(s) for model PetOwnerProfile: 'avatar_url'.
+2026-02-13 08:35:08,433 [INFO] 🔥 Event: USER_VERIFIED | User: 5a50989c-82be-413a-b5d4-1f5e6b863aa9 | Role: petowner
+2026-02-13 08:35:08,436 [ERROR] ❌ Error processing Kafka message: Invalid field name(s) for model PetOwnerProfile: 'avatar_url'.
+2026-02-17 04:48:05,410 [INFO] 🚀 Starting Customer Service Kafka Consumer...
+2026-02-17 04:48:05,423 [INFO] ✅ Connected to Kafka broker.
+2026-02-17 05:21:29,887 [INFO] 🔥 Event: USER_DELETED | User: 5a50989c-82be-413a-b5d4-1f5e6b863aa9 | Role: petowner
+2026-02-17 05:21:30,115 [INFO] 🗑️ Deleted PetOwnerProfile for 5a50989c-82be-413a-b5d4-1f5e6b863aa9
+2026-02-17 10:14:09,571 [INFO] 🔥 Event: USER_CREATED | User: ce5494d1-0062-467c-bf48-c09e024ce0a9 | Role: petowner
+2026-02-17 10:14:09,589 [ERROR] ❌ Error processing Kafka message: Invalid field name(s) for model PetOwnerProfile: 'avatar_url'.
+2026-02-17 10:14:37,066 [INFO] 🔥 Event: USER_VERIFIED | User: ce5494d1-0062-467c-bf48-c09e024ce0a9 | Role: petowner
+2026-02-17 10:14:37,070 [ERROR] ❌ Error processing Kafka message: Invalid field name(s) for model PetOwnerProfile: 'avatar_url'.
+2026-02-18 05:03:45,562 [INFO] 🚀 Starting Customer Service Kafka Consumer...
+2026-02-18 05:03:45,575 [INFO] ✅ Connected to Kafka broker.
+2026-02-19 05:41:07,116 [INFO] 🚀 Starting Customer Service Kafka Consumer...
+2026-02-19 05:41:07,128 [INFO] ✅ Connected to Kafka broker.
+2026-02-19 07:24:39,458 [INFO] 🔥 Event: USER_CREATED | User: 07d7bbe3-3865-42ae-a5c1-36d8cd89634f | Role: petowner
+2026-02-19 07:24:39,516 [ERROR] ❌ Error processing Kafka message: Invalid field name(s) for model PetOwnerProfile: 'avatar_url'.
+2026-02-19 07:24:58,736 [INFO] 🔥 Event: USER_VERIFIED | User: 07d7bbe3-3865-42ae-a5c1-36d8cd89634f | Role: petowner
+2026-02-19 07:24:58,741 [ERROR] ❌ Error processing Kafka message: Invalid field name(s) for model PetOwnerProfile: 'avatar_url'.
+2026-02-20 05:09:55,097 [INFO] 🚀 Starting Customer Service Kafka Consumer...
+2026-02-20 05:09:55,110 [INFO] ✅ Connected to Kafka broker.
+2026-02-21 04:43:49,641 [INFO] 🚀 Starting Customer Service Kafka Consumer...
+2026-02-21 04:43:49,655 [INFO] ✅ Connected to Kafka broker.
+2026-02-23 05:04:31,606 [INFO] 🚀 Starting Customer Service Kafka Consumer...
+2026-02-23 05:04:31,618 [INFO] ✅ Connected to Kafka broker.

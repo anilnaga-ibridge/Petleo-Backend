@@ -1,4 +1,5 @@
 from django.shortcuts import render
+import uuid
 
 # Create your views here.
 from rest_framework.decorators import api_view, permission_classes
@@ -76,6 +77,15 @@ def add_to_cart(request):
     user_role = (verified_user.role or 'individual').lower()
     target = role_map.get(user_role, 'individual')
 
+    # [NEW] Prioritize ServiceProvider profile type
+    from service_provider.models import ServiceProvider
+    try:
+        sp = ServiceProvider.objects.get(verified_user=verified_user)
+        if sp.provider_type:
+            target = sp.provider_type.lower()
+    except ServiceProvider.DoesNotExist:
+        pass
+
     # 1. Get Required Definitions for this target
     required_defs = LocalDocumentDefinition.objects.filter(
         target=target, 
@@ -111,7 +121,8 @@ def add_to_cart(request):
 
     # 1. Check if Plan is already Active (Purchased)
     from .models import PurchasedPlan
-    if PurchasedPlan.objects.filter(verified_user=verified_user, plan_id=plan_id, is_active=True).exists():
+    active_plan = PurchasedPlan.objects.filter(verified_user=verified_user, plan_id=plan_id, is_active=True).first()
+    if active_plan and not active_plan.is_expiring_soon:
         return Response({"error": "You already have an active subscription for this plan."}, status=400)
 
     cart, _ = ProviderCart.objects.get_or_create(
@@ -277,6 +288,121 @@ def checkout_cart(request):
     })
 
 
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def purchase_plan_direct(request):
+    """
+    Directly purchase a plan, skipping the cart.
+    Accepts: { plan_id, plan_title, plan_role, billing_cycle_id, billing_cycle_name, price_amount, price_currency }
+    """
+    from .models import PurchasedPlan
+    verified_user = get_verified_user(request)
+
+    # 0. Restriction Check: Provider can only have ONE active plan (unless renewal)
+    active_plan = PurchasedPlan.objects.filter(verified_user=verified_user, is_active=True).first()
+    if active_plan:
+        if active_plan.plan_id == uuid.UUID(str(request.data.get("plan_id"))):
+            if not active_plan.is_expiring_soon:
+                return Response({"error": "You already purchased this plan ☺️"}, status=400)
+            # If expiring soon, we allow renewal (it creates a SECOND active plan for now, 
+            # or we could deactivate the old one. Let's deactivate old one to be clean).
+            active_plan.is_active = False
+            active_plan.save()
+        else:
+             return Response({"error": "You cannot purchase another plan while you have an active plan."}, status=400)
+
+    data = request.data
+
+    # 1. Validation Logic (Same as add_to_cart)
+    from provider_dynamic_fields.models import LocalDocumentDefinition, ProviderDocument
+
+    role_map = {'provider': 'individual', 'individual': 'individual', 'organization': 'organization'}
+    user_role = (verified_user.role or 'individual').lower()
+    target = role_map.get(user_role, 'individual')
+
+    # [NEW] Prioritize ServiceProvider profile type
+    from service_provider.models import ServiceProvider
+    try:
+        sp = ServiceProvider.objects.get(verified_user=verified_user)
+        if sp.provider_type:
+             target = sp.provider_type.lower()
+    except ServiceProvider.DoesNotExist:
+        pass
+
+    required_defs = LocalDocumentDefinition.objects.filter(target=target, is_required=True).values_list('id', flat=True)
+    if required_defs:
+        user_docs = ProviderDocument.objects.filter(verified_user=verified_user)
+        uploaded_def_ids = set(user_docs.values_list('definition_id', flat=True))
+        if set(required_defs) - uploaded_def_ids:
+            return Response({"error": "You must upload all required documents before purchasing a plan."}, status=400)
+        
+        # Check if documents are approved
+        not_approved = user_docs.exclude(status='approved')
+        if not_approved.exists():
+            return Response({"error": "Your documents are currently under review. Please wait for approval before purchasing."}, status=400)
+
+    # 2. Purchase Logic
+    with transaction.atomic():
+        from datetime import timedelta
+        start_date = timezone.now()
+        end_date = None
+        
+        cycle_name = (data.get("billing_cycle_name") or "").upper()
+        if "MONTH" in cycle_name:
+            end_date = start_date + timedelta(days=30)
+        elif "YEAR" in cycle_name:
+            end_date = start_date + timedelta(days=365)
+        elif "WEEK" in cycle_name:
+            end_date = start_date + timedelta(days=7)
+        elif "DAY" in cycle_name:
+            end_date = start_date + timedelta(days=1)
+
+        purchase = PurchasedPlan.objects.create(
+            verified_user=verified_user,
+            plan_id=data["plan_id"],
+            plan_title=data["plan_title"],
+            billing_cycle_id=data["billing_cycle_id"],
+            billing_cycle_name=data["billing_cycle_name"],
+            price_amount=data["price_amount"],
+            price_currency=data.get("price_currency", "INR"),
+            start_date=start_date,
+            end_date=end_date,
+            is_active=True
+        )
+
+        # 3. Synchronize with Super Admin
+        sa_data = {}
+        try:
+            import requests
+            SUPER_ADMIN_URL = "http://127.0.0.1:8003"
+            headers = {}
+            if "Authorization" in request.headers:
+                headers["Authorization"] = request.headers["Authorization"]
+            
+            purchase_payload = {
+                "plan_id": str(data["plan_id"]),
+                "billing_cycle_id": data["billing_cycle_id"]
+            }
+            
+            resp = requests.post(
+                f"{SUPER_ADMIN_URL}/api/superadmin/purchase/", 
+                json=purchase_payload, 
+                headers=headers
+            )
+            if resp.status_code == 201:
+                sa_data = resp.json()
+            else:
+                print(f"Super Admin Purchase Failed in Direct Flow: {resp.text}")
+        except Exception as e:
+            print(f"Direct purchase sync error: {e}")
+
+    return Response({
+        "detail": "Plan purchased directly and activated.",
+        "purchase_id": str(purchase.id),
+        "sa_data": sa_data
+    }, status=201)
+
+
 # ✅ Get Purchased Plans
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
@@ -300,14 +426,21 @@ def get_active_subscription(request):
 
     verified_user = get_verified_user(request)
     
+    # 0. AUTO-DEACTIVATE EXPIRED PLANS
+    PurchasedPlan.objects.filter(
+        verified_user=verified_user, 
+        is_active=True, 
+        end_date__lt=timezone.now()
+    ).update(is_active=False)
+
     # 1. Get current active plan
     active_plan = PurchasedPlan.objects.filter(verified_user=verified_user, is_active=True).order_by("-created_at").first()
     
     if not active_plan:
-        return Response({"detail": "No active subscription found"}, status=404)
+        return Response({"detail": "No active subscription found"}, status=200) # Changed to 200 for smoother frontend handling
 
     # 2. Get Permissions & Services using the robust helper
-    permissions_list = _build_permission_tree(verified_user)
+    permissions_list = _build_permission_tree(verified_user, request=request)
     services = AllowedService.objects.filter(verified_user=verified_user)
 
     return Response({

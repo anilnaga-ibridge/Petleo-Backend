@@ -152,10 +152,9 @@ class RegisterView(APIView):
                     status=status.HTTP_403_FORBIDDEN
                 )
             
-            # Check if logged-in user is an Organization
-            # Note: request.user.role is a Role model instance
+            # [FIX] Accept both 'organization' and 'provider' roles as org-level accounts
             user_role_name = request.user.role.name.lower() if request.user.role else ""
-            if user_role_name != 'organization':
+            if user_role_name not in ['organization', 'provider']:
                 return Response(
                     {"detail": "Only organizations can register employees."},
                     status=status.HTTP_403_FORBIDDEN
@@ -225,6 +224,7 @@ class RegisterView(APIView):
             "message": "User registered. OTP sent for verification.",
             "session_id": session_id,
             "sms_sent": sms_ok,
+            "auth_user_id": str(user.id),  # [FIX] Include so calling services can link records directly
         }
 
         if getattr(settings, "SMS_BACKEND", "console") == "console":
@@ -1053,7 +1053,7 @@ def public_roles(request):
     Return only roles that can be selected during user registration
     (organization and individual).
     """
-    allowed_roles = ["organization", "individual", "employee", "superadmin"]
+    allowed_roles = ["organization", "individual", "employee", "superadmin", "petowner"]
     roles = Role.objects.filter(name__in=allowed_roles)
     serializer = RoleSerializer(roles, many=True)
     return Response(serializer.data)
@@ -1129,6 +1129,7 @@ class UserViewSet(viewsets.ViewSet):
                     "email": serializer.data.get("email") or user.email,
                     "phone_number": serializer.data.get("phone_number") or user.phone_number,
                     "role": dynamic_role,
+                    "avatar_url": getattr(user, "avatar_url", None),
                 },
             )
             logger.info(f"✅ USER_UPDATED event published for role '{dynamic_role}'")
@@ -1250,7 +1251,7 @@ def transform_for_frontend(tokens, user, require_set_pin=False):
             "auth_user_id": str(user.id),
             "fullName": user.full_name,
             "username": user.username,
-            "avatar": None,
+            "avatar": user.avatar_url,
             "email": user.email or f"{user.phone_number}@demo.com",
             "role": user.role.name.upper() if user.role else None,
             "permissions": [p.codename for p in user.role.permissions.all()] if user.role else [],

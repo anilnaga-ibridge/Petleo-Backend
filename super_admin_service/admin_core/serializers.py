@@ -15,7 +15,7 @@ class VerifiedUserSerializer(serializers.ModelSerializer):
         model = VerifiedUser
         fields = [
             "id", "auth_user_id", "full_name", "email", "phone_number",
-            "role", "permissions", "created_at", "updated_at"
+            "role", "avatar_url", "permissions", "created_at", "updated_at"
         ]
         read_only_fields = ["id", "created_at", "updated_at"]
 
@@ -48,11 +48,17 @@ class AdminProfileUpdateSerializer(serializers.ModelSerializer):
 
 
 class SuperAdminSerializer(serializers.ModelSerializer):
+    avatar = serializers.SerializerMethodField()
+
     class Meta:
         model = SuperAdmin
         fields = [
             "id", "auth_user_id", "email", "contact", "first_name",
-            "last_name", "user_role", "is_active", "is_staff",
+            "last_name", "user_role", "avatar", "is_active", "is_staff",
             "is_admin", "is_super_admin", "activity_status"
         ]
         read_only_fields = ["id", "auth_user_id", "email"]
+
+    def get_avatar(self, obj):
+        verified_user = VerifiedUser.objects.filter(auth_user_id=obj.auth_user_id).first()
+        return verified_user.avatar_url if verified_user else None

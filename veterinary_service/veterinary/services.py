@@ -2,13 +2,14 @@ import uuid
 import json
 import urllib.request
 import urllib.error
-from django.db import transaction
+from django.db import transaction, models
 from django.db.models import Case, When, Value, IntegerField
 from django.utils import timezone
 from .models import (
     DynamicFieldDefinition, DynamicFieldValue, Clinic, Visit,
     FormDefinition, FormField, FieldValidation, FormSubmission,
-    PharmacyDispense, MedicationReminder, VeterinaryAuditLog
+    PharmacyDispense, MedicationReminder, VeterinaryAuditLog,
+    MedicalAppointment, Pet, StaffClinicAssignment
 )
 from .events import (
     emit_domain_event, VISIT_STATUS_CHANGED, LAB_RESULTS_READY, 
@@ -161,14 +162,15 @@ class VisitQueueService:
 
 class WorkflowService:
     TRANSITIONS = {
-        'CREATED': ['CHECKED_IN', 'VITALS_RECORDED', 'CLOSED'],
-        'CHECKED_IN': ['VITALS_RECORDED', 'CLOSED'],
+        'CREATED': ['CHECKED_IN', 'CLOSED'],
+        'CHECKED_IN': ['VITALS_STARTED', 'DOCTOR_ASSIGNED', 'CLOSED'],
+        'VITALS_STARTED': ['VITALS_RECORDED', 'CLOSED'],
         'VITALS_RECORDED': ['DOCTOR_ASSIGNED', 'CLOSED'],
         'DOCTOR_ASSIGNED': ['LAB_REQUESTED', 'PRESCRIPTION_FINALIZED', 'CLOSED'],
-        'LAB_REQUESTED': ['LAB_COMPLETED', 'CLOSED', 'PRESCRIPTION_FINALIZED', 'MEDICINES_DISPENSED'], # Allow partial dispense during labs
+        'LAB_REQUESTED': ['LAB_COMPLETED', 'CLOSED', 'PRESCRIPTION_FINALIZED', 'MEDICINES_DISPENSED'],
         'LAB_COMPLETED': ['PRESCRIPTION_FINALIZED', 'CLOSED', 'MEDICINES_DISPENSED'],
         'PRESCRIPTION_FINALIZED': ['MEDICINES_DISPENSED', 'FOLLOWUP_SCHEDULED', 'CLOSED', 'LAB_REQUESTED'],
-        'MEDICINES_DISPENSED': ['TREATMENT_COMPLETED', 'CLOSED', 'LAB_REQUESTED'], # Allow labs after meds
+        'MEDICINES_DISPENSED': ['TREATMENT_COMPLETED', 'CLOSED', 'LAB_REQUESTED'],
         'TREATMENT_COMPLETED': ['CLOSED'],
         'CLOSED': []
     }
@@ -176,34 +178,25 @@ class WorkflowService:
     @staticmethod
     def transition_visit(visit, new_status, user_role=None):
         """
-        Validates and executes a state transition.
+        Validates and executes a state transition with SLA timestamp tracking.
         """
         current_status = visit.status
-        
-        # IDEMPOTENCY CHECK: If already in target state, do nothing
         if current_status == new_status:
             return visit
 
         allowed_next_states = WorkflowService.TRANSITIONS.get(current_status, [])
-        
         if new_status not in allowed_next_states:
             raise ValueError(f"Invalid transition from {current_status} to {new_status}")
         
-        # TODO: Add Role-based validation here if needed
-        # if new_status == 'DOCTOR_ASSIGNED' and user_role != 'RECEPTIONIST': ...
-
         # Capture Timestamps (SLA Tracking)
         now = timezone.now()
         if new_status == 'CHECKED_IN':
             visit.checked_in_at = now
+        elif new_status == 'VITALS_STARTED':
+            visit.vitals_started_at = now
         elif new_status == 'VITALS_RECORDED':
             visit.vitals_completed_at = now
-        # For vitals_started_at, we might need a separate trigger, but for now let's assume it starts when checked in? 
-        # Or maybe we need a 'VITALS_STARTED' status? Spec says "vitals_started_at".
-        # Let's set vitals_started_at when it enters VITALS_QUEUE (which is CHECKED_IN).
-            visit.vitals_started_at = visit.checked_in_at # Approximation if not explicit
-            
-        elif new_status == 'DOCTOR_ASSIGNED': # Or when doctor actually starts? For now, this is a proxy.
+        elif new_status == 'DOCTOR_ASSIGNED':
             visit.doctor_started_at = now
         elif new_status == 'LAB_REQUESTED':
             visit.lab_ordered_at = now
@@ -213,9 +206,13 @@ class WorkflowService:
             visit.prescription_finalized_at = now
         elif new_status == 'MEDICINES_DISPENSED':
             visit.pharmacy_completed_at = now
-        elif new_status == 'TREATMENT_COMPLETED':
+        elif new_status == 'CLOSED':
+            # Business Rule: Log warning if invoice is UNPAID (don't block for now)
+            invoice = getattr(visit, 'invoice', None)
+            if invoice and invoice.status != 'PAID':
+                logger.warning(f"⚠️ Visit {visit.id} is being CLOSED but invoice {invoice.id} is UNPAID!")
             visit.closed_at = now
-        
+
         visit.status = new_status
         visit.save()
 
@@ -226,7 +223,7 @@ class WorkflowService:
             emit_domain_event(LAB_RESULTS_READY, visit)
         elif new_status == 'PRESCRIPTION_FINALIZED':
             emit_domain_event(PRESCRIPTION_FINALIZED, visit)
-        elif new_status == 'TREATMENT_COMPLETED':
+        elif new_status == 'CLOSED':
             emit_domain_event(VISIT_COMPLETED, visit)
 
         # Audit Log
@@ -363,70 +360,113 @@ class LabService:
     @staticmethod
     def get_pending_lab_orders(clinic_id):
         """
-        Returns all visits with pending lab orders.
+        Returns all lab orders that are not yet completed.
         """
-        # Find submissions for LAB_ORDER form where no corresponding LAB_RESULTS submission exists
-        # This is a simplified logic. In prod, we might link them explicitly.
-        lab_form = FormDefinition.objects.filter(code='LAB_ORDER').first()
-        if not lab_form:
-            return []
-            
-        submissions = FormSubmission.objects.filter(
-            form_definition=lab_form,
+        from .models import LabOrder
+        return LabOrder.objects.filter(
             visit__clinic_id=clinic_id
-        ).select_related('visit', 'visit__pet', 'visit__pet__owner')
+        ).exclude(status='LAB_COMPLETED').select_related('visit', 'visit__pet', 'template')
+
+    @staticmethod
+    def create_lab_order(visit_id, lab_test_id, doctor_auth_id):
+        """
+        Creates a lab order from a master LabTest, snapshots the price, and triggers billing.
+        """
+        from .models import Visit, LabTest, LabOrder, LabTestTemplate, InvoiceLineItem
         
-        pending = []
-        for sub in submissions:
-            # Check if results exist
-            # Assuming we link results to order via some metadata or just check if visit has results
-            # For Phase 3, let's just return all orders for visits not in 'CLOSED' state
-            if sub.visit.status != 'CLOSED':
-                pending.append({
-                    "visit_id": sub.visit.id,
-                    "pet_name": sub.visit.pet.name,
-                    "owner_name": sub.visit.pet.owner.name,
-                    "order_date": sub.created_at,
-                    "order_details": sub.data
-                })
-        return pending
+        with transaction.atomic():
+            visit = Visit.objects.get(id=visit_id)
+            lab_test = LabTest.objects.get(id=lab_test_id)
+            
+            # 1. Ensure a placeholder template exists for professional reporting
+            # In Phase 4, we will link LabTest to LabTestTemplate (Definition)
+            # For now, we manually find or create a generic template by name
+            template, _ = LabTestTemplate.objects.get_or_create(name=lab_test.name)
+            
+            # 2. Create Order with Price Snapshot
+            order = LabOrder.objects.create(
+                visit=visit,
+                template=template,
+                price_snapshot=lab_test.base_price,
+                requested_by=doctor_auth_id,
+                status='LAB_REQUESTED'
+            )
+            
+            # 3. Transition Visit Status
+            WorkflowService.transition_visit(visit, 'LAB_REQUESTED', user_role=doctor_auth_id)
+            
+            # 4. Inject into Billing
+            invoice = getattr(visit, 'invoice', None)
+            if invoice:
+                InvoiceLineItem.objects.create(
+                    invoice=invoice,
+                    charge_type='LAB',
+                    reference_id=order.id,
+                    unit_price=lab_test.base_price,
+                    description=f"Lab Test: {lab_test.name}"
+                )
+                invoice.recalculate_totals()
+                
+            return order
 
 class PharmacyService:
     @staticmethod
     def get_pending_prescriptions(clinic_id):
         """
-        Returns visits with prescriptions that haven't been fully dispensed.
+        Returns formal prescriptions that haven't been fully dispensed.
         """
-        presc_form = FormDefinition.objects.filter(code='PRESCRIPTION').first()
-        if not presc_form:
-            return []
-            
-        submissions = FormSubmission.objects.filter(
-            form_definition=presc_form,
+        return Prescription.objects.filter(
             visit__clinic_id=clinic_id
-        ).exclude(dispenses__status='DISPENSED').select_related('visit', 'visit__pet')
-        
-        return submissions
+        ).exclude(
+            visit__pharmacy_transactions__isnull=False # Simplified: Needs item-level check in prod
+        )
 
     @staticmethod
-    def dispense_medicines(submission_id, user_id):
+    def dispense_medical_item(visit_id, medicine_id, quantity, user_id):
         """
-        Marks a prescription as dispensed and triggers reminders.
+        Dispenses a specific medicine, reduces stock, and records the transaction.
         """
-        submission = FormSubmission.objects.get(id=submission_id)
+        from .models import Medicine, PharmacyTransaction, Visit
         
         with transaction.atomic():
-            dispense = PharmacyDispense.objects.create(
-                visit=submission.visit,
-                prescription_submission=submission,
-                dispensed_by=user_id,
-                status='DISPENSED'
+            # 1. Fetch and Lock Medicine (prevent race conditions on stock)
+            medicine = Medicine.objects.select_for_update().get(id=medicine_id)
+            visit = Visit.objects.get(id=visit_id)
+            
+            if medicine.stock_quantity < quantity:
+                raise ValueError(f"Insufficient stock for {medicine.name}. Available: {medicine.stock_quantity}")
+            
+            # 2. Reduce Stock
+            medicine.stock_quantity -= quantity
+            medicine.save()
+            
+            # 3. Create Transaction Snapshot
+            transaction_record = PharmacyTransaction.objects.create(
+                visit=visit,
+                medicine=medicine,
+                quantity=quantity,
+                unit_price_snapshot=medicine.unit_price,
+                total_price=medicine.unit_price * quantity,
+                dispensed_by=user_id
             )
             
-            # Trigger Reminder Generation
-            ReminderService.generate_reminders(submission.visit.id, submission.data)
-            
-        return dispense
+            # 4. Trigger Billing Re-aggregation
+            invoice = getattr(visit, 'invoice', None)
+            if invoice:
+                # Add a specific charge for this medicine
+                from .models import InvoiceLineItem
+                InvoiceLineItem.objects.create(
+                    invoice=invoice,
+                    charge_type='MEDICINE',
+                    reference_id=transaction_record.id,
+                    unit_price=medicine.unit_price,
+                    quantity=quantity,
+                    total_price=transaction_record.total_price,
+                    description=f"Pharmacy: {medicine.name} x {quantity}"
+                )
+                invoice.recalculate_totals()
+
+            return transaction_record
 
 class ReminderService:
     @staticmethod
@@ -661,16 +701,16 @@ class ClinicAnalyticsService:
         # 2. Sales / Revenue (From Invoices)
         # Assuming VisitInvoice reflects pharmacy + others, we filter by ChargeType if possible
         # Or just sum up invoices marked PAID today?
-        # For specificity, let's use VisitCharge where type='MEDICINE'
+        # For specificity, let's use InvoiceLineItem where type='MEDICINE'
         from django.db.models import Sum
-        from .models import VisitCharge
+        from .models import InvoiceLineItem
         
-        revenue = VisitCharge.objects.filter(
-            visit_invoice__visit__clinic_id=clinic_id,
-            visit_invoice__status='PAID',
-            visit_invoice__updated_at__date=date_obj, # Paid Date
+        revenue = InvoiceLineItem.objects.filter(
+            invoice__visit__clinic_id=clinic_id,
+            invoice__status='PAID',
+            invoice__updated_at__date=date_obj, # Paid Date
             charge_type='MEDICINE'
-        ).aggregate(Sum('amount'))['amount__sum'] or 0.00
+        ).aggregate(Sum('total_price'))['total_price__sum'] or 0.00
         
         # 3. Prescriptions Filled
         # Same as patients served if 1 dispense per visit? 
@@ -710,19 +750,19 @@ class ClinicAnalyticsService:
             
             # 2. Revenue (From Invoices linked to Visits of this service)
             # This assumes VisitInvoice is created for the visit
-            revenue_today = VisitCharge.objects.filter(
-                visit_invoice__visit__clinic_id=clinic_id,
-                visit_invoice__visit__service_id=service_id,
-                visit_invoice__status='PAID',
-                visit_invoice__updated_at__date=target_date
-            ).aggregate(Sum('amount'))['amount__sum'] or 0.00
+            revenue_today = InvoiceLineItem.objects.filter(
+                invoice__visit__clinic_id=clinic_id,
+                invoice__visit__service_id=service_id,
+                invoice__status='PAID',
+                invoice__updated_at__date=target_date
+            ).aggregate(Sum('total_price'))['total_price__sum'] or 0.00
             
-            revenue_yesterday = VisitCharge.objects.filter(
-                visit_invoice__visit__clinic_id=clinic_id,
-                visit_invoice__visit__service_id=service_id,
-                visit_invoice__status='PAID',
-                visit_invoice__updated_at__date=yesterday_date
-            ).aggregate(Sum('amount'))['amount__sum'] or 0.00
+            revenue_yesterday = InvoiceLineItem.objects.filter(
+                invoice__visit__clinic_id=clinic_id,
+                invoice__visit__service_id=service_id,
+                invoice__status='PAID',
+                invoice__updated_at__date=yesterday_date
+            ).aggregate(Sum('total_price'))['total_price__sum'] or 0.00
 
             # 3. Profile Views (Mock for now, or track in AuditLog)
             profile_views = 0 
@@ -1080,3 +1120,159 @@ class RolePermissionService:
                 return perms
         
         return ['VETERINARY_CORE'] # Absolute fallback
+
+
+class VeterinaryAvailabilityService:
+    @staticmethod
+    def get_doctor_available_slots(clinic_id, service_id, target_date, doctor_auth_id=None, consultation_type_id=None):
+        """
+        Unified service for fetching available slots for doctors.
+        If doctor_auth_id is provided, returns slots for that specific doctor.
+        Otherwise, merges slots for all qualified doctors in the clinic.
+        """
+        # 1. Identify valid doctors
+        doctors_qs = StaffClinicAssignment.objects.filter(
+            clinic_id=clinic_id,
+            role='DOCTOR',
+            is_active=True
+        ).select_related('staff', 'clinic')
+        
+        if doctor_auth_id:
+            doctors_qs = doctors_qs.filter(staff__auth_user_id=doctor_auth_id)
+            
+        if not doctors_qs.exists():
+            return []
+
+        # 2. Call Service Provider Availability API for each doctor
+        aggregated_slots = set()
+        
+        for doc_assign in doctors_qs:
+            auth_id = doc_assign.staff.auth_user_id
+            org_id = doc_assign.clinic.organization_id
+            try:
+                # Forward call to service_provider_service
+                url = f"http://localhost:8002/api/provider/availability/{org_id}/available-slots/"
+                params = {
+                    "employee_id": auth_id,
+                    "facility_id": service_id,
+                    "date": target_date
+                }
+                if consultation_type_id:
+                    params["consultation_type_id"] = consultation_type_id
+
+                import requests
+                resp = requests.get(url, params=params, timeout=5)
+                if resp.status_code == 200:
+                    slots = resp.json().get('slots', [])
+                    aggregated_slots.update(slots)
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).error(f"Failed to fetch slots for doctor {auth_id}: {e}")
+
+        return sorted(list(aggregated_slots))
+
+
+class VeterinaryAppointmentService:
+    @staticmethod
+    @transaction.atomic
+    def create_appointment(clinic_id, service_id, pet_id, appointment_date, start_time, 
+                           doctor_auth_id=None, created_by='ONLINE', notes=None,
+                           consultation_type='', consultation_fee=0.00,
+                           consultation_type_id=None):
+        """
+        Creates a MedicalAppointment with strict validation and concurrency control.
+        """
+        from datetime import datetime, timedelta
+        
+        # 1. Resolve Pet and Clinic
+        try:
+            pet = Pet.objects.get(id=pet_id)
+            clinic = Clinic.objects.get(id=clinic_id)
+        except (Pet.DoesNotExist, Clinic.DoesNotExist):
+            raise ValueError("Invalid Pet or Clinic ID")
+
+        # 2. Handle Smart Assignment if doctor not specified
+        if not doctor_auth_id:
+            # Smart Assignment: Find the least busy DOCTOR for that day
+            doctor_auth_id = VeterinaryAppointmentService._auto_assign_doctor(clinic_id, appointment_date)
+            if not doctor_auth_id:
+                raise ValueError("No doctors available for this date")
+
+        # 3. Resolve Doctor Assignment
+        try:
+            doctor_assign = StaffClinicAssignment.objects.get(
+                clinic_id=clinic_id,
+                staff__auth_user_id=doctor_auth_id,
+                role='DOCTOR'
+            )
+        except StaffClinicAssignment.DoesNotExist:
+            raise ValueError(f"Selected staff {doctor_auth_id} is not an active doctor in this clinic")
+
+        # 4. Calculate End Time (Fetch duration from service_provider)
+        duration = 30 # Default
+        try:
+            import requests
+            url = f"http://localhost:8002/api/provider/resolve-details/?facility_id={service_id}"
+            if consultation_type_id:
+                url += f"&consultation_type_id={consultation_type_id}"
+                
+            resp = requests.get(url, timeout=3)
+            if resp.status_code == 200:
+                duration = resp.json().get('duration', 30)
+        except: pass
+
+        st_dt = datetime.combine(datetime.strptime(appointment_date, '%Y-%m-%d').date(), 
+                                 datetime.strptime(start_time, '%H:%M').time())
+        end_dt = st_dt + timedelta(minutes=duration)
+        
+        # 5. Lock and Verify (Concurrency Control)
+        # We lock existing appointments for this doctor/date to prevent race conditions
+        existing_conflicts = MedicalAppointment.objects.select_for_update().filter(
+            doctor=doctor_assign,
+            appointment_date=appointment_date,
+            start_time=start_time,
+            status='CONFIRMED'
+        ).exists()
+
+        if existing_conflicts:
+            raise ValueError("This slot was just booked by someone else.")
+
+        # 6. Create Appointment
+        appointment = MedicalAppointment.objects.create(
+            clinic=clinic,
+            doctor=doctor_assign,
+            pet=pet,
+            service_id=service_id,
+            appointment_date=appointment_date,
+            start_time=st_dt.time(),
+            end_time=end_dt.time(),
+            status='CONFIRMED',
+            created_by=created_by,
+            notes=notes,
+            consultation_type=consultation_type,
+            consultation_fee=consultation_fee,
+            consultation_type_id=consultation_type_id
+        )
+
+        return appointment
+
+    @staticmethod
+    def _auto_assign_doctor(clinic_id, date):
+        """
+        Finds the least busy doctor in the clinic for the given date.
+        """
+        from django.db.models import Count
+        doctors = StaffClinicAssignment.objects.filter(
+            clinic_id=clinic_id,
+            role='DOCTOR',
+            is_active=True
+        ).annotate(
+            appointment_count=Count(
+                'medical_appointments', 
+                filter=models.Q(medical_appointments__appointment_date=date, medical_appointments__status='CONFIRMED')
+            )
+        ).order_by('appointment_count')
+        
+        if doctors.exists():
+            return doctors.first().staff.auth_user_id
+        return None

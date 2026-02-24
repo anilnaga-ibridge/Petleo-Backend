@@ -83,6 +83,9 @@ class User(AbstractUser):
     # ⭐ New field for inactivity lock feature
     last_active_at = models.DateTimeField(null=True, blank=True)
 
+    # 🖼️ Avatar field for cross-service sync
+    avatar_url = models.URLField(max_length=500, null=True, blank=True)
+
     USERNAME_FIELD = 'username'
     REQUIRED_FIELDS = []
 

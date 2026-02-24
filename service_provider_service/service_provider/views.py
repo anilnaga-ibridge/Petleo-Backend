@@ -1,13 +1,15 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status
-from rest_framework.permissions import AllowAny
+from rest_framework import status, serializers, permissions
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.decorators import api_view, permission_classes
 import requests
 from django.conf import settings
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.db import transaction
 import logging
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -20,54 +22,353 @@ from .models import (
     ProviderRole,
     OrganizationEmployee,
     PermissionAuditLog,
+    ProviderRating,
+    ConsultationType,
 )
 from .serializers import (
     ServiceProviderSerializer, 
     CapabilitySerializer,
     ProviderRoleSerializer,
+    PublicProviderSerializer,
+    PublicProviderDetailSerializer,
+    ProviderRatingSerializer,
+    OrganizationEmployeeSerializer,
 )
+
+from provider_dynamic_fields.models import (
+    LocalFieldDefinition,
+    LocalDocumentDefinition,
+    ProviderFieldValue,
+    ProviderDocument
+)
+from provider_dynamic_fields.serializers import ProviderDocumentSerializer
+from service_provider.kafka_producer import publish_user_profile_updated
 
 class ServiceProviderProfileView(APIView):
     """
-    POST: Create or update the service provider profile, including personal info, avatar, and status.
+    Unified View for Service Provider Profile.
+    Handles core fields (avatar, banner) and dynamic fields/documents.
     """
 
-    def post(self, request):
-        # Extract the auth_user_id from the request body
-        auth_user_id = request.data.get('auth_user_id')
+    def get(self, request):
+        """Fetch the current authenticated provider's profile, including dynamic fields."""
+        # Get auth_user_id from query params or current user
+        auth_user_id = request.GET.get('user') or request.GET.get('auth_user_id')
         
-        # Check if auth_user_id is provided
-        if not auth_user_id:
-            return Response({"error": "auth_user_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+        if auth_user_id:
+            try:
+                verified_user = VerifiedUser.objects.get(auth_user_id=auth_user_id)
+            except VerifiedUser.DoesNotExist:
+                # [JIT FIX] If authenticated but missing locally, create it
+                if request.user.is_authenticated and str(request.user.id) == str(auth_user_id):
+                    verified_user = VerifiedUser.objects.create(
+                        auth_user_id=auth_user_id,
+                        email=getattr(request.user, 'email', None),
+                        full_name=getattr(request.user, 'full_name', None),
+                        role=getattr(request.user, 'role', 'User')
+                    )
+                    logger.info(f"✅ JIT Created VerifiedUser for {verified_user.email}")
+                else:
+                    return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+        else:
+            verified_user = request.user
+            # [JIT FIX] Handle TransientUser (not in DB)
+            if not isinstance(verified_user, VerifiedUser):
+                verified_user, created = VerifiedUser.objects.get_or_create(
+                    auth_user_id=verified_user.id,
+                    defaults={
+                        "email": verified_user.email,
+                        "full_name": verified_user.full_name,
+                        "role": verified_user.role or 'User'
+                    }
+                )
+                if created:
+                    logger.info(f"✅ JIT Created VerifiedUser (from Request User) for {verified_user.email}")
+
+        # Target for dynamic fields
+        target = request.GET.get("target") or getattr(verified_user, "provider_type", None)
+        if not target:
+            # Fallback based on role
+            role = (verified_user.role or "").lower()
+            if role == 'superadmin': target = 'superadmin'
+            elif role == 'organization': target = 'organization'
+            elif role == 'employee': target = 'employee'
+            else: target = 'individual'
+
+        # 1. Fetch Dynamic Field Definitions
+        field_definitions_qs = LocalFieldDefinition.objects.filter(target=target).order_by('order')
         
-        # Try to fetch the VerifiedUser by auth_user_id
-        try:
-            verified_user = VerifiedUser.objects.get(auth_user_id=auth_user_id)
-        except VerifiedUser.DoesNotExist:
-            return Response({"error": "VerifiedUser not found for this auth_user_id"}, status=status.HTTP_404_NOT_FOUND)
+        # 2. Merge with Values
+        fields_data = []
+        for fd in field_definitions_qs:
+            field_id = str(fd.id)
+            try:
+                saved_value = ProviderFieldValue.objects.get(verified_user=verified_user, field_id=field_id)
+            except ProviderFieldValue.DoesNotExist:
+                saved_value = None
 
-        # Now, try to fetch the ServiceProvider related to this VerifiedUser
-        provider, created = ServiceProvider.objects.get_or_create(verified_user=verified_user)
+            if saved_value and saved_value.file:
+                metadata = {
+                    "name": saved_value.file.name.split("/")[-1],
+                    "size": saved_value.file.size,
+                    "content_type": saved_value.metadata.get("content_type", ""),
+                    "file_url": request.build_absolute_uri(saved_value.file.url),
+                }
+                value = None
+            else:
+                metadata = saved_value.metadata if saved_value else {}
+                value = saved_value.value if saved_value else None
 
-        # Proceed to update the profile data
-        serializer = ServiceProviderSerializer(provider, data=request.data, partial=True)
-        
-        if serializer.is_valid():
-            avatar_file = request.FILES.get('avatar')
+                # Source of Truth for basic fields
+                if fd.name == "first_name":
+                    full_name = verified_user.full_name or ""
+                    value = full_name.split(" ", 1)[0] if full_name else ""
+                elif fd.name == "last_name":
+                    full_name = verified_user.full_name or ""
+                    value = full_name.split(" ", 1)[1] if " " in full_name else ""
+                elif fd.name == "email":
+                    value = verified_user.email
+                elif fd.name == "phone_number":
+                    value = verified_user.phone_number
+                elif fd.name == "country":
+                    # Fetch from BillingProfile
+                    try:
+                        from .models import BillingProfile
+                        profile = BillingProfile.objects.get(verified_user=verified_user)
+                        value = profile.country
+                    except (BillingProfile.DoesNotExist, ImportError):
+                        value = None
 
-            if avatar_file:
-                provider.avatar = avatar_file
-                provider.avatar_size = f"{round(avatar_file.size / 1024, 2)} KB"
-                provider.save(update_fields=["avatar", "avatar_size"])
-
-            serializer.save()
-
-            return Response({
-                "message": "Provider profile updated successfully",
-                "data": ServiceProviderSerializer(provider).data
+            fields_data.append({
+                "id": field_id,
+                "name": fd.name,
+                "label": fd.label,
+                "field_type": fd.field_type,
+                "is_required": fd.is_required,
+                "options": fd.options,
+                "order": fd.order,
+                "value": value,
+                "metadata": metadata,
             })
 
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        # 3. Handle Avatar and Banner (Core fields)
+        avatar_url = verified_user.avatar_url
+        banner_url = None
+        
+        provider = getattr(verified_user, 'provider_profile', None)
+        if provider:
+            if provider.avatar:
+                avatar_url = request.build_absolute_uri(provider.avatar.url)
+            if provider.banner_image:
+                banner_url = request.build_absolute_uri(provider.banner_image.url)
+
+        # 4. Normalize role for display
+        display_role = "User"
+        try:
+            emp_record = OrganizationEmployee.objects.get(auth_user_id=verified_user.auth_user_id)
+            display_role = emp_record.provider_role.name if emp_record.provider_role else emp_record.role
+        except OrganizationEmployee.DoesNotExist:
+            display_role = verified_user.role or "User"
+        
+        display_role = (display_role or "").replace("_", " ").title()
+
+        return Response({
+            "fullName": verified_user.full_name or verified_user.username or verified_user.email,
+            "email": verified_user.email,
+            "phoneNumber": verified_user.phone_number,
+            "role": display_role,
+            "provider_type": provider.provider_type if provider else None,
+            "avatar": avatar_url,
+            "banner_image": banner_url,
+            "fields": fields_data
+        })
+
+    def post(self, request):
+        debug_log = []
+        def log(msg):
+            debug_log.append(f"[{timezone.now()}] {msg}")
+            logger.info(msg)
+
+        log(f"📥 Received POST request for {request.data.get('auth_user_id', 'unknown')}")
+        
+        auth_user_id = request.data.get('auth_user_id')
+        if not auth_user_id:
+            return Response({"error": "auth_user_id is required"}, status=400)
+
+        # [JIT FIX] Create VerifiedUser if missing during POST
+        verified_user, vu_created = VerifiedUser.objects.get_or_create(
+            auth_user_id=auth_user_id,
+            defaults={
+                "email": getattr(request.user, 'email', None),
+                "full_name": getattr(request.user, 'full_name', None),
+                "role": getattr(request.user, 'role', 'User')
+            }
+        )
+        if vu_created:
+            log(f"✅ JIT Created VerifiedUser during POST: {verified_user.email}")
+
+        provider, _ = ServiceProvider.objects.get_or_create(verified_user=verified_user)
+
+        # 1. Parse Fields JSON
+        try:
+            fields_data = json.loads(request.data.get("fields", "[]"))
+        except json.JSONDecodeError:
+            return Response({"error": "Invalid fields JSON"}, status=400)
+
+        # 2. Update Dynamic Fields
+        for item in fields_data:
+            field_id = item.get("field_id")
+            value = item.get("value")
+            metadata = item.get("metadata", {})
+            if not field_id: continue
+
+            # Sync basic fields back to VerifiedUser if named
+            try:
+                fd = LocalFieldDefinition.objects.get(id=field_id)
+                if fd.name == "first_name":
+                    parts = (verified_user.full_name or "").split(" ", 1)
+                    last = parts[1] if len(parts) > 1 else ""
+                    verified_user.full_name = f"{value} {last}".strip()
+                elif fd.name == "last_name":
+                    parts = (verified_user.full_name or "").split(" ", 1)
+                    first = parts[0] if parts else ""
+                    verified_user.full_name = f"{first} {value}".strip()
+                elif fd.name == "email":
+                    verified_user.email = value
+                elif fd.name == "phone_number":
+                    verified_user.phone_number = value
+                elif fd.name == "country":
+                    # Update BillingProfile for country
+                    from .models import BillingProfile
+                    billing, _ = BillingProfile.objects.get_or_create(verified_user=verified_user)
+                    billing.country = value
+                    billing.save()
+                elif fd.name.lower() in ["location", "city"]:
+                    from .models import BillingProfile
+                    billing, _ = BillingProfile.objects.get_or_create(verified_user=verified_user)
+                    billing.contact = value
+                    billing.save()
+                elif fd.name.lower() == "state":
+                    from .models import BillingProfile
+                    billing, _ = BillingProfile.objects.get_or_create(verified_user=verified_user)
+                    billing.state = value
+                    billing.save()
+            except LocalFieldDefinition.DoesNotExist:
+                # [FIX] Auto-create definition for ad-hoc fields (like Language, etc.) if they come with a distinct ID
+                # If the ID is UUID-like, it might be a pre-existing definition we just missed? 
+                # Or if it's a string like "Language", we treat it as name.
+                
+                # Check if we can find by name
+                if isinstance(field_id, str) and not field_id.isdigit() and len(field_id) < 50:
+                    fd, created = LocalFieldDefinition.objects.get_or_create(
+                        target=getattr(verified_user, 'provider_type', 'individual') or 'individual',
+                        name=field_id,
+                        defaults={
+                            "label": field_id,
+                            "field_type": "text",
+                            "order": 999
+                        }
+                    )
+                    if created:
+                         log(f"🆕 Auto-created field definition: {field_id}")
+                else:
+                    continue
+
+            if value is not None:
+                ProviderFieldValue.objects.update_or_create(
+                    verified_user=verified_user,
+                    field_id=field_id,
+                    defaults={"value": value, "metadata": metadata}
+                )
+
+        # 3. Handle File Uploads
+        avatar_file = request.FILES.get('avatar')
+        if avatar_file:
+            log(f"🖼️ Updating main avatar: {avatar_file.name}")
+            provider.avatar = avatar_file
+            provider.avatar_size = f"{round(avatar_file.size / 1024, 2)} KB"
+            provider.save()
+            verified_user.avatar_url = request.build_absolute_uri(provider.avatar.url)
+            log(f"✅ Main avatar updated: {verified_user.avatar_url}")
+
+        # 4. Handle Banner Image Upload
+        banner_file = request.FILES.get('banner_image')
+        if banner_file:
+            log(f"🖼️ Updating banner image: {banner_file.name}")
+            provider.banner_image = banner_file
+            provider.banner_image_size = f"{round(banner_file.size / 1024, 2)} KB"
+            provider.save()
+            log(f"✅ Banner image updated")
+
+        # Check for dynamic profile_image upload
+        for key, files in request.FILES.lists():
+            if key in ['avatar', 'banner_image']: continue
+            
+            upload_file = files[0]
+            try:
+                fd = LocalFieldDefinition.objects.get(id=key)
+                # If this is the profile_image field, sync to main avatar
+                if fd.name == "profile_image":
+                    log(f"🖼️ Syncing dynamic profile_image to main avatar: {upload_file.name}")
+                    provider.avatar = upload_file
+                    provider.save()
+                    verified_user.avatar_url = request.build_absolute_uri(provider.avatar.url)
+                
+                # Save to dynamic value
+                ProviderFieldValue.objects.update_or_create(
+                    verified_user=verified_user,
+                    field_id=key,
+                    defaults={
+                        "file": upload_file,
+                        "value": {"filename": upload_file.name},
+                        "metadata": {
+                            "content_type": getattr(upload_file, "content_type", ""),
+                            "size": upload_file.size
+                        }
+                    }
+                )
+            except LocalFieldDefinition.DoesNotExist:
+                # Handle documents if key matches a document definition
+                try:
+                    doc_def = LocalDocumentDefinition.objects.get(id=key)
+                    ProviderDocument.objects.filter(verified_user=verified_user, definition_id=key).delete()
+                    ProviderDocument.objects.create(
+                        verified_user=verified_user,
+                        definition_id=key,
+                        file=upload_file,
+                        filename=upload_file.name,
+                        content_type=getattr(upload_file, "content_type", ""),
+                        size=upload_file.size
+                    )
+                    log(f"📄 Document uploaded: {doc_def.label}")
+                except LocalDocumentDefinition.DoesNotExist:
+                    log(f"⚠️ Unknown file key: {key}")
+
+        verified_user.save()
+        provider.save()
+        
+        # Publish to Kafka
+        publish_user_profile_updated(
+            auth_user_id=verified_user.auth_user_id,
+            full_name=verified_user.full_name,
+            email=verified_user.email,
+            phone_number=verified_user.phone_number,
+            role=verified_user.role, # Role preserved!
+            avatar_url=verified_user.avatar_url,
+            banner_image_url=request.build_absolute_uri(provider.banner_image.url) if provider.banner_image else None
+        )
+
+        return Response({
+            "message": "Profile updated successfully",
+            "avatar": verified_user.avatar_url, # [FIX] For UserProfile.vue
+            "debug": debug_log,
+            "user_profile": {
+                "fullName": verified_user.full_name or verified_user.username or verified_user.email,
+                "email": verified_user.email,
+                "phoneNumber": verified_user.phone_number,
+                "avatar": verified_user.avatar_url # [FIX] For AccountSettingsAccount.vue
+            }
+        })
 
 class ServiceProviderDetailView(APIView):
     """
@@ -79,7 +380,7 @@ class ServiceProviderDetailView(APIView):
         try:
             verified_user = VerifiedUser.objects.get(auth_user_id=auth_user_id)
             provider = ServiceProvider.objects.get(verified_user=verified_user)
-            return Response(ServiceProviderSerializer(provider).data)
+            return Response(ServiceProviderSerializer(provider, context={'request': request}).data)
         except (VerifiedUser.DoesNotExist, ServiceProvider.DoesNotExist):
             return Response({"error": "Provider not found"}, status=status.HTTP_404_NOT_FOUND)
 
@@ -107,34 +408,102 @@ def get_my_permissions(request):
     
     # Helper to get display role - Calculate EARLY to ensure it's available for error responses
     display_role = getattr(user, 'role', 'User')
+
+    # [FIX] Explicit Super Admin Check (Bypasses incorrect 'Individual' role in DB)
+    is_super_admin = (
+        str(user.phone_number) == "9876543210" or 
+        (hasattr(user, 'role') and str(user.role).lower() == 'superadmin')
+    )
+    
+    if is_super_admin:
+        display_role = 'Super Admin'
+    
+    # Get ServiceProvider record for provider_type (needed for both role and avatar)
+    provider = None
+    try:
+        provider = ServiceProvider.objects.filter(verified_user__auth_user_id=user.auth_user_id).first()
+    except Exception:
+        pass
+    
+    # Priority 1: Check if user is an employee (they get their assigned role)
     try:
         emp_record = OrganizationEmployee.objects.get(auth_user_id=user.auth_user_id)
         if emp_record.provider_role:
              display_role = emp_record.provider_role.name
     except OrganizationEmployee.DoesNotExist:
-        pass
+        # [FIX] Use VerifiedUser.role as the primary source of truth for provider_type.
+        # The ServiceProvider.provider_type defaults to INDIVIDUAL on creation (JIT auto-create),
+        # which means it may be wrong for users who registered as 'organization'.
+        user_role_lower = (getattr(user, 'role', '') or '').lower()
+        
+        if user_role_lower in ['organization', 'serviceprovider', 'provider']:
+            correct_provider_type = 'ORGANIZATION'
+        elif user_role_lower == 'individual':
+            correct_provider_type = 'INDIVIDUAL'
+        else:
+            correct_provider_type = None
+
+        # Auto-fix the DB record if it's incorrect
+        if provider and correct_provider_type and provider.provider_type != correct_provider_type:
+            print(f"🔧 [Port 8002] Auto-fixing provider_type for {user.email}: {provider.provider_type} → {correct_provider_type}")
+            provider.provider_type = correct_provider_type
+            provider.save(update_fields=['provider_type'])
+
+        # Priority 2: Check ServiceProvider.provider_type for org/individual owners
+        if provider and provider.provider_type:
+            display_role = provider.provider_type
+            print(f"✅ [Port 8002] Using provider_type as role: {display_role}")
+        elif correct_provider_type:
+            display_role = correct_provider_type
+        # Priority 3: Fallback to user.role
+        # (already set above)
+
+    # Normalize role for display (e.g., 'organization' -> 'Organization')
+    if display_role:
+        display_role = display_role.replace('_', ' ').title()
 
     # Get avatar
     avatar_url = None
     try:
-        from service_provider.models import ServiceProvider
-        # Corrected lookup: verified_user__auth_user_id
-        provider = ServiceProvider.objects.filter(verified_user__auth_user_id=user.auth_user_id).first()
+        # 1. Try ServiceProvider avatar (Primary) - provider already fetched above
         if provider and provider.avatar:
             avatar_url = request.build_absolute_uri(provider.avatar.url)
+        
+        # 2. Fallback to VerifiedUser.avatar_url (Secondary)
+        if not avatar_url and hasattr(user, 'avatar_url') and user.avatar_url:
+            avatar_url = user.avatar_url
+            # Ensure full URL if it's a relative path
+            if avatar_url.startswith('/'):
+                avatar_url = request.build_absolute_uri(avatar_url)
+
+        if avatar_url:
             print(f"✅ [Port 8002] AVATAR READY for {user.email}: {avatar_url}")
         else:
             print(f"⚠️ [Port 8002] NO AVATAR found for {user.email}")
-    except Exception as e:
-        print(f"❌ [Port 8002] AVATAR ERROR for {user.email}: {str(e)}")
+    except Exception:
+        pass
 
     user_profile = {
-        "fullName": user.full_name,
-        "email": user.email,
-        "phoneNumber": user.phone_number,
+        "fullName": getattr(user, 'full_name', None) or getattr(user, 'username', None) or getattr(user, 'email', 'Unknown'),
+        "email": getattr(user, 'email', 'Unknown'),
+        "phoneNumber": getattr(user, 'phone_number', None),
         "role": display_role,
+        "provider_type": provider.provider_type if provider else None,
+        "provider_id": str(provider.id) if provider else None,
         "avatar": avatar_url
     }
+
+    # Add rating stats for both employees and providers
+    try:
+        emp = OrganizationEmployee.objects.filter(auth_user_id=user.auth_user_id).first()
+        if emp:
+            user_profile["average_rating"] = emp.average_rating
+            user_profile["total_ratings"] = emp.total_ratings
+        elif provider:
+            user_profile["average_rating"] = provider.average_rating
+            user_profile["total_ratings"] = provider.total_ratings
+    except Exception:
+        pass
     
     # [LOGGING] Verify what we are sending back to the frontend
     try:
@@ -197,7 +566,7 @@ def get_my_permissions(request):
     # 3. Fetch Capabilities using the robust helper
     # IMPORTANT: For employees, we build the tree from the organization owner's capabilities,
     # then filter by the employee's role permissions below
-    permissions_list = _build_permission_tree(subscription_owner)
+    permissions_list = _build_permission_tree(subscription_owner, request=request)
     
     with open("debug_perms.log", "a") as f:
         f.write(f"\\n[{timezone.now()}] get_my_permissions | User: {user.email} ({user.auth_user_id})\\n")
@@ -214,16 +583,6 @@ def get_my_permissions(request):
     try:
         emp = OrganizationEmployee.objects.get(auth_user_id=user.auth_user_id)
         
-        print(f"\n{'='*100}")
-        print(f"🧑‍💼 EMPLOYEE PERMISSION CALCULATION: {user.email}")
-        print(f"{'='*100}")
-        print(f"   Employee ID: {emp.id}")
-        print(f"   Role Field: {emp.role}")
-        print(f"   Provider Role: {emp.provider_role}")
-        print(f"   Status: {emp.status}")
-        
-        # CASE A: Employee
-        # Access = Organization Plan ∩ Employee Role
         user_caps = set(emp.get_final_permissions())
         
         print(f"   📊 Final Permissions Count: {len(user_caps)}")
@@ -333,22 +692,29 @@ def get_my_permissions(request):
         for allowed_svc in allowed_services:
             # Get the capability key from the service
             # For dynamic services, this comes from Service.linked_capability
+            # Standardizing to match _build_permission_tree: UPPER and with underscores
             cap_key = allowed_svc.name.upper().replace(" ", "_").replace("&", "")
+            svc_id_str = str(allowed_svc.service_id)
             
             print(f"       Checking: {allowed_svc.name} → {cap_key}")
             
             # Check if user has this capability
-            if cap_key in user_caps:
+            if cap_key in user_caps or (cap_key == "VETERINARY" and "VETERINARY_CORE" in user_caps):
                 print(f"          ✅ MATCH! Adding to tree")
-                # Skip VETERINARY_CORE if we already have a real Veterinary service from a plan
-                if cap_key == "VETERINARY_CORE" and any("VETERINARY" in (p.get("service_key") or "").upper() for p in permissions_list):
+                # Skip VETERINARY if we already have a real Veterinary service from a plan
+                if (cap_key == "VETERINARY" or cap_key == "VETERINARY_CORE") and any("VETERINARY" in (p.get("service_key") or "").upper() for p in permissions_list):
                     print(f"          ⏭️ Skipping (already have VETERINARY service)")
                     continue
 
-                # Check if already present to avoid duplicates
-                if not any(p.get('service_key') == cap_key for p in permissions_list):
+                # Check if already present to avoid duplicates (Check both ID and Key)
+                exists = any(
+                    p.get('service_key') == cap_key or p.get('service_id') == svc_id_str 
+                    for p in permissions_list
+                )
+
+                if not exists:
                     permissions_list.append({
-                        "service_id": str(allowed_svc.service_id),
+                        "service_id": svc_id_str,
                         "service_name": allowed_svc.name,
                         "service_key": cap_key,
                         "icon": allowed_svc.icon or "tabler-box",
@@ -360,7 +726,7 @@ def get_my_permissions(request):
                     })
                     print(f"          ➕ Added to permissions_list")
                 else:
-                    print(f"          ⏭️ Already in list")
+                    print(f"          ⏭️ Already in list (ID or Key match)")
             else:
                 print(f"          ❌ NO MATCH (not in user_caps)")
     
@@ -386,10 +752,6 @@ def get_my_permissions(request):
         "plan": plan_data,
         "user_profile": user_profile
     }
-
-    print(f"✅ DEBUG RESPONSE get_my_permissions: Found {len(permissions_list)} Services")
-    for p in permissions_list:
-        print(f"   SERVICE: {p.get('service_name')} (Key: {p.get('service_key')}, ID: {p.get('service_id')}) [View: {p.get('can_view')}]")
 
     return Response(response_data)
 
@@ -454,8 +816,7 @@ def get_allowed_services(request):
 
 from rest_framework import viewsets
 from rest_framework.decorators import action
-from .models import OrganizationEmployee, ServiceProvider
-from .serializers import OrganizationEmployeeSerializer
+    # These are already imported at the top of the file
 from .permissions import IsOrganizationAdmin
 
 class EmployeeViewSet(viewsets.ModelViewSet):
@@ -497,36 +858,91 @@ class EmployeeViewSet(viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         """
-        Proxy staff creation to Auth Service.
+        Proxy staff creation to Auth Service, then DIRECTLY create OrganizationEmployee.
+        Does NOT rely on Kafka to avoid race conditions and silent failures.
         """
-        # 1. Prepare data for Auth Service
+        user = request.user
+
+        # 1. Build registration payload
         auth_data = {
             "full_name": request.data.get("full_name"),
             "email": request.data.get("email"),
             "phone_number": request.data.get("phone_number"),
             "role": request.data.get("role"),
+            "organization_id": str(user.auth_user_id),
+            "provider_role": request.data.get("provider_role"),
         }
-        
-        # 2. Call Auth Service to register
+
+        # 2. Call Auth Service to register the user
         auth_header = request.headers.get('Authorization')
         try:
-            # Auth Service is at 8000
             auth_url = "http://localhost:8000/auth/api/auth/register/"
             response = requests.post(
                 auth_url,
                 json=auth_data,
                 headers={"Authorization": auth_header}
             )
-            
             if response.status_code != 201:
                 return Response(response.json(), status=response.status_code)
-            
-            # The Kafka consumer will handle creating the OrganizationEmployee record.
-            # But we can return the auth response which contains user details.
-            return Response(response.json(), status=status.HTTP_201_CREATED)
-            
+
         except Exception as e:
             return Response({"error": f"Failed to connect to Auth Service: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        # 3. [DIRECT CREATION] Get the organization's ServiceProvider record
+        try:
+            org_provider = ServiceProvider.objects.get(verified_user=user)
+        except ServiceProvider.DoesNotExist:
+            # Fallback: auto-create ServiceProvider for this org user
+            org_provider, _ = ServiceProvider.objects.get_or_create(
+                verified_user=user,
+                defaults={"provider_type": "ORGANIZATION"}
+            )
+
+        # 4. Get or create the employee's VerifiedUser record (Kafka will update it later too)
+        emp_auth_user_id = response.json().get("auth_user_id") or response.json().get("user_id")
+        
+        if emp_auth_user_id:
+            emp_verified_user, _ = VerifiedUser.objects.get_or_create(
+                auth_user_id=emp_auth_user_id,
+                defaults={
+                    "full_name": auth_data["full_name"],
+                    "email": auth_data["email"],
+                    "phone_number": auth_data["phone_number"],
+                    "role": auth_data["role"],
+                }
+            )
+            
+            # 5. Resolve provider_role if given
+            provider_role = None
+            provider_role_id = request.data.get("provider_role")
+            if provider_role_id:
+                try:
+                    provider_role = ProviderRole.objects.get(id=provider_role_id)
+                except (ProviderRole.DoesNotExist, Exception):
+                    pass
+
+            # 6. Create the OrganizationEmployee record directly
+            OrganizationEmployee.objects.update_or_create(
+                auth_user_id=emp_auth_user_id,
+                defaults={
+                    "organization": org_provider,
+                    "full_name": auth_data["full_name"],
+                    "email": auth_data["email"],
+                    "phone_number": auth_data["phone_number"],
+                    "role": auth_data["role"],
+                    "provider_role": provider_role,
+                    "status": "ACTIVE",
+                    "created_by": str(user.auth_user_id),  # FIX: NOT NULL constraint
+                    "average_rating": 0.0,
+                    "total_ratings": 0,
+                }
+            )
+            logger.info(f"✅ Directly created OrganizationEmployee {emp_auth_user_id} for org {user.auth_user_id}")
+        else:
+            logger.warning("⚠️ Auth Service did not return auth_user_id — employee record not created directly")
+
+        return Response(response.json(), status=status.HTTP_201_CREATED)
+
 
     @action(detail=True, methods=['post'])
     def suspend(self, request, pk=None):
@@ -604,6 +1020,73 @@ class EmployeeViewSet(viewsets.ModelViewSet):
         publish_employee_updated(employee)
 
 from .models import AllowedService
+
+
+
+class PublicProviderViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Public Marketplace API for Pet Parents.
+    Grants access to list and view active providers.
+    """
+    permission_classes = [AllowAny] 
+    queryset = ServiceProvider.objects.filter(profile_status='active', is_fully_verified=True)
+    
+    def get_serializer_class(self):
+        if self.action == 'retrieve':
+            return PublicProviderDetailSerializer
+        return PublicProviderSerializer
+    def get_queryset(self):
+         # Allow filtering by Query Params
+         qs = super().get_queryset()
+         
+         # Filter by type (Individual vs Organization)
+         provider_type = self.request.query_params.get('type')
+         if provider_type:
+             qs = qs.filter(verified_user__role__iexact=provider_type)
+             
+         # Search by Name or City
+         search = self.request.query_params.get('search')
+         if search:
+             from django.db.models import Q
+             qs = qs.filter(
+                 Q(verified_user__full_name__icontains=search) | 
+                 Q(verified_user__billing_profile__company_name__icontains=search) |
+                 Q(verified_user__billing_profile__contact__icontains=search)
+             )
+             
+         return qs
+
+    @action(detail=False, methods=['get'])
+    def active(self, request):
+        """
+        GET /api/provider/public-providers/active/
+        Discovery Marketplace API for Pet Parents.
+        Returns: LightDTO with active plan providers.
+        """
+        from .services import ProviderService
+        from .serializers import ActiveProviderDTO
+        
+        # Following Clean Architecture (ViewSet -> Service -> Repository)
+        providers = ProviderService.list_active_providers()
+        
+        # Search / Filter support
+        search = request.query_params.get('search')
+        if search:
+             from django.db.models import Q
+             providers = providers.filter(
+                 Q(verified_user__full_name__icontains=search) | 
+                 Q(verified_user__billing_profile__company_name__icontains=search) |
+                 Q(verified_user__billing_profile__contact__icontains=search)
+             )
+
+        # Pagination
+        page = self.paginate_queryset(providers)
+        if page is not None:
+            serializer = ActiveProviderDTO(page, many=True, context={'request': request})
+            return self.get_paginated_response(serializer.data)
+            
+        serializer = ActiveProviderDTO(providers, many=True, context={'request': request})
+        return Response(serializer.data)
 
 
 class EmployeeAssignmentViewSet(viewsets.ViewSet):
@@ -826,6 +1309,44 @@ class ProviderRoleViewSet(viewsets.ModelViewSet):
         logger.info(f"✅ Successfully deleted ProviderRole: {role_name}")
 
 
+class ConsultationTypeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ConsultationType
+        fields = ['id', 'name', 'description', 'duration_minutes', 'consultation_fee', 'is_active', 'created_at']
+        read_only_fields = ['id', 'created_at']
+
+
+class ConsultationTypeViewSet(viewsets.ModelViewSet):
+    """
+    Provider manages their consultation types.
+    Pet owners can GET /api/provider/consultation-types/?provider_id=<id>
+    """
+    serializer_class = ConsultationTypeSerializer
+
+    def get_permissions(self):
+        if self.action in ['list', 'retrieve']:
+            return [permissions.AllowAny()]
+        return [IsAuthenticated(), IsOrganizationAdmin()]
+
+    def get_queryset(self):
+        # Public read: filter by provider_id query param
+        provider_id_param = self.request.query_params.get('provider_id')
+        if provider_id_param:
+            return ConsultationType.objects.filter(
+                provider_id=provider_id_param, is_active=True
+            )
+        # Authenticated provider: return own types
+        try:
+            provider = ServiceProvider.objects.get(verified_user=self.request.user)
+            return ConsultationType.objects.filter(provider=provider)
+        except (ServiceProvider.DoesNotExist, AttributeError):
+            return ConsultationType.objects.none()
+
+    def perform_create(self, serializer):
+        provider = ServiceProvider.objects.get(verified_user=self.request.user)
+        serializer.save(provider=provider)
+
+
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def get_my_access(request):
@@ -843,7 +1364,10 @@ def get_my_access(request):
     except OrganizationEmployee.DoesNotExist:
         # Organization/Individual Owner
         # Fetch from ProviderCapability table (New Dynamic System)
-        capability_keys = set(user.dynamic_capabilities.filter(is_active=True).values_list('capability__key', flat=True))
+        if hasattr(user, 'dynamic_capabilities'):
+            capability_keys = set(user.dynamic_capabilities.filter(is_active=True).values_list('capability__key', flat=True))
+        else:
+            capability_keys = set()
         
     # 2. Fetch Modules for these keys
     from .models import FeatureModule
@@ -855,6 +1379,89 @@ def get_my_access(request):
         "capabilities": list(capability_keys),
         "modules": list(modules)
     })
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_dashboard_summary(request):
+    """
+    Returns high-level analytics for the provider dashboard.
+    """
+    import requests
+    user = request.user
+    try:
+        # Find the ServiceProvider associated with the logged-in user
+        provider = ServiceProvider.objects.get(verified_user__auth_user_id=user.auth_user_id)
+        
+        employee_count = OrganizationEmployee.objects.filter(organization=provider, deleted_at__isnull=True).count()
+        role_count = ProviderRole.objects.filter(provider=provider).count()
+        
+        # Fetch Clinic count from Veterinary Service
+        clinic_count = 0
+        try:
+            auth_header = request.headers.get('Authorization')
+            if auth_header:
+                # Internal URL for veterinary service (No 'api/' prefix in veterinary_service/urls.py)
+                VET_SERVICE_URL = "http://127.0.0.1:8004/veterinary/clinics/"
+                response = requests.get(
+                    VET_SERVICE_URL, 
+                    headers={"Authorization": auth_header},
+                    timeout=5
+                )
+                if response.status_code == 200:
+                    data = response.json()
+                    # ClinicViewSet returns a list or a paginated object
+                    if isinstance(data, dict):
+                         clinic_count = data.get('count', 0)
+                    elif isinstance(data, list):
+                         clinic_count = len(data)
+        except Exception as e:
+            logger.error(f"Error fetching clinic count from Veterinary Service: {e}")
+
+        # Fetch Bookings Count from Customer Service
+        booking_stats = {"total_bookings": 0, "pending_bookings": 0, "trend": []}
+        try:
+            auth_header = request.headers.get('Authorization')
+            if auth_header:
+                # Call the new stats endpoint
+                STATS_URL = f"http://127.0.0.1:8005/api/pet-owner/bookings/bookings/stats/?provider_id={provider.id}"
+                response = requests.get(
+                    STATS_URL, 
+                    headers={"Authorization": auth_header},
+                    timeout=5
+                )
+                if response.status_code == 200:
+                    booking_stats = response.json()
+        except Exception as e:
+            logger.error(f"Error fetching booking stats from Customer Service: {e}")
+
+        # Calculate Rating Distribution
+        rating_dist = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0}
+        try:
+            from django.db.models import Count
+            # provider.ratings is the related name
+            dist_qs = provider.ratings.values('rating').annotate(count=Count('rating'))
+            for item in dist_qs:
+                r_val = item.get('rating')
+                if r_val in rating_dist:
+                    rating_dist[r_val] = item.get('count', 0)
+        except Exception as e:
+            logger.error(f"Error calculating rating distribution: {e}")
+
+        return Response({
+            "total_employees": employee_count,
+            "total_roles": role_count,
+            "total_clinics": clinic_count,
+            "total_ratings": provider.total_ratings,
+            "average_rating": provider.average_rating,
+            "rating_distribution": rating_dist,
+            "bookings": booking_stats, 
+        })
+        
+    except ServiceProvider.DoesNotExist:
+        return Response({"detail": "Service Provider profile not found"}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        logger.error(f"Unexpected error in get_dashboard_summary: {e}")
+        return Response({"error": str(e)}, status=500)
 
 @api_view(["GET"])
 @permission_classes([AllowAny]) 
@@ -870,7 +1477,8 @@ def resolve_role_capabilities(request):
         return Response({"error": "Missing org_id or role_name"}, status=400)
     
     try:
-        from .models import ProviderRole, ProviderRoleCapability, OrganizationEmployee
+        # Models already imported at top-level
+        from .models import ProviderRoleCapability
         
         # 0. Special Handling for Organization Admin/Owner
         if role_name.lower() in ['admin', 'owner', 'organization', 'individual']:
@@ -898,3 +1506,284 @@ def resolve_role_capabilities(request):
         
     except Exception as e:
         return Response({"error": str(e)}, status=500)
+
+class RatingSubmitView(APIView):
+    """
+    POST /api/provider/ratings/
+    Submits a new rating and updates the provider's average_rating.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        """
+        List all ratings for the authenticated provider, OR
+        Return a specific rating if provider_id and service_id are provided.
+        """
+        # 1. Check if user is looking for their own rating of a specific service
+        provider_id = request.query_params.get('provider_id')
+        service_id = request.query_params.get('service_id')
+        
+        if provider_id and service_id:
+            try:
+                rating = ProviderRating.objects.get(
+                    customer_id=request.user.auth_user_id,
+                    provider_id=provider_id,
+                    service_id=service_id
+                )
+                return Response(ProviderRatingSerializer(rating).data)
+            except ProviderRating.DoesNotExist:
+                return Response({"rating": 0, "review": ""}, status=200)
+
+        # 2. Existing logic for providers (Owner or Organization for Employees)
+        try:
+            try:
+                # Direct check (for Owners)
+                provider = ServiceProvider.objects.get(verified_user__auth_user_id=request.user.auth_user_id)
+            except ServiceProvider.DoesNotExist:
+                # Employee check (find organization owner)
+                emp = OrganizationEmployee.objects.get(auth_user_id=request.user.auth_user_id)
+                provider = ServiceProvider.objects.get(verified_user=emp.organization.verified_user)
+
+            ratings = ProviderRating.objects.filter(provider=provider)
+            
+            # Optional filter by employee
+            employee_id = request.query_params.get('employee_id')
+            if employee_id:
+                ratings = ratings.filter(assigned_employee_id=employee_id)
+                
+            serializer = ProviderRatingSerializer(ratings, many=True)
+            return Response(serializer.data)
+        except ServiceProvider.DoesNotExist:
+            return Response({"error": "Provider profile not found"}, status=404)
+        except Exception as e:
+            return Response({"error": str(e)}, status=500)
+
+    def patch(self, request):
+        """
+        Allows provider to respond to a rating.
+        Expects: { "rating_id": "...", "response": "..." }
+        """
+        rating_id = request.data.get('rating_id')
+        response_text = request.data.get('response')
+
+        if not rating_id or not response_text:
+            return Response({"error": "rating_id and response are required"}, status=400)
+
+        try:
+            # 1. Verify provider profile
+            provider = ServiceProvider.objects.get(verified_user__auth_user_id=request.user.auth_user_id)
+            
+            # 2. Find and update the rating
+            rating = get_object_or_404(ProviderRating, id=rating_id, provider=provider)
+            
+            rating.provider_response = response_text
+            rating.responded_at = timezone.now()
+            rating.save(update_fields=['provider_response', 'responded_at'])
+
+            return Response({
+                "message": "Response submitted successfully",
+                "provider_response": rating.provider_response,
+                "responded_at": rating.responded_at
+            })
+
+        except ServiceProvider.DoesNotExist:
+            return Response({"error": "Provider profile not found"}, status=404)
+        except Exception as e:
+            return Response({"error": str(e)}, status=500)
+
+    def post(self, request):
+        provider_id = request.data.get('provider_id')
+        service_id = request.data.get('service_id')
+        assigned_employee_id = request.data.get('assigned_employee_id')
+        rating_val = request.data.get('rating')
+        review_text = request.data.get('review')
+        customer_id = request.user.auth_user_id
+
+        if not provider_id or rating_val is None:
+            return Response({"error": "provider_id and rating are required"}, status=400)
+
+        try:
+            rating_val = int(rating_val)
+            if not (1 <= rating_val <= 5):
+                raise ValueError()
+        except ValueError:
+            return Response({"error": "Rating must be between 1 and 5"}, status=400)
+
+        provider = get_object_or_404(ServiceProvider, id=provider_id)
+
+        # Security: Prevent self-rating
+        if provider.verified_user.auth_user_id == customer_id:
+            return Response({"error": "You cannot rate yourself"}, status=status.HTTP_403_FORBIDDEN)
+
+        with transaction.atomic():
+            customer_name = getattr(request.user, 'full_name', None)
+            customer_email = getattr(request.user, 'email', None)
+            customer_role = getattr(request.user, 'role', None)
+
+            # 1. Create the rating (or update if customer+provider+service unique)
+            # Use update_or_create to handle re-submissions for the same service
+            rating_obj, created = ProviderRating.objects.update_or_create(
+                customer_id=customer_id,
+                provider=provider,
+                service_id=service_id,
+                assigned_employee_id=assigned_employee_id,
+                defaults={
+                    "rating": rating_val,
+                    "review": review_text,
+                    "customer_name": customer_name,
+                    "customer_email": customer_email,
+                    "customer_role": customer_role
+                }
+            )
+
+            # 2. Recalculate Provider Totals
+            # Instead of full aggregation, use the suggested running average formula
+            # Note: If it's an update, the formula is slightly different, 
+            # but for simplicity we'll just re-aggregate if it's not a lot of ratings,
+            # OR just strictly follow the "new rating" logic for now as requested.
+            # Realistically, if it's an update, we should subtract the old and add the new.
+            
+            # Simple aggregation is safer and still fast for typical provider rating counts
+            from django.db.models import Avg, Count
+            stats = ProviderRating.objects.filter(provider=provider).aggregate(
+                avg=Avg('rating'),
+                count=Count('id')
+            )
+            
+            provider.average_rating = round(stats['avg'] or 0.0, 1)
+            provider.total_ratings = stats['count'] or 0
+            provider.save(update_fields=['average_rating', 'total_ratings'])
+
+            # 3. Recalculate Employee Totals (if applicable)
+            if assigned_employee_id:
+                # OrganizationEmployee already imported at top-level
+                # Use auth_user_id as assigned_employee_id (standard for our UUID refs)
+                employee = OrganizationEmployee.objects.filter(auth_user_id=assigned_employee_id).first()
+                if employee:
+                    emp_stats = ProviderRating.objects.filter(assigned_employee_id=assigned_employee_id).aggregate(
+                        avg=Avg('rating'),
+                        count=Count('id')
+                    )
+                    employee.average_rating = round(emp_stats['avg'] or 0.0, 1)
+                    employee.total_ratings = emp_stats['count'] or 0
+                    employee.save(update_fields=['average_rating', 'total_ratings'])
+            return Response({
+                "message": "Rating submitted successfully",
+                "average_rating": provider.average_rating,
+                "total_ratings": provider.total_ratings
+            }, status=status.HTTP_201_CREATED)
+
+
+class PublicProviderRatingView(APIView):
+    """
+    GET: List all ratings for a specific provider (publicly).
+    """
+    permission_classes = [AllowAny]
+
+    def get(self, request, provider_id):
+        ratings = ProviderRating.objects.filter(provider_id=provider_id).order_by('-created_at')
+        
+        # Optional filter by employee
+        employee_id = request.query_params.get('employee_id')
+        if employee_id:
+            ratings = ratings.filter(assigned_employee_id=employee_id)
+            
+        serializer = ProviderRatingSerializer(ratings, many=True)
+        return Response(serializer.data)
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def resolve_booking_details(request):
+    """
+    Internal/Public API to resolve Service, Category, Facility names AND Price by IDs.
+    Used by Booking service for snapshotting.
+    """
+    service_id = request.query_params.get('service_id')
+    facility_id = request.query_params.get('facility_id')
+
+    consultation_type_id = request.query_params.get('consultation_type_id')
+    employee_id = request.query_params.get('employee_id')
+
+    if not service_id or not facility_id:
+        return Response({"error": "service_id and facility_id are required."}, status=status.HTTP_400_BAD_REQUEST)
+
+    from provider_dynamic_fields.models import ProviderTemplateFacility, ProviderTemplateService, ProviderTemplatePricing
+    from .models import ConsultationType, OrganizationEmployee
+    
+    try:
+        facility = ProviderTemplateFacility.objects.get(super_admin_facility_id=facility_id)
+        category = facility.category
+        service = category.service
+        
+        # Try to find the template price
+        price_snapshot = {}
+        try:
+            pricing = ProviderTemplatePricing.objects.filter(facility=facility).first()
+            if pricing:
+                price_snapshot = {
+                    "price": str(pricing.price),
+                    "billing_unit": pricing.billing_unit,
+                    "service_duration_type": pricing.service_duration_type,
+                    "pricing_model": pricing.pricing_model,
+                    "duration_value": pricing.duration_value,
+                    "duration_minutes": pricing.duration_minutes,
+                    "daily_capacity": pricing.daily_capacity,
+                    "monthly_limit": pricing.monthly_limit,
+                }
+        except Exception:
+            pass
+
+        # 🚀 Handle Consultation Type Override
+        final_price = price_snapshot.get("price", str(facility.base_price))
+        final_duration = price_snapshot.get("duration_minutes", facility.duration_minutes)
+
+        if consultation_type_id:
+            try:
+                ct = ConsultationType.objects.get(id=consultation_type_id)
+                final_price = str(ct.consultation_fee)
+                final_duration = ct.duration_minutes
+                price_snapshot["price"] = final_price
+                price_snapshot["duration_minutes"] = final_duration
+                price_snapshot["consultation_type_name"] = ct.name
+            except ConsultationType.DoesNotExist:
+                pass
+
+        # 🚀 Handle Employee (Doctor) Specific Fee Override
+        if employee_id:
+            try:
+                emp = OrganizationEmployee.objects.get(id=employee_id)
+                # Only override if the doctor has a specific fee set (greater than 0)
+                if emp.consultation_fee > 0:
+                    final_price = str(emp.consultation_fee)
+                    price_snapshot["price"] = final_price
+                    price_snapshot["doctor_name"] = emp.full_name
+                    price_snapshot["specialization"] = emp.specialization
+            except OrganizationEmployee.DoesNotExist:
+                pass
+
+        return Response({
+            "service_name": service.display_name,
+            "category_name": category.name,
+            "facility_name": facility.name,
+            "protocol_type": facility.protocol_type,
+            "duration_minutes": final_duration,
+            "pricing_strategy": facility.pricing_strategy,
+            "base_price": str(facility.base_price),
+            "price_snapshot": price_snapshot,
+            "is_medical": (service.display_name.upper() == "VETERINARY"),
+            # Legacy fields for backward compatibility
+            "price": final_price,
+            "billing_unit": price_snapshot.get("billing_unit", "PER_SESSION"),
+            "duration": final_duration
+        })
+    except ProviderTemplateFacility.DoesNotExist:
+        # Try finding by service_id as a fallback if facility_id is complex
+        try:
+            service = ProviderTemplateService.objects.get(super_admin_service_id=service_id)
+            return Response({
+                "service_name": service.display_name,
+                "category_name": "General",
+                "facility_name": "Service",
+                "price": "0.00"
+            })
+        except ProviderTemplateService.DoesNotExist:
+            return Response({"error": "Service/Facility not found."}, status=status.HTTP_404_NOT_FOUND)

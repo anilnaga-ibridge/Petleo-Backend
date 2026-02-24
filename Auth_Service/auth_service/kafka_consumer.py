@@ -118,5 +118,21 @@ for message in consumer:
             except User.DoesNotExist:
                 logger.warning(f"⚠️ User {auth_user_id} not found for verification")
 
+        elif event_type == "USER_UPDATED":
+            auth_user_id = data.get("auth_user_id")
+            if not auth_user_id: continue
+
+            try:
+                user = User.objects.get(id=auth_user_id)
+                user.full_name = data.get("full_name", user.full_name)
+                user.email = data.get("email", user.email)
+                user.phone_number = data.get("phone_number", user.phone_number)
+                user.avatar_url = data.get("avatar_url", user.avatar_url)
+                
+                user.save(update_fields=["full_name", "email", "phone_number", "avatar_url"])
+                logger.info(f"🆙 Updated User {auth_user_id} profile from Kafka")
+            except User.DoesNotExist:
+                logger.warning(f"⚠️ User {auth_user_id} not found for update")
+
     except Exception as e:
         logger.exception(f"❌ Error processing Kafka message: {e}")

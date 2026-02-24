@@ -42,10 +42,10 @@ def test_employee_permissions(email):
     
     # Get organization (subscription owner)
     org = employee.organization
-    print(f"\n🏢 Organization: {org.email}")
+    print(f"\n🏢 Organization: {org.verified_user.email}")
     
     # Get organization's plan capabilities
-    org_caps = org.get_all_plan_capabilities()
+    org_caps = org.verified_user.get_all_plan_capabilities()
     print(f"\n📦 Organization Plan Capabilities ({len(org_caps)}):")
     for cap in sorted(org_caps):
         print(f"   - {cap}")
@@ -58,7 +58,7 @@ def test_employee_permissions(email):
         print(f"   - {perm}")
     
     # Build permission tree (what the API returns)
-    tree = _build_permission_tree(org)
+    tree = _build_permission_tree(org.verified_user)
     print(f"\n🌲 Organization Permission Tree ({len(tree)} services):")
     for service in tree:
         print(f"   - {service.get('service_name')} ({service.get('service_key')})")

@@ -230,14 +230,14 @@ class ProviderProfileSerializer(serializers.Serializer):
 # ==========================================================
 # 6) PROVIDER CRUD SERIALIZERS
 # ==========================================================
-from .models import ProviderCategory, ProviderFacility, ProviderPricing
+from .models import ProviderCategory, ProviderFacility, ProviderPricing, ProviderFacilityImage, ProviderTemplateFacilityImage
 
 class ProviderCategorySerializer(serializers.ModelSerializer):
     facilities = serializers.SerializerMethodField()
 
     class Meta:
         model = ProviderCategory
-        fields = ["id", "service_id", "name", "is_active", "created_at", "facilities"]
+        fields = ["id", "service_id", "name", "description", "is_active", "created_at", "facilities"]
         read_only_fields = ["id", "created_at"]
 
     def get_facilities(self, obj):
@@ -245,13 +245,57 @@ class ProviderCategorySerializer(serializers.ModelSerializer):
         facilities = obj.facilities.filter(is_active=True)
         return ProviderFacilitySerializer(facilities, many=True).data
 
+class ProviderFacilityImageSerializer(serializers.ModelSerializer):
+    image_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ProviderFacilityImage
+        fields = ["id", "image", "image_url", "created_at"]
+
+    def get_image_url(self, obj):
+        if obj.image and hasattr(obj.image, "url"):
+            request = self.context.get("request")
+            if request:
+                return request.build_absolute_uri(obj.image.url)
+            return obj.image.url
+        return None
+
+class ProviderTemplateFacilityImageSerializer(serializers.ModelSerializer):
+    image_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ProviderTemplateFacilityImage
+        fields = ["id", "image", "image_url", "created_at"]
+
+    def get_image_url(self, obj):
+        if obj.image and hasattr(obj.image, "url"):
+            request = self.context.get("request")
+            if request:
+                return request.build_absolute_uri(obj.image.url)
+            return obj.image.url
+        return None
+
 class ProviderFacilitySerializer(serializers.ModelSerializer):
     category_name = serializers.CharField(source="category.name", read_only=True)
+    image_url = serializers.SerializerMethodField()
+    gallery = serializers.SerializerMethodField()
 
     class Meta:
         model = ProviderFacility
-        fields = ["id", "category", "category_name", "name", "description", "price", "is_active", "created_at"]
+        fields = ["id", "category", "category_name", "name", "description", "price", "image", "image_url", "gallery", "is_active", "created_at"]
         read_only_fields = ["id", "created_at"]
+
+    def get_image_url(self, obj):
+        if obj.image and hasattr(obj.image, "url"):
+            request = self.context.get("request")
+            if request:
+                return request.build_absolute_uri(obj.image.url)
+            return obj.image.url
+        return None
+
+    def get_gallery(self, obj):
+        images = obj.gallery_images.all()
+        return ProviderFacilityImageSerializer(images, many=True, context=self.context).data
 
 class ProviderPricingSerializer(serializers.ModelSerializer):
     facility_name = serializers.CharField(source="facility.name", read_only=True)

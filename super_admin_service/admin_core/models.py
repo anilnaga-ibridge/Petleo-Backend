@@ -76,6 +76,7 @@ class VerifiedUser(models.Model):
     email = models.EmailField(blank=True, null=True)
     phone_number = models.CharField(max_length=15, blank=True, null=True)
     role = models.CharField(max_length=50, blank=True, null=True)
+    avatar_url = models.URLField(max_length=500, null=True, blank=True)
     permissions = models.JSONField(default=list, blank=True)
 
     created_at = models.DateTimeField(default=timezone.now)

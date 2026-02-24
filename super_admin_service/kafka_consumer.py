@@ -363,6 +363,14 @@ from django.conf import settings
 # -----------------------------
 # Django Setup
 # -----------------------------
+# -----------------------------
+# Django Setup
+# -----------------------------
+import sys
+# HACK: Add Auth Service to path to fix "ModuleNotFoundError: No module named 'auth_service.settings'"
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'Auth_Service', 'auth_service')))
+
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "super_admin_service.settings")
 django.setup()
 
@@ -430,13 +438,20 @@ while True:
             raw_role = event.get("role")
             role = normalize_role(raw_role)
 
-            logger.info(f"📨 EVENT: {event_type} | Role={role} | Data={data}")
-
             # Validate
             auth_user_id = data.get("auth_user_id")
             if not auth_user_id:
                 logger.warning("⚠️ Missing auth_user_id, skipping.")
                 continue
+
+            logger.info(f"📨 EVENT: {event_type} | Role={role} | Data={data}")
+            print("\n" + "="*50)
+            print(f"🕵️ KAFKA DEBUG: {event_type}")
+            print(f"   Auth ID: {auth_user_id}")
+            print(f"   Email:   {data.get('email')}")
+            print(f"   Role:    {role}")
+            print(f"   Avatar:  {data.get('avatar_url')}")
+            print("="*50)
 
             # -----------------------------
             # FILTER: Only Admin/SuperAdmin (EXCEPT DELETION)
@@ -454,6 +469,7 @@ while True:
                             "email": data.get("email"),
                             "phone_number": data.get("phone_number"),
                             "role": role,
+                            "avatar_url": data.get("avatar_url"),
                             "permissions": data.get("permissions", []),
                         },
                     )
@@ -472,12 +488,15 @@ while True:
                     email=data.get("email"),
                     phone_number=data.get("phone_number"),
                     role=role,
+                    avatar_url=data.get("avatar_url"),
                 )
 
                 if updated:
-                    logger.info(f"🆙 Updated VerifiedUser: {data.get('email')}")
+                    logger.info(f"🆙 Updated VerifiedUser: {data.get('email')} with avatar: {data.get('avatar_url')}")
+                    print(f"✅ DB UPDATE SUCCESS for {data.get('email')}")
                 else:
                     logger.warning(f"⚠️ User not found: {auth_user_id}")
+                    print(f"❌ DB UPDATE FAILED: User {auth_user_id} not in database")
 
             # -----------------------------
             # USER DELETED
@@ -486,7 +505,10 @@ while True:
                 deleted, _ = VerifiedUser.objects.filter(auth_user_id=auth_user_id).delete()
 
                 if deleted:
-                    logger.info(f"🗑️ Deleted VerifiedUser ID={auth_user_id}")
+                    from dynamic_fields.models import ProviderDocumentVerification
+                    # Also delete associated documents
+                    doc_deleted, _ = ProviderDocumentVerification.objects.filter(auth_user_id=auth_user_id).delete()
+                    logger.info(f"🗑️ Deleted VerifiedUser ID={auth_user_id}. Included {doc_deleted} documents.")
                 else:
                     logger.warning(f"⚠️ User not found for deletion: {auth_user_id}")
 
@@ -503,7 +525,7 @@ while True:
                         "definition_id": data.get("definition_id"),
                         "file_url": data.get("file_url"),
                         "filename": data.get("filename"),
-                        "status": "pending" if not VerifiedUser.objects.filter(auth_user_id=data.get("auth_user_id"), status="approved").exists() else "pending" # Keep it pending for admin review
+                    "status": "pending"
                     }
                 )
                 logger.info(f"✅ Document Verification Synced: {data.get('filename')} (ID: {doc_id})")

@@ -12,4 +12,4 @@ from plans_coupens.models import Plan
 
 print(f"Total Plans: {Plan.objects.count()}")
 for p in Plan.objects.all():
-    print(f"Plan: {p.title} (ID: {p.id}, Price: {p.price})")
+    print(f"Plan: {p.title} (ID: {p.id}, Price: {p.price}, Active: {p.is_active}, Target: {p.target_type})")

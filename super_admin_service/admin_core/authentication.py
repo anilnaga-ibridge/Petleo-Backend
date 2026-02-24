@@ -26,7 +26,7 @@ class CentralAuthJWTAuthentication(JWTAuthentication):
     "/api/superadmin/definitions/public",
     "/api/superadmin/definitions/public/",
     "/api/superadmin/provider/plans/",
-    # "/api/superadmin/services/",  <-- REMOVED THIS to enable auth
+    # "/api/superadmin/services/",  <-- REMOVED: Managed by ViewSet permissions
     ]
 
 
@@ -49,7 +49,9 @@ class CentralAuthJWTAuthentication(JWTAuthentication):
         # --------------------------
         # ✔ Normal JWT Auth
         # --------------------------
+        print(f"🔍 HEADERS: {request.headers}")
         auth_header = self.get_header(request)
+        print(f"🔍 Auth Header: {auth_header}")
         if auth_header is None:
             logger.warning(f"🔒 Missing Authorization header on PROTECTED URL: {request_path}")
             # raise AuthenticationFailed(_("Unauthorized"), code="authorization_header_missing")
@@ -59,6 +61,8 @@ class CentralAuthJWTAuthentication(JWTAuthentication):
         if raw_token is None:
             # raise AuthenticationFailed(_("Unauthorized"), code="token_missing")
              return None
+        
+        print(f"🕵️‍♂️ Decoding Token: {raw_token[:20]}...")
 
         try:
             payload = jwt.decode(
@@ -80,6 +84,7 @@ class CentralAuthJWTAuthentication(JWTAuthentication):
             raise AuthenticationFailed(_("Invalid token"), code="invalid_token")
 
         except Exception as e:
+            print(f"❌ DETAILED AUTH ERROR: {e}")
             logger.error(f"❌ Authentication error: {str(e)}")
             raise AuthenticationFailed(_("Authentication failed"), code="auth_failed")
 

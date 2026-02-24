@@ -165,6 +165,26 @@ services:
       timeout: 5s
       retries: 15
 
+  # 🗄 PostgreSQL for Customer Service
+  postgres_customer:
+    image: postgres:15
+    container_name: postgres_customer
+    environment:
+      POSTGRES_DB: customer_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5437:5432"
+    volumes:
+      - postgres_customer_data:/var/lib/postgresql/data
+    networks:
+      - micro_net
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+
   # 🔐 Django Auth Service
   auth_service:
     build:
@@ -257,6 +277,28 @@ services:
     networks:
       - micro_net
 
+  # 👥 Django Customer Service
+  customer_service:
+    build:
+      context: ./customer_service
+    container_name: customer_service
+    command: python manage.py runserver 0.0.0.0:8000 --noreload
+    ports:
+      - "8006:8000"
+    depends_on:
+      postgres_customer:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+    environment:
+      POSTGRES_HOST: postgres_customer
+      POSTGRES_DB: customer_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      KAFKA_BROKER_URL: kafka:9092
+    networks:
+      - micro_net
+
   # 🚪 API Gateway — KONG
   kong:
     image: kong:3.6
@@ -287,3 +329,4 @@ volumes:
   postgres_sa_data:
   redis_data:
   postgres_veterinary_data:
+  postgres_customer_data:

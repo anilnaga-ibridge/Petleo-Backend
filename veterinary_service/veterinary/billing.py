@@ -1,6 +1,6 @@
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from .models import Visit, VisitInvoice, VisitCharge, FormSubmission, DynamicFieldDefinition
+from .models import Visit, VisitInvoice, InvoiceLineItem, FormSubmission, DynamicFieldDefinition
 import logging
 
 logger = logging.getLogger(__name__)
@@ -11,13 +11,21 @@ def create_visit_invoice(sender, instance, created, **kwargs):
         # Create Invoice
         invoice = VisitInvoice.objects.create(visit=instance)
         
-        # Add Base Consultation Fee (Example: 500)
-        # In a real app, this might come from a pricing configuration
-        VisitCharge.objects.create(
-            visit_invoice=invoice,
+        # Add Base Consultation Fee
+        # Logic: Pull from linked appointment snapshot, fallback to default
+        fee = 500.00
+        description = 'Base Consultation Fee'
+        
+        if instance.appointment:
+            fee = instance.appointment.consultation_fee
+            if instance.appointment.consultation_type:
+                description = f"Consultation: {instance.appointment.consultation_type}"
+        
+        InvoiceLineItem.objects.create(
+            invoice=invoice,
             charge_type='CONSULTATION',
-            amount=500.00,
-            description='Base Consultation Fee'
+            unit_price=fee,
+            description=description
         )
         logger.info(f"✅ Created invoice and base charge for Visit {instance.id}")
 
@@ -29,12 +37,12 @@ def handle_visit_status_change(sender, instance, **kwargs):
         # Check if lab charge already exists for this visit
         invoice = getattr(instance, 'invoice', None)
         if invoice:
-            if not invoice.charges.filter(charge_type='LAB').exists():
+            if not invoice.items.filter(charge_type='LAB').exists():
                 # Add a placeholder lab charge or fetch from pricing
-                VisitCharge.objects.create(
-                    visit_invoice=invoice,
+                InvoiceLineItem.objects.create(
+                    invoice=invoice,
                     charge_type='LAB',
-                    amount=200.00, # Placeholder
+                    unit_price=200.00, # Placeholder
                     description='Lab Test Fee'
                 )
                 logger.info(f"✅ Added lab charge for Visit {instance.id}")
@@ -51,11 +59,11 @@ def handle_form_submission_billing(sender, instance, created, **kwargs):
         if instance.form_definition.code == 'PRESCRIPTION_FORM':
             # Add medicine charges based on data
             # This is a simplified example
-            VisitCharge.objects.create(
-                visit_invoice=invoice,
+            InvoiceLineItem.objects.create(
+                invoice=invoice,
                 charge_type='MEDICINE',
                 reference_id=instance.id,
-                amount=300.00, # Placeholder
+                unit_price=300.00, # Placeholder
                 description='Prescription Medicines'
             )
             logger.info(f"✅ Added medicine charge for Visit {visit.id}")

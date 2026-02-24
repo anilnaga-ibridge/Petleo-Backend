@@ -105,7 +105,9 @@ for message in consumer:
                                 "phone_number": data.get("phone_number"),
                                 "role": role,
                                 "status": "PENDING",
-                                "created_by": data.get("created_by")
+                                "created_by": data.get("created_by"),
+                                "average_rating": 0.0,
+                                "total_ratings": 0
                             },
                         )
                         logger.info(f"✅ Created OrganizationEmployee {auth_user_id} (Invited)")
@@ -127,7 +129,9 @@ for message in consumer:
                                     "phone_number": data.get("phone_number"),
                                     "role": role,
                                     "status": "PENDING",
-                                    "created_by": data.get("created_by")
+                                    "created_by": data.get("created_by"),
+                                    "average_rating": 0.0,
+                                    "total_ratings": 0
                                 },
                             )
                             logger.info(f"✅ Created OrganizationEmployee {auth_user_id} (Invited) after recovery")

@@ -1,0 +1,260 @@
+❌ [Port 8002] AVATAR ERROR for nainiv6@gmail.com: Invalid HTTP_HOST header: 'testserver'. You may need to add 'testserver' to ALLOWED_HOSTS.
+❌ Logging error: name 'json' is not defined
+👤 [Port 8002] User Profile for nainiv6@gmail.com: {'fullName': 'vvvvvv hdvd', 'email': 'nainiv6@gmail.com', 'phoneNumber': '7386797020', 'role': 'organization', 'avatar': None}
+\n====================================================================================================
+🚨 NEW CODE LOADED - VINOD FIX ACTIVE 🚨
+====================================================================================================\n
+DEBUG: Found valid subscription: 361e80c8-d804-4b84-a114-b0c27d96bae0
+
+====================================================================================================
+🏢 PROVIDER PERMISSION CALCULATION: nainiv6@gmail.com
+====================================================================================================
+   📊 Plan Capabilities Count: 10
+   📋 Plan Capabilities: ['VETERINARY_MEDICINE_REMINDERS', 'TRAINING', 'DAY_CARE', 'VETERINARY_LABS', 'VETERINARY_VISITS', 'VETERINARY_DOCTOR', 'VETERINARY_VITALS', 'VETERINARY_CORE', 'GROOMING', 'VETERINARY_PHARMACY']
+====================================================================================================
+
+\n🔍 ALLOWED SERVICE INJECTION (PROVIDER ONLY)
+   User Caps: ['VETERINARY_MEDICINE_REMINDERS', 'TRAINING', 'DAY_CARE', 'VETERINARY_LABS', 'VETERINARY_VISITS', 'VETERINARY_DOCTOR', 'VETERINARY_VITALS', 'VETERINARY_CORE', 'GROOMING', 'VETERINARY_PHARMACY']
+   Allowed Services Count: 4
+       Checking: Veterinary → VETERINARY
+          ✅ MATCH! Adding to tree
+          ⏭️ Skipping (already have VETERINARY service)
+       Checking: Training → TRAINING
+          ✅ MATCH! Adding to tree
+          ⏭️ Already in list (ID or Key match)
+       Checking: Grooming → GROOMING
+          ✅ MATCH! Adding to tree
+          ⏭️ Already in list (ID or Key match)
+       Checking: Day care → DAY_CARE
+          ✅ MATCH! Adding to tree
+          ⏭️ Already in list (ID or Key match)
+   Final Tree Count: 4
+
+✅ DEBUG RESPONSE get_my_permissions: Found 4 Services
+   SERVICE: Day care (Key: DAY_CARE, ID: fe211d28-6f8c-4712-b92c-4dee3e531abb) [View: True]
+   SERVICE: Grooming (Key: GROOMING, ID: 8da6c82b-2136-4a14-9670-2973682107a6) [View: True]
+   SERVICE: Training (Key: TRAINING, ID: 7ce1a0c2-50f0-40fe-a82f-df6767fcf91e) [View: True]
+   SERVICE: Veterinary (Key: VETERINARY_CORE, ID: 2dff446f-c95f-4310-ba4d-05e3395dd7eb) [View: True]
+
+--- JSON Response for nainiv6@gmail.com ---
+{
+  "permissions": [
+    {
+      "service_id": "fe211d28-6f8c-4712-b92c-4dee3e531abb",
+      "service_name": "Day care",
+      "name": "Day care",
+      "service_key": "DAY_CARE",
+      "icon": "tabler-paw",
+      "can_view": true,
+      "can_create": false,
+      "can_edit": false,
+      "can_delete": false,
+      "categories": [
+        {
+          "category_id": "847047e0-801c-45d8-9a9e-51408e90fc8b",
+          "category_name": "fdfsdf",
+          "name": "fdfsdf",
+          "linked_capability": null,
+          "category_key": "fdfsdf",
+          "can_view": true,
+          "can_create": false,
+          "can_edit": false,
+          "can_delete": false,
+          "facilities": [
+            {
+              "facility_id": "1f4aaf7a-cf57-40c1-a34b-69d2fd37e0b5",
+              "facility_name": "ewrwd",
+              "name": "ewrwd",
+              "can_view": true,
+              "can_create": false,
+              "can_edit": false,
+              "can_delete": false,
+              "price": "8236.00",
+              "duration": null,
+              "description": "",
+              "pricing_id": "1d7e9f02-1899-4764-bfbe-327fcab9db5d"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "service_id": "8da6c82b-2136-4a14-9670-2973682107a6",
+      "service_name": "Grooming",
+      "name": "Grooming",
+      "service_key": "GROOMING",
+      "icon": "tabler-scissors",
+      "can_view": true,
+      "can_create": false,
+      "can_edit": false,
+      "can_delete": false,
+      "categories": [
+        {
+          "category_id": "d155e7a6-62f5-4a43-a385-7cd2d817770b",
+          "category_name": "drgf",
+          "name": "drgf",
+          "linked_capability": null,
+          "category_key": "drgf",
+          "can_view": true,
+          "can_create": false,
+          "can_edit": false,
+          "can_delete": false,
+          "facilities": [
+            {
+              "facility_id": "1adef8d0-67e3-4c8c-8d53-2e3d6a7e797c",
+              "facility_name": "dsf",
+              "name": "dsf",
+              "can_view": true,
+              "can_create": false,
+              "can_edit": false,
+              "can_delete": false,
+              "price": "4.00",
+              "duration": 34,
+              "description": "",
+              "pricing_id": "6ab3c307-9e0d-41d0-8dfe-3705d0dd33c2"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "service_id": "7ce1a0c2-50f0-40fe-a82f-df6767fcf91e",
+      "service_name": "Training",
+      "name": "Training",
+      "service_key": "TRAINING",
+      "icon": "tabler-paw",
+      "can_view": true,
+      "can_create": false,
+      "can_edit": false,
+      "can_delete": false,
+      "categories": [
+        {
+          "category_id": "e5088946-69fe-4047-9e82-b28b94450f55",
+          "category_name": "dfgd",
+          "name": "dfgd",
+          "linked_capability": null,
+          "category_key": "dfgd",
+          "can_view": true,
+          "can_create": false,
+          "can_edit": false,
+          "can_delete": false,
+          "facilities": [
+            {
+              "facility_id": "55e45ccc-6c22-48ba-a883-5e297ccdbd9a",
+              "facility_name": "sdfs",
+              "name": "sdfs",
+              "can_view": true,
+              "can_create": false,
+              "can_edit": false,
+              "can_delete": false,
+              "price": "747.00",
+              "duration": 78,
+              "description": "",
+              "pricing_id": "5b3959c6-4cbf-4208-b19b-d010c433a32c"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "service_id": "2dff446f-c95f-4310-ba4d-05e3395dd7eb",
+      "service_name": "Veterinary",
+      "name": "Veterinary",
+      "service_key": "VETERINARY_CORE",
+      "icon": "tabler-stethoscope",
+      "can_view": true,
+      "can_create": false,
+      "can_edit": false,
+      "can_delete": false,
+      "categories": [
+        {
+          "category_id": "34857c1d-7f37-4c16-b989-378ddb127ad5",
+          "category_name": "Doctor Consultation",
+          "name": "Doctor Consultation",
+          "linked_capability": "VETERINARY_DOCTOR",
+          "category_key": "VETERINARY_DOCTOR",
+          "can_view": true,
+          "can_create": false,
+          "can_edit": false,
+          "can_delete": false,
+          "facilities": []
+        },
+        {
+          "category_id": "bf255bf5-ffe7-4d27-a4ad-0d5c39a04bee",
+          "category_name": "Laboratory",
+          "name": "Laboratory",
+          "linked_capability": "VETERINARY_LABS",
+          "category_key": "VETERINARY_LABS",
+          "can_view": true,
+          "can_create": false,
+          "can_edit": false,
+          "can_delete": false,
+          "facilities": []
+        },
+        {
+          "category_id": "6a2f2625-c277-43ae-b5d3-ac9e67974d27",
+          "category_name": "Medicine Reminders",
+          "name": "Medicine Reminders",
+          "linked_capability": "VETERINARY_MEDICINE_REMINDERS",
+          "category_key": "VETERINARY_MEDICINE_REMINDERS",
+          "can_view": true,
+          "can_create": false,
+          "can_edit": false,
+          "can_delete": false,
+          "facilities": []
+        },
+        {
+          "category_id": "7dae55eb-1bbe-4249-bb35-cb8a201e2f67",
+          "category_name": "Nurse Station",
+          "name": "Nurse Station",
+          "linked_capability": "VETERINARY_VITALS",
+          "category_key": "VETERINARY_VITALS",
+          "can_view": true,
+          "can_create": false,
+          "can_edit": false,
+          "can_delete": false,
+          "facilities": []
+        },
+        {
+          "category_id": "7f29f495-d3af-447c-ad03-b51a82940133",
+          "category_name": "Pharmacy",
+          "name": "Pharmacy",
+          "linked_capability": "VETERINARY_PHARMACY",
+          "category_key": "VETERINARY_PHARMACY",
+          "can_view": true,
+          "can_create": false,
+          "can_edit": false,
+          "can_delete": false,
+          "facilities": []
+        },
+        {
+          "category_id": "f0e16151-1dd9-409e-9f62-832c1d455cae",
+          "category_name": "Reception Desk",
+          "name": "Reception Desk",
+          "linked_capability": "VETERINARY_VISITS",
+          "category_key": "VETERINARY_VISITS",
+          "can_view": true,
+          "can_create": false,
+          "can_edit": false,
+          "can_delete": false,
+          "facilities": []
+        }
+      ]
+    }
+  ],
+  "plan": {
+    "title": "Basic plan",
+    "subtitle": "Weekly Plan",
+    "start_date": "2026-02-12 06:42:05.750295+00:00",
+    "end_date": "2026-02-19 06:42:05.750295+00:00",
+    "days_left": 6,
+    "is_expiring_soon": true
+  },
+  "user_profile": {
+    "fullName": "vvvvvv hdvd",
+    "email": "nainiv6@gmail.com",
+    "phoneNumber": "7386797020",
+    "role": "organization",
+    "avatar": null
+  }
+}

@@ -2422,3 +2422,1128 @@ LINE 1: DELETE FROM "service_provider_billingprofile" WHERE "service...
 2026-02-09 07:42:01,446 [INFO] ✅ Synced Field Definition: Test Field Sync
 2026-02-09 07:44:14,753 [INFO] 🔥 Event: FIELD_DEFINITION_DELETED | Role:  | Service: super_admin_service
 2026-02-09 07:44:14,755 [INFO] 🗑️ Deleted Field Definition: 06473790-956b-4d5f-a496-6f328b6dd848
+2026-02-10 04:46:25,356 [INFO] 🚀 Starting Service Provider Unified Kafka Consumer...
+2026-02-10 04:46:25,369 [INFO] ✅ Connected to Kafka broker.
+2026-02-10 07:02:52,685 [INFO] 🔥 Event: PROVIDER.PERMISSIONS.UPDATED | Role:  | Service: None
+2026-02-10 07:02:52,748 [INFO] DEBUG: [KAFKA RECV] provider.permissions.updated | User: 70d3ded9-0dc0-4c1d-94b7-12b4e668cfce
+2026-02-10 07:02:52,748 [INFO] DEBUG: Payload Keys: ['auth_user_id', 'purchase_id', 'permissions', 'purchased_plan', 'templates', 'dynamic_capabilities']
+2026-02-10 07:02:52,748 [INFO] DEBUG: Templates Received - Services: 16, Cats: 9
+2026-02-10 07:02:52,893 [INFO] ✅ Synced Templates for user 70d3ded9-0dc0-4c1d-94b7-12b4e668cfce
+2026-02-10 07:02:53,011 [INFO] 🧹 Cleared old permissions for user 70d3ded9-0dc0-4c1d-94b7-12b4e668cfce → permissions=[]
+2026-02-10 07:02:53,011 [INFO] DEBUG: perms_map size: 19
+2026-02-10 07:02:53,011 [INFO] DEBUG: Sample perms_map keys: [('2dff446f-c95f-4310-ba4d-05e3395dd7eb', None, None, None), ('7ce1a0c2-50f0-40fe-a82f-df6767fcf91e', None, None, None), ('8da6c82b-2136-4a14-9670-2973682107a6', None, None, None)]
+2026-02-10 07:02:53,012 [INFO] DEBUG: About to bulk_create 19 ProviderCapabilityAccess records
+2026-02-10 07:02:53,026 [INFO] DEBUG: bulk_create completed successfully
+2026-02-10 07:02:53,038 [INFO] 🗑️ Invalidated cache for 3 employees
+2026-02-10 07:02:53,055 [INFO] ✅ Updated 19 capabilities for user 70d3ded9-0dc0-4c1d-94b7-12b4e668cfce
+2026-02-10 07:02:53,057 [INFO] 📋 Linked capabilities: ['VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_PHARMACY', 'VETERINARY_VISITS', 'VETERINARY_VITALS', 'VETERINARY_DOCTOR', 'VETERINARY_LABS']
+2026-02-10 07:02:53,058 [INFO] 🏥 Veterinary capabilities: ['VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_PHARMACY', 'VETERINARY_VISITS', 'VETERINARY_VITALS', 'VETERINARY_DOCTOR', 'VETERINARY_LABS']
+2026-02-10 07:02:53,058 [INFO] ✅ Auto-added VETERINARY_CORE (vet capabilities detected: ['VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_PHARMACY', 'VETERINARY_VISITS', 'VETERINARY_VITALS', 'VETERINARY_DOCTOR', 'VETERINARY_LABS'])
+2026-02-10 07:02:53,061 [INFO] ✅ Final user capabilities: ['VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_PHARMACY', 'VETERINARY_VISITS', 'VETERINARY_VITALS', 'VETERINARY_DOCTOR', 'VETERINARY_LABS', 'VETERINARY_CORE']
+2026-02-10 07:02:53,068 [INFO] ✅ Synced Subscription for user 70d3ded9-0dc0-4c1d-94b7-12b4e668cfce
+2026-02-10 07:02:53,068 [INFO] DEBUG: Capabilities Processing | Raw Count: 4
+2026-02-10 07:02:53,087 [INFO] ✅ Synced 4 Dynamic Capabilities for user 70d3ded9-0dc0-4c1d-94b7-12b4e668cfce
+2026-02-10 07:02:53,087 [INFO] 📤 Publishing Permissions Sync: 19 items enriched
+2026-02-10 07:02:53,222 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-02-10 07:02:53,223 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-02-10 07:37:47,017 [INFO] 🔥 Event: PROVIDER.PERMISSIONS.UPDATED | Role:  | Service: None
+2026-02-10 07:37:47,019 [INFO] DEBUG: [KAFKA RECV] provider.permissions.updated | User: 70d3ded9-0dc0-4c1d-94b7-12b4e668cfce
+2026-02-10 07:37:47,019 [INFO] DEBUG: Payload Keys: ['auth_user_id', 'purchase_id', 'permissions', 'purchased_plan', 'templates', 'dynamic_capabilities']
+2026-02-10 07:37:47,019 [INFO] DEBUG: Templates Received - Services: 4, Cats: 9
+2026-02-10 07:37:47,093 [INFO] ✅ Synced Templates for user 70d3ded9-0dc0-4c1d-94b7-12b4e668cfce
+2026-02-10 07:37:47,190 [INFO] 🧹 Cleared old permissions for user 70d3ded9-0dc0-4c1d-94b7-12b4e668cfce → permissions=[]
+2026-02-10 07:37:47,190 [INFO] DEBUG: perms_map size: 19
+2026-02-10 07:37:47,190 [INFO] DEBUG: Sample perms_map keys: [('2dff446f-c95f-4310-ba4d-05e3395dd7eb', None, None, None), ('7ce1a0c2-50f0-40fe-a82f-df6767fcf91e', None, None, None), ('8da6c82b-2136-4a14-9670-2973682107a6', None, None, None)]
+2026-02-10 07:37:47,191 [INFO] DEBUG: About to bulk_create 19 ProviderCapabilityAccess records
+2026-02-10 07:37:47,195 [INFO] DEBUG: bulk_create completed successfully
+2026-02-10 07:37:47,201 [INFO] 🗑️ Invalidated cache for 3 employees
+2026-02-10 07:37:47,212 [INFO] ✅ Updated 19 capabilities for user 70d3ded9-0dc0-4c1d-94b7-12b4e668cfce
+2026-02-10 07:37:47,214 [INFO] 📋 Linked capabilities: ['VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_PHARMACY', 'VETERINARY_VITALS', 'VETERINARY_VISITS', 'VETERINARY_DOCTOR', 'VETERINARY_LABS']
+2026-02-10 07:37:47,214 [INFO] 🏥 Veterinary capabilities: ['VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_PHARMACY', 'VETERINARY_VITALS', 'VETERINARY_VISITS', 'VETERINARY_DOCTOR', 'VETERINARY_LABS']
+2026-02-10 07:37:47,215 [INFO] ✅ Auto-added VETERINARY_CORE (vet capabilities detected: ['VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_PHARMACY', 'VETERINARY_VITALS', 'VETERINARY_VISITS', 'VETERINARY_DOCTOR', 'VETERINARY_LABS'])
+2026-02-10 07:37:47,216 [INFO] ✅ Final user capabilities: ['VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_PHARMACY', 'VETERINARY_VITALS', 'VETERINARY_VISITS', 'VETERINARY_DOCTOR', 'VETERINARY_LABS', 'VETERINARY_CORE']
+2026-02-10 07:37:47,219 [INFO] ✅ Synced Subscription for user 70d3ded9-0dc0-4c1d-94b7-12b4e668cfce
+2026-02-10 07:37:47,219 [INFO] DEBUG: Capabilities Processing | Raw Count: 0
+2026-02-10 07:37:47,219 [INFO] 📤 Publishing Permissions Sync: 19 items enriched
+2026-02-10 07:37:47,232 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-02-10 07:37:47,233 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-02-11 04:45:31,811 [INFO] 🚀 Starting Service Provider Unified Kafka Consumer...
+2026-02-11 04:45:31,825 [INFO] ✅ Connected to Kafka broker.
+2026-02-12 04:36:41,910 [INFO] 🚀 Starting Service Provider Unified Kafka Consumer...
+2026-02-12 04:36:41,924 [INFO] ✅ Connected to Kafka broker.
+2026-02-12 06:42:06,115 [INFO] 🔥 Event: PROVIDER.PERMISSIONS.UPDATED | Role:  | Service: None
+2026-02-12 06:42:06,175 [INFO] DEBUG: [KAFKA RECV] provider.permissions.updated | User: 045198a4-b8c0-45f3-8f99-ae7305bdb490
+2026-02-12 06:42:06,175 [INFO] DEBUG: Payload Keys: ['auth_user_id', 'purchase_id', 'permissions', 'purchased_plan', 'templates', 'dynamic_capabilities']
+2026-02-12 06:42:06,175 [INFO] DEBUG: Templates Received - Services: 4, Cats: 9
+2026-02-12 06:42:06,254 [INFO] ✅ Synced Templates for user 045198a4-b8c0-45f3-8f99-ae7305bdb490
+2026-02-12 06:42:06,360 [INFO] 🧹 Cleared old permissions for user 045198a4-b8c0-45f3-8f99-ae7305bdb490 → permissions=[]
+2026-02-12 06:42:06,361 [INFO] DEBUG: perms_map size: 19
+2026-02-12 06:42:06,361 [INFO] DEBUG: Sample perms_map keys: [('2dff446f-c95f-4310-ba4d-05e3395dd7eb', None, None, None), ('7ce1a0c2-50f0-40fe-a82f-df6767fcf91e', None, None, None), ('8da6c82b-2136-4a14-9670-2973682107a6', None, None, None)]
+2026-02-12 06:42:06,362 [INFO] DEBUG: About to bulk_create 19 ProviderCapabilityAccess records
+2026-02-12 06:42:06,375 [INFO] DEBUG: bulk_create completed successfully
+2026-02-12 06:42:06,389 [INFO] 🗑️ Invalidated cache for 1 employees
+2026-02-12 06:42:06,407 [INFO] ✅ Updated 19 capabilities for user 045198a4-b8c0-45f3-8f99-ae7305bdb490
+2026-02-12 06:42:06,409 [INFO] 📋 Linked capabilities: ['VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_LABS', 'VETERINARY_PHARMACY', 'VETERINARY_DOCTOR', 'VETERINARY_VISITS', 'VETERINARY_VITALS']
+2026-02-12 06:42:06,409 [INFO] 🏥 Veterinary capabilities: ['VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_LABS', 'VETERINARY_PHARMACY', 'VETERINARY_DOCTOR', 'VETERINARY_VISITS', 'VETERINARY_VITALS']
+2026-02-12 06:42:06,409 [INFO] ✅ Auto-added VETERINARY_CORE (vet capabilities detected: ['VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_LABS', 'VETERINARY_PHARMACY', 'VETERINARY_DOCTOR', 'VETERINARY_VISITS', 'VETERINARY_VITALS'])
+2026-02-12 06:42:06,411 [INFO] ✅ Final user capabilities: ['VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_LABS', 'VETERINARY_PHARMACY', 'VETERINARY_DOCTOR', 'VETERINARY_VISITS', 'VETERINARY_VITALS', 'VETERINARY_CORE']
+2026-02-12 06:42:06,417 [INFO] ✅ Synced Subscription for user 045198a4-b8c0-45f3-8f99-ae7305bdb490
+2026-02-12 06:42:06,418 [INFO] DEBUG: Capabilities Processing | Raw Count: 0
+2026-02-12 06:42:06,418 [INFO] 📤 Publishing Permissions Sync: 19 items enriched
+2026-02-12 06:42:06,557 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-02-12 06:42:06,557 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-02-13 04:48:19,630 [INFO] 🚀 Starting Service Provider Unified Kafka Consumer...
+2026-02-13 04:48:19,644 [INFO] ✅ Connected to Kafka broker.
+2026-02-13 05:40:36,009 [INFO] 🔥 Event: SEND_EMAIL | Role: organization | Service: auth_service
+2026-02-13 05:40:36,010 [WARNING] ⚠️ Unknown event type 'SEND_EMAIL' received.
+2026-02-13 05:40:36,011 [INFO] 🔥 Event: USER_CREATED | Role: organization | Service: auth_service
+2026-02-13 05:40:36,012 [INFO] DEBUG: Checking role 'organization' against employee list...
+2026-02-13 05:40:36,064 [INFO] ✅ Created VerifiedUser raj@gmail.com
+2026-02-13 05:40:36,070 [INFO] ✅ Auto-created ServiceProvider profile for raj@gmail.com
+2026-02-13 05:40:54,722 [INFO] 🔥 Event: USER_VERIFIED | Role: organization | Service: auth_service
+2026-02-13 05:40:54,723 [INFO] DEBUG: Checking role 'organization' against employee list...
+2026-02-13 05:40:54,728 [INFO] 🔄 Updated VerifiedUser raj@gmail.com
+2026-02-13 05:42:19,039 [INFO] 🔥 Event: EMPLOYEE_UPDATED | Role: provider | Service: None
+2026-02-13 05:42:19,042 [WARNING] ⚠️ OrganizationEmployee 8814fb40-b4cf-439c-97d6-4a49a7a2c3f5 not found for update
+2026-02-13 05:42:19,082 [INFO] 🔥 Event: PROVIDER.DOCUMENT.UPLOADED | Role: service_provider | Service: None
+2026-02-13 05:42:19,082 [WARNING] ⚠️ Unknown event type 'PROVIDER.DOCUMENT.UPLOADED' received.
+2026-02-13 05:42:19,086 [INFO] 🔥 Event: PROVIDER.DOCUMENT.UPLOADED | Role: service_provider | Service: None
+2026-02-13 05:42:19,086 [WARNING] ⚠️ Unknown event type 'PROVIDER.DOCUMENT.UPLOADED' received.
+2026-02-13 05:42:19,095 [INFO] 🔥 Event: PROVIDER.DOCUMENT.UPLOADED | Role: service_provider | Service: None
+2026-02-13 05:42:19,095 [WARNING] ⚠️ Unknown event type 'PROVIDER.DOCUMENT.UPLOADED' received.
+2026-02-13 06:45:37,847 [INFO] 🔥 Event: EMPLOYEE_UPDATED | Role: provider | Service: None
+2026-02-13 06:45:37,863 [WARNING] ⚠️ OrganizationEmployee 8814fb40-b4cf-439c-97d6-4a49a7a2c3f5 not found for update
+2026-02-13 06:48:55,149 [INFO] 🔥 Event: EMPLOYEE_UPDATED | Role: provider | Service: None
+2026-02-13 06:48:55,151 [WARNING] ⚠️ OrganizationEmployee 8814fb40-b4cf-439c-97d6-4a49a7a2c3f5 not found for update
+2026-02-13 06:50:03,555 [INFO] 🔥 Event: EMPLOYEE_UPDATED | Role: provider | Service: None
+2026-02-13 06:50:03,556 [WARNING] ⚠️ OrganizationEmployee 8814fb40-b4cf-439c-97d6-4a49a7a2c3f5 not found for update
+2026-02-13 06:50:03,593 [INFO] 🔥 Event: PROVIDER.DOCUMENT.UPLOADED | Role: service_provider | Service: None
+2026-02-13 06:50:03,594 [WARNING] ⚠️ Unknown event type 'PROVIDER.DOCUMENT.UPLOADED' received.
+2026-02-13 06:50:03,600 [INFO] 🔥 Event: PROVIDER.DOCUMENT.UPLOADED | Role: service_provider | Service: None
+2026-02-13 06:50:03,601 [WARNING] ⚠️ Unknown event type 'PROVIDER.DOCUMENT.UPLOADED' received.
+2026-02-13 06:50:03,606 [INFO] 🔥 Event: PROVIDER.DOCUMENT.UPLOADED | Role: service_provider | Service: None
+2026-02-13 06:50:03,607 [WARNING] ⚠️ Unknown event type 'PROVIDER.DOCUMENT.UPLOADED' received.
+2026-02-13 06:59:28,212 [INFO] 🔥 Event: EMPLOYEE_UPDATED | Role: provider | Service: None
+2026-02-13 06:59:28,214 [WARNING] ⚠️ OrganizationEmployee 8814fb40-b4cf-439c-97d6-4a49a7a2c3f5 not found for update
+2026-02-13 06:59:28,262 [INFO] 🔥 Event: PROVIDER.DOCUMENT.UPLOADED | Role: service_provider | Service: None
+2026-02-13 06:59:28,262 [WARNING] ⚠️ Unknown event type 'PROVIDER.DOCUMENT.UPLOADED' received.
+2026-02-13 06:59:28,272 [INFO] 🔥 Event: PROVIDER.DOCUMENT.UPLOADED | Role: service_provider | Service: None
+2026-02-13 06:59:28,273 [WARNING] ⚠️ Unknown event type 'PROVIDER.DOCUMENT.UPLOADED' received.
+2026-02-13 06:59:28,287 [INFO] 🔥 Event: PROVIDER.DOCUMENT.UPLOADED | Role: service_provider | Service: None
+2026-02-13 06:59:28,288 [WARNING] ⚠️ Unknown event type 'PROVIDER.DOCUMENT.UPLOADED' received.
+2026-02-13 07:51:51,756 [INFO] 🔥 Event: ADMIN.DOCUMENT.VERIFIED | Role:  | Service: super_admin_service
+2026-02-13 07:51:51,761 [INFO] ✅ Document 1a4e69bb-d32a-48b3-80c3-b3a65131aad7 verified: approved
+2026-02-13 07:51:52,548 [INFO] 🔥 Event: ADMIN.DOCUMENT.VERIFIED | Role:  | Service: super_admin_service
+2026-02-13 07:51:52,551 [INFO] ✅ Document 85bf79b9-1053-4fa3-89ef-f8903cbfb589 verified: approved
+2026-02-13 07:51:54,098 [INFO] 🔥 Event: ADMIN.DOCUMENT.VERIFIED | Role:  | Service: super_admin_service
+2026-02-13 07:51:54,099 [INFO] ✅ Document ba410402-ec1a-4f79-9526-46be967a1864 verified: approved
+2026-02-13 07:51:54,104 [INFO] 🔥 Event: USER_VERIFIED | Role:  | Service: super_admin_service
+2026-02-13 07:51:54,104 [INFO] DEBUG: Checking role '' against employee list...
+2026-02-13 07:52:07,634 [INFO] 🔥 Event: PROVIDER.PERMISSIONS.UPDATED | Role:  | Service: None
+2026-02-13 07:52:07,638 [INFO] DEBUG: [KAFKA RECV] provider.permissions.updated | User: 8814fb40-b4cf-439c-97d6-4a49a7a2c3f5
+2026-02-13 07:52:07,638 [INFO] DEBUG: Payload Keys: ['auth_user_id', 'purchase_id', 'permissions', 'purchased_plan', 'templates', 'dynamic_capabilities']
+2026-02-13 07:52:07,638 [INFO] DEBUG: Templates Received - Services: 4, Cats: 9
+2026-02-13 07:52:07,787 [INFO] ✅ Synced Templates for user 8814fb40-b4cf-439c-97d6-4a49a7a2c3f5
+2026-02-13 07:52:07,792 [INFO] 🧹 Cleared old permissions for user 8814fb40-b4cf-439c-97d6-4a49a7a2c3f5 → permissions=[]
+2026-02-13 07:52:07,792 [INFO] DEBUG: perms_map size: 16
+2026-02-13 07:52:07,792 [INFO] DEBUG: Sample perms_map keys: [('2dff446f-c95f-4310-ba4d-05e3395dd7eb', None, None, None), ('7ce1a0c2-50f0-40fe-a82f-df6767fcf91e', None, None, None), ('8da6c82b-2136-4a14-9670-2973682107a6', None, None, None)]
+2026-02-13 07:52:07,793 [INFO] DEBUG: About to bulk_create 16 ProviderCapabilityAccess records
+2026-02-13 07:52:07,802 [INFO] DEBUG: bulk_create completed successfully
+2026-02-13 07:52:07,812 [INFO] 🗑️ Invalidated cache for 0 employees
+2026-02-13 07:52:07,825 [INFO] ✅ Updated 16 capabilities for user 8814fb40-b4cf-439c-97d6-4a49a7a2c3f5
+2026-02-13 07:52:07,827 [INFO] 📋 Linked capabilities: ['VETERINARY_LABS', 'VETERINARY_VISITS', 'VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_DOCTOR', 'VETERINARY_PHARMACY', 'VETERINARY_VITALS']
+2026-02-13 07:52:07,827 [INFO] 🏥 Veterinary capabilities: ['VETERINARY_LABS', 'VETERINARY_VISITS', 'VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_DOCTOR', 'VETERINARY_PHARMACY', 'VETERINARY_VITALS']
+2026-02-13 07:52:07,827 [INFO] ✅ Auto-added VETERINARY_CORE (vet capabilities detected: ['VETERINARY_LABS', 'VETERINARY_VISITS', 'VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_DOCTOR', 'VETERINARY_PHARMACY', 'VETERINARY_VITALS'])
+2026-02-13 07:52:07,829 [INFO] ✅ Final user capabilities: ['VETERINARY_LABS', 'VETERINARY_VISITS', 'VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_DOCTOR', 'VETERINARY_PHARMACY', 'VETERINARY_VITALS', 'VETERINARY_CORE']
+2026-02-13 07:52:07,834 [INFO] ✅ Synced Subscription for user 8814fb40-b4cf-439c-97d6-4a49a7a2c3f5
+2026-02-13 07:52:07,834 [INFO] DEBUG: Capabilities Processing | Raw Count: 0
+2026-02-13 07:52:07,834 [INFO] 📤 Publishing Permissions Sync: 16 items enriched
+2026-02-13 07:52:07,964 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-02-13 07:52:07,964 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-02-13 10:11:06,868 [INFO] 🔥 Event: FIELD_DEFINITION_CREATED | Role:  | Service: super_admin_service
+2026-02-13 10:11:06,890 [INFO] ✅ Synced Field Definition: Location
+2026-02-13 10:11:43,441 [INFO] 🔥 Event: FIELD_DEFINITION_CREATED | Role:  | Service: super_admin_service
+2026-02-13 10:11:43,445 [INFO] ✅ Synced Field Definition: Location
+2026-02-13 10:12:10,611 [INFO] 🔥 Event: FIELD_DEFINITION_CREATED | Role:  | Service: super_admin_service
+2026-02-13 10:12:10,615 [INFO] ✅ Synced Field Definition: Location
+2026-02-13 10:12:32,560 [INFO] 🔥 Event: FIELD_DEFINITION_CREATED | Role:  | Service: super_admin_service
+2026-02-13 10:12:32,566 [INFO] ✅ Synced Field Definition: Location
+2026-02-13 10:21:43,568 [INFO] 🔥 Event: EMPLOYEE_UPDATED | Role: provider | Service: None
+2026-02-13 10:21:43,575 [WARNING] ⚠️ OrganizationEmployee 8814fb40-b4cf-439c-97d6-4a49a7a2c3f5 not found for update
+2026-02-13 10:22:20,561 [INFO] 🔥 Event: EMPLOYEE_UPDATED | Role: provider | Service: None
+2026-02-13 10:22:20,565 [WARNING] ⚠️ OrganizationEmployee 8814fb40-b4cf-439c-97d6-4a49a7a2c3f5 not found for update
+2026-02-17 04:42:45,804 [INFO] 🚀 Starting Service Provider Unified Kafka Consumer...
+2026-02-17 04:42:45,817 [INFO] ✅ Connected to Kafka broker.
+2026-02-17 05:18:08,337 [INFO] 🔥 Event: USER_UPDATED | Role: provider | Service: None
+2026-02-17 05:18:08,437 [INFO] 🆙 Updated VerifiedUser 8814fb40-b4cf-439c-97d6-4a49a7a2c3f5
+2026-02-17 05:18:08,449 [INFO] 🔥 Event: USER_UPDATED | Role: provider | Service: None
+2026-02-17 05:18:08,452 [INFO] 🆙 Updated VerifiedUser ec9bf7a3-6b54-40ff-bb67-52d94d5f439c
+2026-02-17 05:21:36,025 [INFO] 🔥 Event: USER_DELETED | Role: organization | Service: auth_service
+2026-02-17 05:21:36,037 [INFO] 🗑️ Deleted user records for 8814fb40-b4cf-439c-97d6-4a49a7a2c3f5
+2026-02-17 05:21:39,596 [INFO] 🔥 Event: USER_DELETED | Role: individual | Service: auth_service
+2026-02-17 05:21:39,599 [INFO] 🗑️ Deleted user records for c87e1284-5597-4378-bad3-ec016ffe9651
+2026-02-17 05:31:43,395 [INFO] 🔥 Event: USER_UPDATED | Role: provider | Service: None
+2026-02-17 05:31:43,397 [INFO] 🆙 Updated VerifiedUser 786477e7-a9a3-4877-bb89-7023c7263c96
+2026-02-17 05:33:04,792 [INFO] 🔥 Event: USER_UPDATED | Role: provider | Service: None
+2026-02-17 05:33:04,794 [INFO] 🆙 Updated VerifiedUser 786477e7-a9a3-4877-bb89-7023c7263c96
+2026-02-17 05:33:44,121 [INFO] 🔥 Event: USER_UPDATED | Role: provider | Service: None
+2026-02-17 05:33:44,123 [INFO] 🆙 Updated VerifiedUser 786477e7-a9a3-4877-bb89-7023c7263c96
+2026-02-17 05:34:16,473 [INFO] 🔥 Event: USER_UPDATED | Role: provider | Service: None
+2026-02-17 05:34:16,475 [INFO] 🆙 Updated VerifiedUser 786477e7-a9a3-4877-bb89-7023c7263c96
+2026-02-17 05:34:46,405 [INFO] 🔥 Event: USER_UPDATED | Role: provider | Service: None
+2026-02-17 05:34:46,407 [INFO] 🆙 Updated VerifiedUser 786477e7-a9a3-4877-bb89-7023c7263c96
+2026-02-17 05:35:27,277 [INFO] 🔥 Event: USER_UPDATED | Role: provider | Service: None
+2026-02-17 05:35:27,278 [INFO] 🆙 Updated VerifiedUser 73793298-901c-42fd-9772-cd98e2dd986a
+2026-02-17 05:48:50,947 [INFO] 🔥 Event: USER_UPDATED | Role: super_admin | Service: auth_service
+2026-02-17 05:49:45,647 [INFO] 🚀 Starting Service Provider Unified Kafka Consumer...
+2026-02-17 05:49:45,658 [INFO] ✅ Connected to Kafka broker.
+2026-02-17 05:49:53,257 [INFO] 🔥 Event: USER_UPDATED | Role: super_admin | Service: auth_service
+2026-02-17 06:28:18,893 [INFO] 🔥 Event: USER_UPDATED | Role: superadmin | Service: None
+2026-02-17 06:28:18,899 [INFO] 🆙 Updated VerifiedUser 00871178-2ebd-4575-8a2e-4eb419cd56b8
+2026-02-17 06:28:26,750 [INFO] 🔥 Event: USER_UPDATED | Role: superadmin | Service: None
+2026-02-17 06:28:26,752 [INFO] 🆙 Updated VerifiedUser 00871178-2ebd-4575-8a2e-4eb419cd56b8
+2026-02-17 06:28:58,360 [INFO] 🔥 Event: USER_UPDATED | Role: superadmin | Service: None
+2026-02-17 06:28:58,365 [INFO] 🆙 Updated VerifiedUser 00871178-2ebd-4575-8a2e-4eb419cd56b8
+2026-02-17 06:35:31,585 [INFO] 🔥 Event: USER_UPDATED | Role: superadmin | Service: None
+2026-02-17 06:35:31,588 [INFO] 🆙 Updated VerifiedUser 00871178-2ebd-4575-8a2e-4eb419cd56b8
+2026-02-17 06:53:39,813 [INFO] 🔥 Event: USER_UPDATED | Role: superadmin | Service: auth_service
+2026-02-17 06:53:39,824 [INFO] 🆙 Updated VerifiedUser 00871178-2ebd-4575-8a2e-4eb419cd56b8
+2026-02-17 07:12:29,608 [INFO] 🔥 Event: USER_UPDATED | Role: superadmin | Service: auth_service
+2026-02-17 07:12:29,612 [INFO] 🆙 Updated VerifiedUser 00871178-2ebd-4575-8a2e-4eb419cd56b8
+2026-02-17 07:16:03,364 [INFO] 🔥 Event: USER_UPDATED | Role: superadmin | Service: auth_service
+2026-02-17 07:16:03,370 [INFO] 🆙 Updated VerifiedUser 00871178-2ebd-4575-8a2e-4eb419cd56b8
+2026-02-17 07:16:03,510 [INFO] 🔥 Event: USER_UPDATED | Role: superadmin | Service: None
+2026-02-17 07:16:03,514 [INFO] 🆙 Updated VerifiedUser 00871178-2ebd-4575-8a2e-4eb419cd56b8
+2026-02-17 07:21:06,015 [INFO] 🔥 Event: USER_UPDATED | Role: superadmin | Service: auth_service
+2026-02-17 07:21:06,019 [INFO] 🆙 Updated VerifiedUser 00871178-2ebd-4575-8a2e-4eb419cd56b8
+2026-02-17 07:21:06,263 [INFO] 🔥 Event: USER_UPDATED | Role: superadmin | Service: None
+2026-02-17 07:21:06,267 [INFO] 🆙 Updated VerifiedUser 00871178-2ebd-4575-8a2e-4eb419cd56b8
+2026-02-17 07:23:28,179 [INFO] 🔥 Event: SEND_EMAIL | Role: organization | Service: auth_service
+2026-02-17 07:23:28,180 [WARNING] ⚠️ Unknown event type 'SEND_EMAIL' received.
+2026-02-17 07:23:28,192 [INFO] 🔥 Event: USER_CREATED | Role: organization | Service: auth_service
+2026-02-17 07:23:28,192 [INFO] DEBUG: Checking role 'organization' against employee list...
+2026-02-17 07:23:28,213 [INFO] ✅ Created VerifiedUser anil.naga@ibridge.digital
+2026-02-17 07:23:28,220 [INFO] ✅ Auto-created ServiceProvider profile for anil.naga@ibridge.digital
+2026-02-17 07:24:04,524 [INFO] 🔥 Event: USER_VERIFIED | Role: organization | Service: auth_service
+2026-02-17 07:24:04,526 [INFO] DEBUG: Checking role 'organization' against employee list...
+2026-02-17 07:24:04,530 [INFO] 🔄 Updated VerifiedUser anil.naga@ibridge.digital
+2026-02-17 07:25:11,601 [INFO] 🔥 Event: USER_UPDATED | Role: provider | Service: None
+2026-02-17 07:25:11,605 [INFO] 🆙 Updated VerifiedUser 0bff4c7a-40cf-4471-aab1-9d036da2e0ec
+2026-02-17 07:25:11,644 [INFO] 🔥 Event: PROVIDER.DOCUMENT.UPLOADED | Role: service_provider | Service: None
+2026-02-17 07:25:11,644 [WARNING] ⚠️ Unknown event type 'PROVIDER.DOCUMENT.UPLOADED' received.
+2026-02-17 07:25:11,650 [INFO] 🔥 Event: PROVIDER.DOCUMENT.UPLOADED | Role: service_provider | Service: None
+2026-02-17 07:25:11,650 [WARNING] ⚠️ Unknown event type 'PROVIDER.DOCUMENT.UPLOADED' received.
+2026-02-17 07:25:11,654 [INFO] 🔥 Event: PROVIDER.DOCUMENT.UPLOADED | Role: service_provider | Service: None
+2026-02-17 07:25:11,657 [WARNING] ⚠️ Unknown event type 'PROVIDER.DOCUMENT.UPLOADED' received.
+2026-02-17 07:26:52,654 [INFO] 🔥 Event: ADMIN.DOCUMENT.VERIFIED | Role:  | Service: super_admin_service
+2026-02-17 07:26:52,657 [INFO] ✅ Document 44816b3b-902c-4595-9885-aeb547f8ba82 verified: approved
+2026-02-17 07:26:54,087 [INFO] 🔥 Event: ADMIN.DOCUMENT.VERIFIED | Role:  | Service: super_admin_service
+2026-02-17 07:26:54,088 [INFO] ✅ Document 71302c39-3af5-483d-be2e-6b26a3663426 verified: approved
+2026-02-17 07:26:55,123 [INFO] 🔥 Event: ADMIN.DOCUMENT.VERIFIED | Role:  | Service: super_admin_service
+2026-02-17 07:26:55,124 [INFO] ✅ Document e1604575-6d67-4340-be1d-21790e7d5d40 verified: approved
+2026-02-17 07:26:55,130 [INFO] 🔥 Event: USER_VERIFIED | Role:  | Service: super_admin_service
+2026-02-17 07:26:55,131 [INFO] DEBUG: Checking role '' against employee list...
+2026-02-17 07:27:28,509 [INFO] 🔥 Event: USER_UPDATED | Role: provider | Service: None
+2026-02-17 07:27:28,513 [INFO] 🆙 Updated VerifiedUser 0bff4c7a-40cf-4471-aab1-9d036da2e0ec
+2026-02-17 07:30:36,284 [INFO] 🔥 Event: USER_UPDATED | Role: provider | Service: None
+2026-02-17 07:30:36,288 [INFO] 🆙 Updated VerifiedUser 0bff4c7a-40cf-4471-aab1-9d036da2e0ec
+2026-02-17 08:16:18,834 [INFO] 🔥 Event: PROVIDER.PERMISSIONS.UPDATED | Role:  | Service: None
+2026-02-17 08:16:18,852 [INFO] DEBUG: [KAFKA RECV] provider.permissions.updated | User: 0bff4c7a-40cf-4471-aab1-9d036da2e0ec
+2026-02-17 08:16:18,852 [INFO] DEBUG: Payload Keys: ['auth_user_id', 'purchase_id', 'permissions', 'purchased_plan', 'templates', 'dynamic_capabilities']
+2026-02-17 08:16:18,852 [INFO] DEBUG: Templates Received - Services: 3, Cats: 8
+2026-02-17 08:16:18,977 [INFO] ✅ Synced Templates for user 0bff4c7a-40cf-4471-aab1-9d036da2e0ec
+2026-02-17 08:16:18,982 [INFO] 🧹 Cleared old permissions for user 0bff4c7a-40cf-4471-aab1-9d036da2e0ec → permissions=[]
+2026-02-17 08:16:18,983 [INFO] DEBUG: perms_map size: 13
+2026-02-17 08:16:18,983 [INFO] DEBUG: Sample perms_map keys: [('2dff446f-c95f-4310-ba4d-05e3395dd7eb', None, None, None), ('8da6c82b-2136-4a14-9670-2973682107a6', None, None, None), ('f064a9ab-1b63-4234-bbc5-ddab93f3f868', None, None, None)]
+2026-02-17 08:16:18,983 [INFO] DEBUG: About to bulk_create 13 ProviderCapabilityAccess records
+2026-02-17 08:16:18,989 [INFO] DEBUG: bulk_create completed successfully
+2026-02-17 08:16:19,002 [INFO] 🗑️ Invalidated cache for 0 employees
+2026-02-17 08:16:19,012 [INFO] ✅ Updated 13 capabilities for user 0bff4c7a-40cf-4471-aab1-9d036da2e0ec
+2026-02-17 08:16:19,014 [INFO] 📋 Linked capabilities: ['VETERINARY_PHARMACY', 'VETERINARY_DOCTOR', 'VETERINARY_VITALS', 'VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_VISITS', 'VETERINARY_LABS']
+2026-02-17 08:16:19,014 [INFO] 🏥 Veterinary capabilities: ['VETERINARY_PHARMACY', 'VETERINARY_DOCTOR', 'VETERINARY_VITALS', 'VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_VISITS', 'VETERINARY_LABS']
+2026-02-17 08:16:19,014 [INFO] ✅ Auto-added VETERINARY_CORE (vet capabilities detected: ['VETERINARY_PHARMACY', 'VETERINARY_DOCTOR', 'VETERINARY_VITALS', 'VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_VISITS', 'VETERINARY_LABS'])
+2026-02-17 08:16:19,016 [INFO] ✅ Final user capabilities: ['VETERINARY_PHARMACY', 'VETERINARY_DOCTOR', 'VETERINARY_VITALS', 'VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_VISITS', 'VETERINARY_LABS', 'VETERINARY_CORE']
+2026-02-17 08:16:19,020 [INFO] ✅ Synced Subscription for user 0bff4c7a-40cf-4471-aab1-9d036da2e0ec
+2026-02-17 08:16:19,021 [INFO] DEBUG: Capabilities Processing | Raw Count: 0
+2026-02-17 08:16:19,021 [INFO] 📤 Publishing Permissions Sync: 13 items enriched
+2026-02-17 08:16:19,151 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-02-17 08:16:19,151 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-02-17 10:07:44,857 [INFO] 🔥 Event: SEND_EMAIL | Role: employee | Service: auth_service
+2026-02-17 10:07:44,861 [WARNING] ⚠️ Unknown event type 'SEND_EMAIL' received.
+2026-02-17 10:07:44,878 [INFO] 🔥 Event: USER_CREATED | Role: employee | Service: auth_service
+2026-02-17 10:07:44,879 [INFO] DEBUG: Checking role 'employee' against employee list...
+2026-02-17 10:07:44,879 [INFO] DEBUG: Role matched employee list.
+2026-02-17 10:07:44,879 [INFO] 🔍 Processing Employee 709c36e6-69fc-4c58-b639-42f7bea302a5 for Org 0bff4c7a-40cf-4471-aab1-9d036da2e0ec
+2026-02-17 10:07:44,954 [INFO] ✅ Created OrganizationEmployee 709c36e6-69fc-4c58-b639-42f7bea302a5 (Invited)
+2026-02-17 10:07:44,960 [INFO] ✅ Created VerifiedUser naga@gmail.com
+2026-02-17 10:10:23,207 [INFO] 🔥 Event: USER_VERIFIED | Role: employee | Service: auth_service
+2026-02-17 10:10:23,209 [INFO] DEBUG: Checking role 'employee' against employee list...
+2026-02-17 10:10:23,209 [INFO] DEBUG: Role matched employee list.
+2026-02-17 10:10:23,217 [INFO] ✅ Activated OrganizationEmployee 709c36e6-69fc-4c58-b639-42f7bea302a5
+2026-02-17 10:10:23,222 [INFO] 🔄 Updated VerifiedUser naga@gmail.com
+2026-02-17 10:26:12,991 [INFO] 🔥 Event: USER_UPDATED | Role: provider | Service: None
+2026-02-17 10:26:13,020 [INFO] 🆙 Updated VerifiedUser 0bff4c7a-40cf-4471-aab1-9d036da2e0ec
+2026-02-18 04:55:05,888 [INFO] 🚀 Starting Service Provider Unified Kafka Consumer...
+2026-02-18 04:55:05,903 [INFO] ✅ Connected to Kafka broker.
+2026-02-18 08:01:02,136 [INFO] 🔥 Event: SEND_EMAIL | Role: organization | Service: auth_service
+2026-02-18 08:01:02,140 [WARNING] ⚠️ Unknown event type 'SEND_EMAIL' received.
+2026-02-18 08:01:02,149 [INFO] 🔥 Event: USER_CREATED | Role: organization | Service: auth_service
+2026-02-18 08:01:02,150 [INFO] DEBUG: Checking role 'organization' against employee list...
+2026-02-18 08:01:02,250 [INFO] ✅ Created VerifiedUser raj@gmail.com
+2026-02-18 08:01:02,260 [INFO] ✅ Auto-created ServiceProvider profile for raj@gmail.com
+2026-02-18 08:01:22,108 [INFO] 🔥 Event: USER_VERIFIED | Role: organization | Service: auth_service
+2026-02-18 08:01:22,109 [INFO] DEBUG: Checking role 'organization' against employee list...
+2026-02-18 08:01:22,115 [INFO] 🔄 Updated VerifiedUser raj@gmail.com
+2026-02-18 08:02:17,167 [INFO] 🔥 Event: USER_UPDATED | Role: provider | Service: None
+2026-02-18 08:02:17,171 [INFO] 🆙 Updated VerifiedUser 45c80593-73d9-4eb1-b479-84c791a4ea40
+2026-02-18 08:02:17,211 [INFO] 🔥 Event: PROVIDER.DOCUMENT.UPLOADED | Role: service_provider | Service: None
+2026-02-18 08:02:17,211 [WARNING] ⚠️ Unknown event type 'PROVIDER.DOCUMENT.UPLOADED' received.
+2026-02-18 08:02:17,216 [INFO] 🔥 Event: PROVIDER.DOCUMENT.UPLOADED | Role: service_provider | Service: None
+2026-02-18 08:02:17,217 [WARNING] ⚠️ Unknown event type 'PROVIDER.DOCUMENT.UPLOADED' received.
+2026-02-18 08:02:17,224 [INFO] 🔥 Event: PROVIDER.DOCUMENT.UPLOADED | Role: service_provider | Service: None
+2026-02-18 08:02:17,225 [WARNING] ⚠️ Unknown event type 'PROVIDER.DOCUMENT.UPLOADED' received.
+2026-02-18 08:15:31,349 [INFO] 🔥 Event: USER_UPDATED | Role: provider | Service: None
+2026-02-18 08:15:31,353 [INFO] 🆙 Updated VerifiedUser 45c80593-73d9-4eb1-b479-84c791a4ea40
+2026-02-18 08:15:31,391 [INFO] 🔥 Event: PROVIDER.DOCUMENT.UPLOADED | Role: service_provider | Service: None
+2026-02-18 08:15:31,391 [WARNING] ⚠️ Unknown event type 'PROVIDER.DOCUMENT.UPLOADED' received.
+2026-02-18 08:15:31,396 [INFO] 🔥 Event: PROVIDER.DOCUMENT.UPLOADED | Role: service_provider | Service: None
+2026-02-18 08:15:31,396 [WARNING] ⚠️ Unknown event type 'PROVIDER.DOCUMENT.UPLOADED' received.
+2026-02-18 08:15:31,404 [INFO] 🔥 Event: PROVIDER.DOCUMENT.UPLOADED | Role: service_provider | Service: None
+2026-02-18 08:15:31,404 [WARNING] ⚠️ Unknown event type 'PROVIDER.DOCUMENT.UPLOADED' received.
+2026-02-18 12:04:49,900 [INFO] 🔥 Event: ADMIN.DOCUMENT.VERIFIED | Role:  | Service: super_admin_service
+2026-02-18 12:04:49,917 [INFO] ✅ Document a08acf23-ef50-41fd-bff4-d1c202514414 verified: approved
+2026-02-18 12:04:50,551 [INFO] 🔥 Event: ADMIN.DOCUMENT.VERIFIED | Role:  | Service: super_admin_service
+2026-02-18 12:04:50,553 [INFO] ✅ Document 9faf13f0-defd-4814-9881-68b86c0ed43e verified: approved
+2026-02-18 12:04:51,371 [INFO] 🔥 Event: ADMIN.DOCUMENT.VERIFIED | Role:  | Service: super_admin_service
+2026-02-18 12:04:51,373 [INFO] ✅ Document a51f2500-6e5f-4b8c-ad16-8581c468d363 verified: approved
+2026-02-18 12:04:52,107 [INFO] 🔥 Event: ADMIN.DOCUMENT.VERIFIED | Role:  | Service: super_admin_service
+2026-02-18 12:04:52,108 [INFO] ✅ Document 12544ec8-fc26-4e6f-8310-f3470593dba9 verified: approved
+2026-02-18 12:04:53,343 [INFO] 🔥 Event: ADMIN.DOCUMENT.VERIFIED | Role:  | Service: super_admin_service
+2026-02-18 12:04:53,346 [INFO] ✅ Document e3b11411-cdc9-41bd-827f-cfc5e639a9d7 verified: approved
+2026-02-18 12:04:54,110 [INFO] 🔥 Event: ADMIN.DOCUMENT.VERIFIED | Role:  | Service: super_admin_service
+2026-02-18 12:04:54,112 [INFO] ✅ Document 3ef15c4f-8c4c-4cb0-ba0c-604ec9426112 verified: approved
+2026-02-18 12:04:54,116 [INFO] 🔥 Event: USER_VERIFIED | Role:  | Service: super_admin_service
+2026-02-18 12:04:54,116 [INFO] DEBUG: Checking role '' against employee list...
+2026-02-18 12:05:12,115 [INFO] 🔥 Event: PROVIDER.PERMISSIONS.UPDATED | Role:  | Service: None
+2026-02-18 12:05:12,119 [INFO] DEBUG: [KAFKA RECV] provider.permissions.updated | User: 45c80593-73d9-4eb1-b479-84c791a4ea40
+2026-02-18 12:05:12,120 [INFO] DEBUG: Payload Keys: ['auth_user_id', 'purchase_id', 'permissions', 'purchased_plan', 'templates', 'dynamic_capabilities']
+2026-02-18 12:05:12,120 [INFO] DEBUG: Templates Received - Services: 3, Cats: 11
+2026-02-18 12:05:12,232 [INFO] ✅ Synced Templates for user 45c80593-73d9-4eb1-b479-84c791a4ea40
+2026-02-18 12:05:12,236 [INFO] 🧹 Cleared old permissions for user 45c80593-73d9-4eb1-b479-84c791a4ea40 → permissions=[]
+2026-02-18 12:05:12,237 [INFO] DEBUG: perms_map size: 19
+2026-02-18 12:05:12,237 [INFO] DEBUG: Sample perms_map keys: [('1240489e-1aea-4877-8fcb-42a1e350fba5', None, None, None), ('2dff446f-c95f-4310-ba4d-05e3395dd7eb', None, None, None), ('fe211d28-6f8c-4712-b92c-4dee3e531abb', None, None, None)]
+2026-02-18 12:05:12,238 [INFO] DEBUG: About to bulk_create 19 ProviderCapabilityAccess records
+2026-02-18 12:05:12,248 [INFO] DEBUG: bulk_create completed successfully
+2026-02-18 12:05:12,260 [INFO] 🗑️ Invalidated cache for 0 employees
+2026-02-18 12:05:12,274 [INFO] ✅ Updated 19 capabilities for user 45c80593-73d9-4eb1-b479-84c791a4ea40
+2026-02-18 12:05:12,277 [INFO] 📋 Linked capabilities: ['VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_PHARMACY', 'VETERINARY_LABS', 'VETERINARY_VITALS', 'VETERINARY_DOCTOR', 'VETERINARY_VISITS']
+2026-02-18 12:05:12,278 [INFO] 🏥 Veterinary capabilities: ['VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_PHARMACY', 'VETERINARY_LABS', 'VETERINARY_VITALS', 'VETERINARY_DOCTOR', 'VETERINARY_VISITS']
+2026-02-18 12:05:12,278 [INFO] ✅ Auto-added VETERINARY_CORE (vet capabilities detected: ['VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_PHARMACY', 'VETERINARY_LABS', 'VETERINARY_VITALS', 'VETERINARY_DOCTOR', 'VETERINARY_VISITS'])
+2026-02-18 12:05:12,280 [INFO] ✅ Final user capabilities: ['VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_PHARMACY', 'VETERINARY_LABS', 'VETERINARY_VITALS', 'VETERINARY_DOCTOR', 'VETERINARY_VISITS', 'VETERINARY_CORE']
+2026-02-18 12:05:12,285 [INFO] ✅ Synced Subscription for user 45c80593-73d9-4eb1-b479-84c791a4ea40
+2026-02-18 12:05:12,287 [INFO] 🚀 Automaticaly ACTIVATED & VERIFIED Provider for raj@gmail.com
+2026-02-18 12:05:12,287 [INFO] DEBUG: Capabilities Processing | Raw Count: 0
+2026-02-18 12:05:12,287 [INFO] 📤 Publishing Permissions Sync: 19 items enriched
+2026-02-18 12:05:12,421 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-02-18 12:05:12,421 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-02-19 05:37:50,968 [INFO] 🚀 Starting Service Provider Unified Kafka Consumer...
+2026-02-19 05:37:50,981 [INFO] ✅ Connected to Kafka broker.
+2026-02-19 07:11:06,500 [INFO] 🔥 Event: PROVIDER.PERMISSIONS.UPDATED | Role:  | Service: None
+2026-02-19 07:11:06,568 [INFO] DEBUG: [KAFKA RECV] provider.permissions.updated | User: 45c80593-73d9-4eb1-b479-84c791a4ea40
+2026-02-19 07:11:06,568 [INFO] DEBUG: Payload Keys: ['auth_user_id', 'purchase_id', 'permissions', 'purchased_plan', 'templates', 'dynamic_capabilities']
+2026-02-19 07:11:06,568 [INFO] DEBUG: Templates Received - Services: 19, Cats: 11
+2026-02-19 07:11:06,850 [INFO] ✅ Synced Templates for user 45c80593-73d9-4eb1-b479-84c791a4ea40
+2026-02-19 07:11:07,003 [INFO] 🧹 Cleared old permissions for user 45c80593-73d9-4eb1-b479-84c791a4ea40 → permissions=[]
+2026-02-19 07:11:07,004 [INFO] DEBUG: perms_map size: 21
+2026-02-19 07:11:07,004 [INFO] DEBUG: Sample perms_map keys: [('2dff446f-c95f-4310-ba4d-05e3395dd7eb', None, None, None), ('1240489e-1aea-4877-8fcb-42a1e350fba5', None, None, None), ('fe211d28-6f8c-4712-b92c-4dee3e531abb', None, None, None)]
+2026-02-19 07:11:07,005 [INFO] DEBUG: About to bulk_create 21 ProviderCapabilityAccess records
+2026-02-19 07:11:07,013 [INFO] DEBUG: bulk_create completed successfully
+2026-02-19 07:11:07,029 [INFO] 🗑️ Invalidated cache for 0 employees
+2026-02-19 07:11:07,042 [INFO] ✅ Updated 21 capabilities for user 45c80593-73d9-4eb1-b479-84c791a4ea40
+2026-02-19 07:11:07,044 [INFO] 📋 Linked capabilities: ['VETERINARY_VISITS', 'VETERINARY_LABS', 'VETERINARY_VITALS', 'VETERINARY_DOCTOR', 'VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_PHARMACY']
+2026-02-19 07:11:07,044 [INFO] 🏥 Veterinary capabilities: ['VETERINARY_VISITS', 'VETERINARY_LABS', 'VETERINARY_VITALS', 'VETERINARY_DOCTOR', 'VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_PHARMACY']
+2026-02-19 07:11:07,045 [INFO] ✅ Auto-added VETERINARY_CORE (vet capabilities detected: ['VETERINARY_VISITS', 'VETERINARY_LABS', 'VETERINARY_VITALS', 'VETERINARY_DOCTOR', 'VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_PHARMACY'])
+2026-02-19 07:11:07,049 [INFO] ✅ Final user capabilities: ['VETERINARY_VISITS', 'VETERINARY_LABS', 'VETERINARY_VITALS', 'VETERINARY_DOCTOR', 'VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_PHARMACY', 'VETERINARY_CORE']
+2026-02-19 07:11:07,053 [INFO] ✅ Synced Subscription for user 45c80593-73d9-4eb1-b479-84c791a4ea40
+2026-02-19 07:11:07,055 [INFO] 🚀 Automaticaly ACTIVATED & VERIFIED Provider for raj@gmail.com
+2026-02-19 07:11:07,055 [INFO] DEBUG: Capabilities Processing | Raw Count: 3
+2026-02-19 07:11:07,076 [INFO] ✅ Synced 3 Dynamic Capabilities for user 45c80593-73d9-4eb1-b479-84c791a4ea40
+2026-02-19 07:11:07,076 [INFO] 📤 Publishing Permissions Sync: 21 items enriched
+2026-02-19 07:11:07,223 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-02-19 07:11:07,223 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-02-19 07:13:50,564 [INFO] 🔥 Event: PROVIDER.PERMISSIONS.UPDATED | Role:  | Service: None
+2026-02-19 07:13:50,567 [INFO] DEBUG: [KAFKA RECV] provider.permissions.updated | User: 45c80593-73d9-4eb1-b479-84c791a4ea40
+2026-02-19 07:13:50,567 [INFO] DEBUG: Payload Keys: ['auth_user_id', 'purchase_id', 'permissions', 'purchased_plan', 'templates', 'dynamic_capabilities']
+2026-02-19 07:13:50,567 [INFO] DEBUG: Templates Received - Services: 19, Cats: 11
+2026-02-19 07:13:50,694 [INFO] ✅ Synced Templates for user 45c80593-73d9-4eb1-b479-84c791a4ea40
+2026-02-19 07:13:50,767 [INFO] 🧹 Cleared old permissions for user 45c80593-73d9-4eb1-b479-84c791a4ea40 → permissions=[]
+2026-02-19 07:13:50,767 [INFO] DEBUG: perms_map size: 21
+2026-02-19 07:13:50,768 [INFO] DEBUG: Sample perms_map keys: [('2dff446f-c95f-4310-ba4d-05e3395dd7eb', None, None, None), ('1240489e-1aea-4877-8fcb-42a1e350fba5', None, None, None), ('fe211d28-6f8c-4712-b92c-4dee3e531abb', None, None, None)]
+2026-02-19 07:13:50,769 [INFO] DEBUG: About to bulk_create 21 ProviderCapabilityAccess records
+2026-02-19 07:13:50,773 [INFO] DEBUG: bulk_create completed successfully
+2026-02-19 07:13:50,779 [INFO] 🗑️ Invalidated cache for 0 employees
+2026-02-19 07:13:50,788 [INFO] ✅ Updated 21 capabilities for user 45c80593-73d9-4eb1-b479-84c791a4ea40
+2026-02-19 07:13:50,790 [INFO] 📋 Linked capabilities: ['VETERINARY_VISITS', 'VETERINARY_LABS', 'VETERINARY_VITALS', 'VETERINARY_DOCTOR', 'VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_PHARMACY']
+2026-02-19 07:13:50,790 [INFO] 🏥 Veterinary capabilities: ['VETERINARY_VISITS', 'VETERINARY_LABS', 'VETERINARY_VITALS', 'VETERINARY_DOCTOR', 'VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_PHARMACY']
+2026-02-19 07:13:50,790 [INFO] ✅ Auto-added VETERINARY_CORE (vet capabilities detected: ['VETERINARY_VISITS', 'VETERINARY_LABS', 'VETERINARY_VITALS', 'VETERINARY_DOCTOR', 'VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_PHARMACY'])
+2026-02-19 07:13:50,792 [INFO] ✅ Final user capabilities: ['VETERINARY_VISITS', 'VETERINARY_LABS', 'VETERINARY_VITALS', 'VETERINARY_DOCTOR', 'VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_PHARMACY', 'VETERINARY_CORE']
+2026-02-19 07:13:50,794 [INFO] ✅ Synced Subscription for user 45c80593-73d9-4eb1-b479-84c791a4ea40
+2026-02-19 07:13:50,795 [INFO] 🚀 Automaticaly ACTIVATED & VERIFIED Provider for raj@gmail.com
+2026-02-19 07:13:50,795 [INFO] DEBUG: Capabilities Processing | Raw Count: 3
+2026-02-19 07:13:50,801 [INFO] ✅ Synced 3 Dynamic Capabilities for user 45c80593-73d9-4eb1-b479-84c791a4ea40
+2026-02-19 07:13:50,801 [INFO] 📤 Publishing Permissions Sync: 21 items enriched
+2026-02-19 07:13:50,813 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-02-19 07:13:50,813 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-02-19 07:18:32,941 [INFO] 🔥 Event: PROVIDER.PERMISSIONS.UPDATED | Role:  | Service: None
+2026-02-19 07:18:32,943 [INFO] DEBUG: [KAFKA RECV] provider.permissions.updated | User: 45c80593-73d9-4eb1-b479-84c791a4ea40
+2026-02-19 07:18:32,944 [INFO] DEBUG: Payload Keys: ['auth_user_id', 'purchase_id', 'permissions', 'purchased_plan', 'templates', 'dynamic_capabilities']
+2026-02-19 07:18:32,944 [INFO] DEBUG: Templates Received - Services: 19, Cats: 11
+2026-02-19 07:18:33,066 [INFO] ✅ Synced Templates for user 45c80593-73d9-4eb1-b479-84c791a4ea40
+2026-02-19 07:18:33,133 [INFO] 🧹 Cleared old permissions for user 45c80593-73d9-4eb1-b479-84c791a4ea40 → permissions=[]
+2026-02-19 07:18:33,134 [INFO] DEBUG: perms_map size: 21
+2026-02-19 07:18:33,134 [INFO] DEBUG: Sample perms_map keys: [('2dff446f-c95f-4310-ba4d-05e3395dd7eb', None, None, None), ('1240489e-1aea-4877-8fcb-42a1e350fba5', None, None, None), ('fe211d28-6f8c-4712-b92c-4dee3e531abb', None, None, None)]
+2026-02-19 07:18:33,135 [INFO] DEBUG: About to bulk_create 21 ProviderCapabilityAccess records
+2026-02-19 07:18:33,138 [INFO] DEBUG: bulk_create completed successfully
+2026-02-19 07:18:33,142 [INFO] 🗑️ Invalidated cache for 0 employees
+2026-02-19 07:18:33,150 [INFO] ✅ Updated 21 capabilities for user 45c80593-73d9-4eb1-b479-84c791a4ea40
+2026-02-19 07:18:33,151 [INFO] 📋 Linked capabilities: ['VETERINARY_VISITS', 'VETERINARY_LABS', 'VETERINARY_VITALS', 'VETERINARY_DOCTOR', 'VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_PHARMACY']
+2026-02-19 07:18:33,151 [INFO] 🏥 Veterinary capabilities: ['VETERINARY_VISITS', 'VETERINARY_LABS', 'VETERINARY_VITALS', 'VETERINARY_DOCTOR', 'VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_PHARMACY']
+2026-02-19 07:18:33,151 [INFO] ✅ Auto-added VETERINARY_CORE (vet capabilities detected: ['VETERINARY_VISITS', 'VETERINARY_LABS', 'VETERINARY_VITALS', 'VETERINARY_DOCTOR', 'VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_PHARMACY'])
+2026-02-19 07:18:33,153 [INFO] ✅ Final user capabilities: ['VETERINARY_VISITS', 'VETERINARY_LABS', 'VETERINARY_VITALS', 'VETERINARY_DOCTOR', 'VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_PHARMACY', 'VETERINARY_CORE']
+2026-02-19 07:18:33,156 [INFO] ✅ Synced Subscription for user 45c80593-73d9-4eb1-b479-84c791a4ea40
+2026-02-19 07:18:33,157 [INFO] 🚀 Automaticaly ACTIVATED & VERIFIED Provider for raj@gmail.com
+2026-02-19 07:18:33,157 [INFO] DEBUG: Capabilities Processing | Raw Count: 3
+2026-02-19 07:18:33,162 [INFO] ✅ Synced 3 Dynamic Capabilities for user 45c80593-73d9-4eb1-b479-84c791a4ea40
+2026-02-19 07:18:33,162 [INFO] 📤 Publishing Permissions Sync: 21 items enriched
+2026-02-19 07:18:33,174 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-02-19 07:18:33,174 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-02-19 07:20:09,056 [INFO] 🚀 Starting Service Provider Unified Kafka Consumer...
+2026-02-19 07:20:09,073 [INFO] ✅ Connected to Kafka broker.
+2026-02-19 07:20:21,669 [INFO] 🔥 Event: PROVIDER.PERMISSIONS.UPDATED | Role:  | Service: None
+2026-02-19 07:20:21,700 [INFO] DEBUG: [KAFKA RECV] provider.permissions.updated | User: 45c80593-73d9-4eb1-b479-84c791a4ea40
+2026-02-19 07:20:21,700 [INFO] DEBUG: Payload Keys: ['auth_user_id', 'purchase_id', 'permissions', 'purchased_plan', 'templates', 'dynamic_capabilities']
+2026-02-19 07:20:21,700 [INFO] DEBUG: Templates Received - Services: 19, Cats: 11
+2026-02-19 07:20:21,828 [INFO] ✅ Synced Templates for user 45c80593-73d9-4eb1-b479-84c791a4ea40
+2026-02-19 07:20:21,900 [INFO] 🧹 Cleared old permissions for user 45c80593-73d9-4eb1-b479-84c791a4ea40 → permissions=[]
+2026-02-19 07:20:21,900 [INFO] DEBUG: perms_map size: 21
+2026-02-19 07:20:21,901 [INFO] DEBUG: Sample perms_map keys: [('2dff446f-c95f-4310-ba4d-05e3395dd7eb', None, None, None), ('1240489e-1aea-4877-8fcb-42a1e350fba5', None, None, None), ('fe211d28-6f8c-4712-b92c-4dee3e531abb', None, None, None)]
+2026-02-19 07:20:21,901 [INFO] DEBUG: About to bulk_create 21 ProviderCapabilityAccess records
+2026-02-19 07:20:21,905 [INFO] DEBUG: bulk_create completed successfully
+2026-02-19 07:20:21,909 [INFO] 🗑️ Invalidated cache for 0 employees
+2026-02-19 07:20:21,917 [INFO] ✅ Updated 21 capabilities for user 45c80593-73d9-4eb1-b479-84c791a4ea40
+2026-02-19 07:20:21,919 [INFO] 📋 Linked capabilities: ['VETERINARY_DOCTOR', 'VETERINARY_LABS', 'VETERINARY_VITALS', 'VETERINARY_PHARMACY', 'VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_VISITS']
+2026-02-19 07:20:21,919 [INFO] 🏥 Veterinary capabilities: ['VETERINARY_DOCTOR', 'VETERINARY_LABS', 'VETERINARY_VITALS', 'VETERINARY_PHARMACY', 'VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_VISITS']
+2026-02-19 07:20:21,919 [INFO] ✅ Auto-added VETERINARY_CORE (vet capabilities detected: ['VETERINARY_DOCTOR', 'VETERINARY_LABS', 'VETERINARY_VITALS', 'VETERINARY_PHARMACY', 'VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_VISITS'])
+2026-02-19 07:20:21,921 [INFO] ✅ Final user capabilities: ['VETERINARY_DOCTOR', 'VETERINARY_LABS', 'VETERINARY_VITALS', 'VETERINARY_PHARMACY', 'VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_VISITS', 'VETERINARY_CORE']
+2026-02-19 07:20:21,924 [INFO] ✅ Synced Subscription for user 45c80593-73d9-4eb1-b479-84c791a4ea40
+2026-02-19 07:20:21,925 [INFO] 🚀 Automaticaly ACTIVATED & VERIFIED Provider for raj@gmail.com
+2026-02-19 07:20:21,925 [INFO] DEBUG: Capabilities Processing | Raw Count: 3
+2026-02-19 07:20:21,933 [INFO] ✅ Synced 3 Dynamic Capabilities for user 45c80593-73d9-4eb1-b479-84c791a4ea40
+2026-02-19 07:20:21,933 [INFO] 📤 Publishing Permissions Sync: 21 items enriched
+2026-02-19 07:20:22,060 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-02-19 07:20:22,060 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-02-19 07:36:22,892 [INFO] 🔥 Event: USER_UPDATED | Role: organization | Service: None
+2026-02-19 07:36:22,905 [INFO] 🆙 Updated VerifiedUser 45c80593-73d9-4eb1-b479-84c791a4ea40
+2026-02-19 07:36:56,488 [INFO] 🔥 Event: USER_UPDATED | Role: organization | Service: None
+2026-02-19 07:36:56,491 [INFO] 🆙 Updated VerifiedUser 45c80593-73d9-4eb1-b479-84c791a4ea40
+2026-02-19 08:13:43,835 [INFO] 🔥 Event: SEND_EMAIL | Role: employee | Service: auth_service
+2026-02-19 08:13:43,837 [WARNING] ⚠️ Unknown event type 'SEND_EMAIL' received.
+2026-02-19 08:13:43,841 [INFO] 🔥 Event: USER_CREATED | Role: employee | Service: auth_service
+2026-02-19 08:13:43,841 [INFO] DEBUG: Checking role 'employee' against employee list...
+2026-02-19 08:13:43,841 [INFO] DEBUG: Role matched employee list.
+2026-02-19 08:13:43,841 [INFO] 🔍 Processing Employee 8ff9669b-aa8b-4c2e-863f-ef5420942319 for Org 45c80593-73d9-4eb1-b479-84c791a4ea40
+2026-02-19 08:13:43,869 [INFO] ✅ Created OrganizationEmployee 8ff9669b-aa8b-4c2e-863f-ef5420942319 (Invited)
+2026-02-19 08:13:43,876 [INFO] ✅ Created VerifiedUser tharun@gmjail.com
+2026-02-19 08:13:53,191 [INFO] 🔥 Event: EMPLOYEE_UPDATED | Role: employee | Service: None
+2026-02-19 08:13:53,193 [INFO] 🆙 Updated OrganizationEmployee 8ff9669b-aa8b-4c2e-863f-ef5420942319
+2026-02-19 10:51:21,216 [INFO] 🔥 Event: EMPLOYEE_UPDATED | Role: employee | Service: None
+2026-02-19 10:51:21,229 [INFO] 🆙 Updated OrganizationEmployee 8ff9669b-aa8b-4c2e-863f-ef5420942319
+2026-02-19 12:37:21,342 [INFO] 🔥 Event: USER_VERIFIED | Role: employee | Service: auth_service
+2026-02-19 12:37:21,346 [INFO] DEBUG: Checking role 'employee' against employee list...
+2026-02-19 12:37:21,346 [INFO] DEBUG: Role matched employee list.
+2026-02-19 12:37:21,385 [INFO] ✅ Activated OrganizationEmployee 8ff9669b-aa8b-4c2e-863f-ef5420942319
+2026-02-19 12:37:21,391 [INFO] 🔄 Updated VerifiedUser tharun@gmail.com
+2026-02-20 05:07:29,817 [INFO] 🚀 Starting Service Provider Unified Kafka Consumer...
+2026-02-20 05:07:29,833 [INFO] ✅ Connected to Kafka broker.
+2026-02-20 11:34:11,006 [INFO] 🔥 Event: USER_UPDATED | Role: organization | Service: None
+2026-02-20 11:34:11,072 [INFO] 🆙 Updated VerifiedUser 45c80593-73d9-4eb1-b479-84c791a4ea40
+2026-02-20 13:05:30,401 [INFO] 🔥 Event: SEND_EMAIL | Role: employee | Service: auth_service
+2026-02-20 13:05:30,403 [WARNING] ⚠️ Unknown event type 'SEND_EMAIL' received.
+2026-02-20 13:05:30,410 [INFO] 🔥 Event: USER_CREATED | Role: employee | Service: auth_service
+2026-02-20 13:05:30,410 [INFO] DEBUG: Checking role 'employee' against employee list...
+2026-02-20 13:05:30,410 [INFO] DEBUG: Role matched employee list.
+2026-02-20 13:05:30,410 [INFO] 🔍 Processing Employee b64c6f59-0a20-426f-9afc-4795a36c8a1a for Org 45c80593-73d9-4eb1-b479-84c791a4ea40
+2026-02-20 13:05:30,454 [ERROR] ❌ Error processing Kafka message: null value in column "average_rating" of relation "service_provider_organizationemployee" violates not-null constraint
+DETAIL:  Failing row contains (68cddad7-414b-4169-a337-71cf22729a94, b64c6f59-0a20-426f-9afc-4795a36c8a1a, PENDING, 45c80593-73d9-4eb1-b479-84c791a4ea40, null, null, 2026-02-20 13:05:30.445033+00, 2026-02-20 13:05:30.445715+00, 176596b2-8267-4ddc-a067-86dd9a55117e, kamal@gmail.com, Kamal, 6383638730, employee, {}, null, null, null).
+Traceback (most recent call last):
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/query.py", line 948, in get_or_create
+    return self.get(**kwargs), False
+           ~~~~~~~~^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/query.py", line 635, in get
+    raise self.model.DoesNotExist(
+        "%s matching query does not exist." % self.model._meta.object_name
+    )
+service_provider.models.OrganizationEmployee.DoesNotExist: OrganizationEmployee matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+psycopg2.errors.NotNullViolation: null value in column "average_rating" of relation "service_provider_organizationemployee" violates not-null constraint
+DETAIL:  Failing row contains (68cddad7-414b-4169-a337-71cf22729a94, b64c6f59-0a20-426f-9afc-4795a36c8a1a, PENDING, 45c80593-73d9-4eb1-b479-84c791a4ea40, null, null, 2026-02-20 13:05:30.445033+00, 2026-02-20 13:05:30.445715+00, 176596b2-8267-4ddc-a067-86dd9a55117e, kamal@gmail.com, Kamal, 6383638730, employee, {}, null, null, null).
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/kafka_consumer.py", line 98, in <module>
+    OrganizationEmployee.objects.update_or_create(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        auth_user_id=auth_user_id,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<8 lines>...
+        },
+        ^^
+    )
+    ^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/query.py", line 990, in update_or_create
+    obj, created = self.select_for_update().get_or_create(
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        create_defaults, **kwargs
+        ^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/query.py", line 955, in get_or_create
+    return self.create(**params), True
+           ~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/query.py", line 665, in create
+    obj.save(force_insert=True, using=self.db)
+    ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/service_provider/models.py", line 529, in save
+    )
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/base.py", line 902, in save
+    self.save_base(
+    ~~~~~~~~~~~~~~^
+        using=using,
+        ^^^^^^^^^^^^
+    ...<2 lines>...
+        update_fields=update_fields,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/base.py", line 1008, in save_base
+    updated = self._save_table(
+        raw,
+    ...<4 lines>...
+        update_fields,
+    )
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/base.py", line 1169, in _save_table
+    results = self._do_insert(
+        cls._base_manager, using, fields, returning_fields, raw
+    )
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/base.py", line 1210, in _do_insert
+    return manager._insert(
+           ~~~~~~~~~~~~~~~^
+        [self],
+        ^^^^^^^
+    ...<3 lines>...
+        raw=raw,
+        ^^^^^^^^
+    )
+    ^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/query.py", line 1873, in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/sql/compiler.py", line 1882, in execute_sql
+    cursor.execute(sql, params)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        sql, params, many=False, executor=self._execute
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+django.db.utils.IntegrityError: null value in column "average_rating" of relation "service_provider_organizationemployee" violates not-null constraint
+DETAIL:  Failing row contains (68cddad7-414b-4169-a337-71cf22729a94, b64c6f59-0a20-426f-9afc-4795a36c8a1a, PENDING, 45c80593-73d9-4eb1-b479-84c791a4ea40, null, null, 2026-02-20 13:05:30.445033+00, 2026-02-20 13:05:30.445715+00, 176596b2-8267-4ddc-a067-86dd9a55117e, kamal@gmail.com, Kamal, 6383638730, employee, {}, null, null, null).
+
+2026-02-20 13:12:01,299 [INFO] 🚀 Starting Service Provider Unified Kafka Consumer...
+2026-02-20 13:12:01,311 [INFO] ✅ Connected to Kafka broker.
+2026-02-20 13:31:53,367 [INFO] 🚀 Starting Service Provider Unified Kafka Consumer...
+2026-02-20 13:31:53,382 [INFO] ✅ Connected to Kafka broker.
+2026-02-20 13:36:44,265 [INFO] 🔥 Event: USER_DELETED | Role: employee | Service: auth_service
+2026-02-20 13:36:44,323 [INFO] 🗑️ Deleted user records for b64c6f59-0a20-426f-9afc-4795a36c8a1a
+2026-02-20 13:37:21,247 [INFO] 🔥 Event: SEND_EMAIL | Role: employee | Service: auth_service
+2026-02-20 13:37:21,248 [WARNING] ⚠️ Unknown event type 'SEND_EMAIL' received.
+2026-02-20 13:37:21,256 [INFO] 🔥 Event: USER_CREATED | Role: employee | Service: auth_service
+2026-02-20 13:37:21,257 [INFO] DEBUG: Checking role 'employee' against employee list...
+2026-02-20 13:37:21,257 [INFO] DEBUG: Role matched employee list.
+2026-02-20 13:37:21,257 [INFO] 🔍 Processing Employee ec3d9eb4-385a-4860-9ec9-e548e42606b1 for Org 45c80593-73d9-4eb1-b479-84c791a4ea40
+2026-02-20 13:37:21,280 [INFO] ✅ Created OrganizationEmployee ec3d9eb4-385a-4860-9ec9-e548e42606b1 (Invited)
+2026-02-20 13:37:21,285 [INFO] ✅ Created VerifiedUser kamal@gmail.com
+2026-02-20 13:37:38,077 [INFO] 🔥 Event: EMPLOYEE_UPDATED | Role: employee | Service: None
+2026-02-20 13:37:38,079 [INFO] 🆙 Updated OrganizationEmployee ec3d9eb4-385a-4860-9ec9-e548e42606b1
+2026-02-21 04:41:53,539 [INFO] 🚀 Starting Service Provider Unified Kafka Consumer...
+2026-02-21 04:41:53,554 [INFO] ✅ Connected to Kafka broker.
+2026-02-21 05:20:49,305 [INFO] 🔥 Event: USER_VERIFIED | Role: employee | Service: auth_service
+2026-02-21 05:20:49,305 [INFO] DEBUG: Checking role 'employee' against employee list...
+2026-02-21 05:20:49,306 [INFO] DEBUG: Role matched employee list.
+2026-02-21 05:20:49,370 [INFO] ✅ Activated OrganizationEmployee ec3d9eb4-385a-4860-9ec9-e548e42606b1
+2026-02-21 05:20:49,378 [INFO] 🔄 Updated VerifiedUser kamal@gmail.com
+2026-02-21 08:31:54,659 [INFO] 🔥 Event: SEND_EMAIL | Role: employee | Service: auth_service
+2026-02-21 08:31:54,662 [WARNING] ⚠️ Unknown event type 'SEND_EMAIL' received.
+2026-02-21 08:31:54,669 [INFO] 🔥 Event: USER_CREATED | Role: employee | Service: auth_service
+2026-02-21 08:31:54,669 [INFO] DEBUG: Checking role 'employee' against employee list...
+2026-02-21 08:31:54,669 [INFO] DEBUG: Role matched employee list.
+2026-02-21 08:31:54,670 [INFO] 🔍 Processing Employee e9aedbb9-2903-4d65-b3d3-a50a5ec8d630 for Org 45c80593-73d9-4eb1-b479-84c791a4ea40
+2026-02-21 08:31:54,711 [INFO] ✅ Created OrganizationEmployee e9aedbb9-2903-4d65-b3d3-a50a5ec8d630 (Invited)
+2026-02-21 08:31:54,770 [INFO] ✅ Created VerifiedUser care@gmail.com
+2026-02-21 08:33:28,384 [INFO] 🔥 Event: EMPLOYEE_UPDATED | Role: employee | Service: None
+2026-02-21 08:33:28,386 [INFO] 🆙 Updated OrganizationEmployee e9aedbb9-2903-4d65-b3d3-a50a5ec8d630
+2026-02-21 08:34:41,254 [INFO] 🔥 Event: USER_VERIFIED | Role: employee | Service: auth_service
+2026-02-21 08:34:41,254 [INFO] DEBUG: Checking role 'employee' against employee list...
+2026-02-21 08:34:41,254 [INFO] DEBUG: Role matched employee list.
+2026-02-21 08:34:41,262 [INFO] ✅ Activated OrganizationEmployee e9aedbb9-2903-4d65-b3d3-a50a5ec8d630
+2026-02-21 08:34:41,266 [INFO] 🔄 Updated VerifiedUser care@gmail.com
+2026-02-23 05:00:26,571 [INFO] 🚀 Starting Service Provider Unified Kafka Consumer...
+2026-02-23 05:00:26,583 [INFO] ✅ Connected to Kafka broker.
+2026-02-23 06:37:16,680 [INFO] 🔥 Event: SEND_EMAIL | Role: organization | Service: auth_service
+2026-02-23 06:37:16,683 [WARNING] ⚠️ Unknown event type 'SEND_EMAIL' received.
+2026-02-23 06:37:16,683 [INFO] 🔥 Event: USER_CREATED | Role: organization | Service: auth_service
+2026-02-23 06:37:16,684 [INFO] DEBUG: Checking role 'organization' against employee list...
+2026-02-23 06:37:16,782 [INFO] ✅ Created VerifiedUser sidhu@gmail.com
+2026-02-23 06:37:16,786 [INFO] 🔄 Updated ServiceProvider provider_type for sidhu@gmail.com
+2026-02-23 06:37:51,703 [INFO] 🔥 Event: USER_VERIFIED | Role: organization | Service: auth_service
+2026-02-23 06:37:51,703 [INFO] DEBUG: Checking role 'organization' against employee list...
+2026-02-23 06:37:51,708 [INFO] 🔄 Updated VerifiedUser sidhu@gmail.com
+2026-02-23 06:37:51,711 [INFO] 🔄 Updated ServiceProvider provider_type for sidhu@gmail.com
+2026-02-23 06:41:29,753 [INFO] 🔥 Event: USER_UPDATED | Role: provider | Service: None
+2026-02-23 06:41:29,758 [INFO] 🆙 Updated VerifiedUser 9ca8ab28-7fca-46d7-b1a1-e43c7bc9631d
+2026-02-23 06:41:29,794 [INFO] 🔥 Event: PROVIDER.DOCUMENT.UPLOADED | Role: service_provider | Service: None
+2026-02-23 06:41:29,794 [WARNING] ⚠️ Unknown event type 'PROVIDER.DOCUMENT.UPLOADED' received.
+2026-02-23 06:41:29,800 [INFO] 🔥 Event: PROVIDER.DOCUMENT.UPLOADED | Role: service_provider | Service: None
+2026-02-23 06:41:29,800 [WARNING] ⚠️ Unknown event type 'PROVIDER.DOCUMENT.UPLOADED' received.
+2026-02-23 06:41:29,806 [INFO] 🔥 Event: PROVIDER.DOCUMENT.UPLOADED | Role: service_provider | Service: None
+2026-02-23 06:41:29,807 [WARNING] ⚠️ Unknown event type 'PROVIDER.DOCUMENT.UPLOADED' received.
+2026-02-23 06:41:47,009 [INFO] 🔥 Event: ADMIN.DOCUMENT.VERIFIED | Role:  | Service: super_admin_service
+2026-02-23 06:41:47,011 [INFO] ✅ Document 45934796-18d1-4e1d-8b64-f0a8c6bb6ba6 verified: approved
+2026-02-23 06:41:48,286 [INFO] 🔥 Event: ADMIN.DOCUMENT.VERIFIED | Role:  | Service: super_admin_service
+2026-02-23 06:41:48,288 [INFO] ✅ Document bd85351b-6742-4f39-899a-2a819f0aaf02 verified: approved
+2026-02-23 06:41:49,023 [INFO] 🔥 Event: ADMIN.DOCUMENT.VERIFIED | Role:  | Service: super_admin_service
+2026-02-23 06:41:49,024 [INFO] ✅ Document 1a8e3cde-2ef2-4eef-9c3e-482b8e870034 verified: approved
+2026-02-23 06:41:49,027 [INFO] 🔥 Event: USER_VERIFIED | Role:  | Service: super_admin_service
+2026-02-23 06:41:49,027 [INFO] DEBUG: Checking role '' against employee list...
+2026-02-23 06:42:14,400 [INFO] 🔥 Event: PROVIDER.PERMISSIONS.UPDATED | Role:  | Service: None
+2026-02-23 06:42:14,402 [INFO] DEBUG: [KAFKA RECV] provider.permissions.updated | User: 9ca8ab28-7fca-46d7-b1a1-e43c7bc9631d
+2026-02-23 06:42:14,402 [INFO] DEBUG: Payload Keys: ['auth_user_id', 'purchase_id', 'permissions', 'purchased_plan', 'templates', 'dynamic_capabilities']
+2026-02-23 06:42:14,402 [INFO] DEBUG: Templates Received - Services: 3, Cats: 10
+2026-02-23 06:42:14,463 [ERROR] ❌ Error updating permissions for 9ca8ab28-7fca-46d7-b1a1-e43c7bc9631d: null value in column "base_price" of relation "provider_dynamic_fields_providertemplatefacility" violates not-null constraint
+DETAIL:  Failing row contains (a6ed6b70-bae7-4b59-acf9-555dce927ee8, 10a8fc20-f29c-44cf-a5b7-a492ba836c04, Aroma Therapy Spa, Essential oil massage for stress relief, 2026-02-23 06:42:14.460577+00, 2026-02-23 06:42:14.460594+00, c629e1bd-9738-4cfc-909a-d6a482552ba8, 1, f, null, null, 60, null, null, null, null).
+
+2026-02-23 06:42:14,464 [INFO] 📤 Publishing Permissions Sync: 0 items enriched
+2026-02-23 06:42:14,589 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-02-23 06:42:14,590 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-02-23 06:50:23,058 [INFO] 🔥 Event: PROVIDER.PERMISSIONS.UPDATED | Role:  | Service: None
+2026-02-23 06:50:23,059 [INFO] DEBUG: [KAFKA RECV] provider.permissions.updated | User: 9ca8ab28-7fca-46d7-b1a1-e43c7bc9631d
+2026-02-23 06:50:23,059 [INFO] DEBUG: Payload Keys: ['auth_user_id', 'purchase_id', 'permissions', 'purchased_plan', 'templates', 'dynamic_capabilities']
+2026-02-23 06:50:23,060 [INFO] DEBUG: Templates Received - Services: 19, Cats: 10
+2026-02-23 06:50:23,136 [ERROR] ❌ Error updating permissions for 9ca8ab28-7fca-46d7-b1a1-e43c7bc9631d: null value in column "base_price" of relation "provider_dynamic_fields_providertemplatefacility" violates not-null constraint
+DETAIL:  Failing row contains (f6e22d12-5fad-45a7-85fa-bd65e3b6678b, 10a8fc20-f29c-44cf-a5b7-a492ba836c04, Aroma Therapy Spa, Essential oil massage for stress relief, 2026-02-23 06:50:23.133132+00, 2026-02-23 06:50:23.133147+00, a9161f48-ce92-4536-8be4-fffe038c4625, 1, f, null, null, 60, null, null, null, null).
+
+2026-02-23 06:50:23,136 [INFO] 📤 Publishing Permissions Sync: 0 items enriched
+2026-02-23 06:50:23,143 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-02-23 06:50:23,143 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-02-23 06:50:56,028 [INFO] 🚀 Starting Service Provider Unified Kafka Consumer...
+2026-02-23 06:50:56,041 [INFO] ✅ Connected to Kafka broker.
+2026-02-23 06:51:02,895 [INFO] 🔥 Event: PROVIDER.PERMISSIONS.UPDATED | Role:  | Service: None
+2026-02-23 06:51:02,925 [INFO] DEBUG: [KAFKA RECV] provider.permissions.updated | User: 9ca8ab28-7fca-46d7-b1a1-e43c7bc9631d
+2026-02-23 06:51:02,925 [INFO] DEBUG: Payload Keys: ['auth_user_id', 'purchase_id', 'permissions', 'purchased_plan', 'templates', 'dynamic_capabilities']
+2026-02-23 06:51:02,925 [INFO] DEBUG: Templates Received - Services: 19, Cats: 10
+2026-02-23 06:51:03,023 [WARNING] ⏭️ Skipping pricing cb58096d-3c47-4a40-b2f4-da8385c72d53 - No Facility or Category linked.
+2026-02-23 06:51:03,024 [WARNING] ⏭️ Skipping pricing f457c4e3-df8b-46c9-9261-904010f64e82 - No Facility or Category linked.
+2026-02-23 06:51:03,025 [WARNING] ⏭️ Skipping pricing 6927cb90-3af9-46b9-9434-fa4360bcee71 - No Facility or Category linked.
+2026-02-23 06:51:03,026 [WARNING] ⏭️ Skipping pricing 6ab3c307-9e0d-41d0-8dfe-3705d0dd33c2 - No Facility or Category linked.
+2026-02-23 06:51:03,027 [WARNING] ⏭️ Skipping pricing 128b5b84-de2d-42c5-b9c8-24afe9e65578 - No Facility or Category linked.
+2026-02-23 06:51:03,028 [WARNING] ⏭️ Skipping pricing 82e354cd-af70-4aa3-96d2-95faaf3777e9 - No Facility or Category linked.
+2026-02-23 06:51:03,029 [WARNING] ⏭️ Skipping pricing d656a687-5587-4ba0-ae50-42adfe6f65d0 - No Facility or Category linked.
+2026-02-23 06:51:03,030 [WARNING] ⏭️ Skipping pricing 06768cc7-7368-49ac-9008-a2993c54da15 - No Facility or Category linked.
+2026-02-23 06:51:03,032 [WARNING] ⏭️ Skipping pricing 8c8498b2-79c0-473a-893f-706b98279c91 - No Facility or Category linked.
+2026-02-23 06:51:03,033 [WARNING] ⏭️ Skipping pricing 18203da2-e94b-4186-addf-3a53efcde799 - No Facility or Category linked.
+2026-02-23 06:51:03,093 [INFO] ✅ Synced Templates for user 9ca8ab28-7fca-46d7-b1a1-e43c7bc9631d
+2026-02-23 06:51:03,102 [INFO] 🧹 Cleared old permissions for user 9ca8ab28-7fca-46d7-b1a1-e43c7bc9631d → permissions=[]
+2026-02-23 06:51:03,102 [INFO] DEBUG: perms_map size: 19
+2026-02-23 06:51:03,102 [INFO] DEBUG: Sample perms_map keys: [('1240489e-1aea-4877-8fcb-42a1e350fba5', None, None, None), ('2dff446f-c95f-4310-ba4d-05e3395dd7eb', None, None, None), ('8da6c82b-2136-4a14-9670-2973682107a6', None, None, None)]
+2026-02-23 06:51:03,103 [INFO] DEBUG: About to bulk_create 19 ProviderCapabilityAccess records
+2026-02-23 06:51:03,113 [INFO] DEBUG: bulk_create completed successfully
+2026-02-23 06:51:03,125 [INFO] 🗑️ Invalidated cache for 0 employees
+2026-02-23 06:51:03,139 [INFO] ✅ Updated 19 capabilities for user 9ca8ab28-7fca-46d7-b1a1-e43c7bc9631d
+2026-02-23 06:51:03,140 [INFO] 📋 Linked capabilities: ['VETERINARY_PHARMACY', 'VETERINARY_VISITS', 'VETERINARY_LABS', 'VETERINARY_DOCTOR', 'VETERINARY_VITALS', 'VETERINARY_MEDICINE_REMINDERS']
+2026-02-23 06:51:03,140 [INFO] 🏥 Veterinary capabilities: ['VETERINARY_PHARMACY', 'VETERINARY_VISITS', 'VETERINARY_LABS', 'VETERINARY_DOCTOR', 'VETERINARY_VITALS', 'VETERINARY_MEDICINE_REMINDERS']
+2026-02-23 06:51:03,140 [INFO] ✅ Auto-added VETERINARY_CORE (vet capabilities detected: ['VETERINARY_PHARMACY', 'VETERINARY_VISITS', 'VETERINARY_LABS', 'VETERINARY_DOCTOR', 'VETERINARY_VITALS', 'VETERINARY_MEDICINE_REMINDERS'])
+2026-02-23 06:51:03,144 [INFO] ✅ Final user capabilities: ['VETERINARY_PHARMACY', 'VETERINARY_VISITS', 'VETERINARY_LABS', 'VETERINARY_DOCTOR', 'VETERINARY_VITALS', 'VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_CORE']
+2026-02-23 06:51:03,151 [INFO] ✅ Synced Subscription for user 9ca8ab28-7fca-46d7-b1a1-e43c7bc9631d
+2026-02-23 06:51:03,153 [INFO] 🚀 Automaticaly ACTIVATED & VERIFIED Provider for sidhu@gmail.com
+2026-02-23 06:51:03,153 [INFO] DEBUG: Capabilities Processing | Raw Count: 3
+2026-02-23 06:51:03,166 [INFO] ✅ Synced 3 Dynamic Capabilities for user 9ca8ab28-7fca-46d7-b1a1-e43c7bc9631d
+2026-02-23 06:51:03,166 [INFO] 📤 Publishing Permissions Sync: 19 items enriched
+2026-02-23 06:51:03,291 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-02-23 06:51:03,292 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-02-23 10:15:25,168 [INFO] 🔥 Event: SEND_EMAIL | Role: employee | Service: auth_service
+2026-02-23 10:15:25,171 [WARNING] ⚠️ Unknown event type 'SEND_EMAIL' received.
+2026-02-23 10:15:25,179 [INFO] 🔥 Event: USER_CREATED | Role: employee | Service: auth_service
+2026-02-23 10:15:25,179 [INFO] DEBUG: Checking role 'employee' against employee list...
+2026-02-23 10:15:25,179 [INFO] DEBUG: Role matched employee list.
+2026-02-23 10:15:25,179 [INFO] 🔍 Processing Employee 279b310b-07c5-4b0f-bc24-79194f83c22f for Org 9ca8ab28-7fca-46d7-b1a1-e43c7bc9631d
+2026-02-23 10:15:25,206 [ERROR] ❌ Error processing Kafka message: null value in column "consultation_fee" of relation "service_provider_organizationemployee" violates not-null constraint
+DETAIL:  Failing row contains (2f5c2ca5-5429-4119-9e7f-2931b9093810, 279b310b-07c5-4b0f-bc24-79194f83c22f, PENDING, 9ca8ab28-7fca-46d7-b1a1-e43c7bc9631d, null, null, 2026-02-23 10:15:25.202466+00, 2026-02-23 10:15:25.202557+00, 6f9b7a63-da8b-48e5-ad13-e629c46ba861, vikhil@gmail.com, Vikhil, 8767463874, employee, {}, null, 0, 0, null, null).
+Traceback (most recent call last):
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/query.py", line 948, in get_or_create
+    return self.get(**kwargs), False
+           ~~~~~~~~^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/query.py", line 635, in get
+    raise self.model.DoesNotExist(
+        "%s matching query does not exist." % self.model._meta.object_name
+    )
+service_provider.models.OrganizationEmployee.DoesNotExist: OrganizationEmployee matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+psycopg2.errors.NotNullViolation: null value in column "consultation_fee" of relation "service_provider_organizationemployee" violates not-null constraint
+DETAIL:  Failing row contains (2f5c2ca5-5429-4119-9e7f-2931b9093810, 279b310b-07c5-4b0f-bc24-79194f83c22f, PENDING, 9ca8ab28-7fca-46d7-b1a1-e43c7bc9631d, null, null, 2026-02-23 10:15:25.202466+00, 2026-02-23 10:15:25.202557+00, 6f9b7a63-da8b-48e5-ad13-e629c46ba861, vikhil@gmail.com, Vikhil, 8767463874, employee, {}, null, 0, 0, null, null).
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/kafka_consumer.py", line 98, in <module>
+    OrganizationEmployee.objects.update_or_create(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        auth_user_id=auth_user_id,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<10 lines>...
+        },
+        ^^
+    )
+    ^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/query.py", line 990, in update_or_create
+    obj, created = self.select_for_update().get_or_create(
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        create_defaults, **kwargs
+        ^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/query.py", line 955, in get_or_create
+    return self.create(**params), True
+           ~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/query.py", line 665, in create
+    obj.save(force_insert=True, using=self.db)
+    ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/service_provider/models.py", line 564, in save
+    f"{old_instance.provider_role} → {self.provider_role}"
+    ^^^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/base.py", line 902, in save
+    self.save_base(
+    ~~~~~~~~~~~~~~^
+        using=using,
+        ^^^^^^^^^^^^
+    ...<2 lines>...
+        update_fields=update_fields,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/base.py", line 1008, in save_base
+    updated = self._save_table(
+        raw,
+    ...<4 lines>...
+        update_fields,
+    )
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/base.py", line 1169, in _save_table
+    results = self._do_insert(
+        cls._base_manager, using, fields, returning_fields, raw
+    )
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/base.py", line 1210, in _do_insert
+    return manager._insert(
+           ~~~~~~~~~~~~~~~^
+        [self],
+        ^^^^^^^
+    ...<3 lines>...
+        raw=raw,
+        ^^^^^^^^
+    )
+    ^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/query.py", line 1873, in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/sql/compiler.py", line 1882, in execute_sql
+    cursor.execute(sql, params)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        sql, params, many=False, executor=self._execute
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+django.db.utils.IntegrityError: null value in column "consultation_fee" of relation "service_provider_organizationemployee" violates not-null constraint
+DETAIL:  Failing row contains (2f5c2ca5-5429-4119-9e7f-2931b9093810, 279b310b-07c5-4b0f-bc24-79194f83c22f, PENDING, 9ca8ab28-7fca-46d7-b1a1-e43c7bc9631d, null, null, 2026-02-23 10:15:25.202466+00, 2026-02-23 10:15:25.202557+00, 6f9b7a63-da8b-48e5-ad13-e629c46ba861, vikhil@gmail.com, Vikhil, 8767463874, employee, {}, null, 0, 0, null, null).
+
+2026-02-23 10:20:14,216 [INFO] 🚀 Starting Service Provider Unified Kafka Consumer...
+2026-02-23 10:20:14,228 [INFO] ✅ Connected to Kafka broker.
+2026-02-23 10:25:44,051 [INFO] 🔥 Event: USER_DELETED | Role: organization | Service: auth_service
+2026-02-23 10:25:44,166 [INFO] 🗑️ Deleted user records for 9ca8ab28-7fca-46d7-b1a1-e43c7bc9631d
+2026-02-23 10:26:37,073 [INFO] 🔥 Event: SEND_EMAIL | Role: organization | Service: auth_service
+2026-02-23 10:26:37,075 [WARNING] ⚠️ Unknown event type 'SEND_EMAIL' received.
+2026-02-23 10:26:37,084 [INFO] 🔥 Event: USER_CREATED | Role: organization | Service: auth_service
+2026-02-23 10:26:37,085 [INFO] DEBUG: Checking role 'organization' against employee list...
+2026-02-23 10:26:37,099 [INFO] ✅ Created VerifiedUser gopi@gmail.com
+2026-02-23 10:26:37,103 [INFO] 🔄 Updated ServiceProvider provider_type for gopi@gmail.com
+2026-02-23 10:27:02,311 [INFO] 🔥 Event: USER_VERIFIED | Role: organization | Service: auth_service
+2026-02-23 10:27:02,311 [INFO] DEBUG: Checking role 'organization' against employee list...
+2026-02-23 10:27:02,316 [INFO] 🔄 Updated VerifiedUser gopi@gmail.com
+2026-02-23 10:27:02,321 [INFO] 🔄 Updated ServiceProvider provider_type for gopi@gmail.com
+2026-02-23 10:28:08,572 [INFO] 🔥 Event: USER_UPDATED | Role: provider | Service: None
+2026-02-23 10:28:08,576 [INFO] 🆙 Updated VerifiedUser 87b9cb5d-ee9e-4e20-bf22-646b30b793ed
+2026-02-23 10:28:08,610 [INFO] 🔥 Event: PROVIDER.DOCUMENT.UPLOADED | Role: service_provider | Service: None
+2026-02-23 10:28:08,610 [WARNING] ⚠️ Unknown event type 'PROVIDER.DOCUMENT.UPLOADED' received.
+2026-02-23 10:28:08,614 [INFO] 🔥 Event: PROVIDER.DOCUMENT.UPLOADED | Role: service_provider | Service: None
+2026-02-23 10:28:08,615 [WARNING] ⚠️ Unknown event type 'PROVIDER.DOCUMENT.UPLOADED' received.
+2026-02-23 10:28:08,623 [INFO] 🔥 Event: PROVIDER.DOCUMENT.UPLOADED | Role: service_provider | Service: None
+2026-02-23 10:28:08,623 [WARNING] ⚠️ Unknown event type 'PROVIDER.DOCUMENT.UPLOADED' received.
+2026-02-23 10:28:23,208 [INFO] 🔥 Event: ADMIN.DOCUMENT.VERIFIED | Role:  | Service: super_admin_service
+2026-02-23 10:28:23,210 [INFO] ✅ Document 88117dc6-0dd4-452f-9f53-8e39fcee394b verified: approved
+2026-02-23 10:28:24,146 [INFO] 🔥 Event: ADMIN.DOCUMENT.VERIFIED | Role:  | Service: super_admin_service
+2026-02-23 10:28:24,148 [INFO] ✅ Document aa638ee9-7b74-4d04-8367-9f1968826712 verified: approved
+2026-02-23 10:28:24,713 [INFO] 🔥 Event: ADMIN.DOCUMENT.VERIFIED | Role:  | Service: super_admin_service
+2026-02-23 10:28:24,715 [INFO] ✅ Document 4dcd0223-4f55-42eb-a2c7-e6e9b4fdc9da verified: approved
+2026-02-23 10:28:24,721 [INFO] 🔥 Event: USER_VERIFIED | Role:  | Service: super_admin_service
+2026-02-23 10:28:24,721 [INFO] DEBUG: Checking role '' against employee list...
+2026-02-23 10:28:43,660 [INFO] 🔥 Event: PROVIDER.PERMISSIONS.UPDATED | Role:  | Service: None
+2026-02-23 10:28:43,661 [INFO] DEBUG: [KAFKA RECV] provider.permissions.updated | User: 87b9cb5d-ee9e-4e20-bf22-646b30b793ed
+2026-02-23 10:28:43,662 [INFO] DEBUG: Payload Keys: ['auth_user_id', 'purchase_id', 'permissions', 'purchased_plan', 'templates', 'dynamic_capabilities']
+2026-02-23 10:28:43,662 [INFO] DEBUG: Templates Received - Services: 3, Cats: 10
+2026-02-23 10:28:43,727 [WARNING] ⏭️ Skipping pricing cb58096d-3c47-4a40-b2f4-da8385c72d53 - No Facility or Category linked.
+2026-02-23 10:28:43,728 [WARNING] ⏭️ Skipping pricing f457c4e3-df8b-46c9-9261-904010f64e82 - No Facility or Category linked.
+2026-02-23 10:28:43,729 [WARNING] ⏭️ Skipping pricing 6927cb90-3af9-46b9-9434-fa4360bcee71 - No Facility or Category linked.
+2026-02-23 10:28:43,730 [WARNING] ⏭️ Skipping pricing 6ab3c307-9e0d-41d0-8dfe-3705d0dd33c2 - No Facility or Category linked.
+2026-02-23 10:28:43,731 [WARNING] ⏭️ Skipping pricing 128b5b84-de2d-42c5-b9c8-24afe9e65578 - No Facility or Category linked.
+2026-02-23 10:28:43,732 [WARNING] ⏭️ Skipping pricing 82e354cd-af70-4aa3-96d2-95faaf3777e9 - No Facility or Category linked.
+2026-02-23 10:28:43,733 [WARNING] ⏭️ Skipping pricing d656a687-5587-4ba0-ae50-42adfe6f65d0 - No Facility or Category linked.
+2026-02-23 10:28:43,734 [WARNING] ⏭️ Skipping pricing 06768cc7-7368-49ac-9008-a2993c54da15 - No Facility or Category linked.
+2026-02-23 10:28:43,734 [WARNING] ⏭️ Skipping pricing 8c8498b2-79c0-473a-893f-706b98279c91 - No Facility or Category linked.
+2026-02-23 10:28:43,736 [WARNING] ⏭️ Skipping pricing 18203da2-e94b-4186-addf-3a53efcde799 - No Facility or Category linked.
+2026-02-23 10:28:43,770 [INFO] ✅ Synced Templates for user 87b9cb5d-ee9e-4e20-bf22-646b30b793ed
+2026-02-23 10:28:43,773 [INFO] 🧹 Cleared old permissions for user 87b9cb5d-ee9e-4e20-bf22-646b30b793ed → permissions=[]
+2026-02-23 10:28:43,773 [INFO] DEBUG: perms_map size: 19
+2026-02-23 10:28:43,774 [INFO] DEBUG: Sample perms_map keys: [('1240489e-1aea-4877-8fcb-42a1e350fba5', None, None, None), ('2dff446f-c95f-4310-ba4d-05e3395dd7eb', None, None, None), ('8da6c82b-2136-4a14-9670-2973682107a6', None, None, None)]
+2026-02-23 10:28:43,775 [INFO] DEBUG: About to bulk_create 19 ProviderCapabilityAccess records
+2026-02-23 10:28:43,778 [INFO] DEBUG: bulk_create completed successfully
+2026-02-23 10:28:43,783 [INFO] 🗑️ Invalidated cache for 0 employees
+2026-02-23 10:28:43,792 [INFO] ✅ Updated 19 capabilities for user 87b9cb5d-ee9e-4e20-bf22-646b30b793ed
+2026-02-23 10:28:43,793 [INFO] 📋 Linked capabilities: ['VETERINARY_PHARMACY', 'VETERINARY_VISITS', 'VETERINARY_LABS', 'VETERINARY_DOCTOR', 'VETERINARY_VITALS', 'VETERINARY_MEDICINE_REMINDERS']
+2026-02-23 10:28:43,793 [INFO] 🏥 Veterinary capabilities: ['VETERINARY_PHARMACY', 'VETERINARY_VISITS', 'VETERINARY_LABS', 'VETERINARY_DOCTOR', 'VETERINARY_VITALS', 'VETERINARY_MEDICINE_REMINDERS']
+2026-02-23 10:28:43,793 [INFO] ✅ Auto-added VETERINARY_CORE (vet capabilities detected: ['VETERINARY_PHARMACY', 'VETERINARY_VISITS', 'VETERINARY_LABS', 'VETERINARY_DOCTOR', 'VETERINARY_VITALS', 'VETERINARY_MEDICINE_REMINDERS'])
+2026-02-23 10:28:43,796 [INFO] ✅ Final user capabilities: ['VETERINARY_PHARMACY', 'VETERINARY_VISITS', 'VETERINARY_LABS', 'VETERINARY_DOCTOR', 'VETERINARY_VITALS', 'VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_CORE']
+2026-02-23 10:28:43,799 [INFO] ✅ Synced Subscription for user 87b9cb5d-ee9e-4e20-bf22-646b30b793ed
+2026-02-23 10:28:43,800 [INFO] 🚀 Automaticaly ACTIVATED & VERIFIED Provider for gopi@gmail.com
+2026-02-23 10:28:43,800 [INFO] DEBUG: Capabilities Processing | Raw Count: 0
+2026-02-23 10:28:43,801 [INFO] 📤 Publishing Permissions Sync: 19 items enriched
+2026-02-23 10:28:43,813 [INFO] 🔥 Event: USER_PERMISSIONS_SYNCED | Role: provider | Service: None
+2026-02-23 10:28:43,813 [WARNING] ⚠️ Unknown event type 'USER_PERMISSIONS_SYNCED' received.
+2026-02-23 10:30:00,709 [INFO] 🔥 Event: SEND_EMAIL | Role: employee | Service: auth_service
+2026-02-23 10:30:00,711 [WARNING] ⚠️ Unknown event type 'SEND_EMAIL' received.
+2026-02-23 10:30:00,716 [INFO] 🔥 Event: USER_CREATED | Role: employee | Service: auth_service
+2026-02-23 10:30:00,717 [INFO] DEBUG: Checking role 'employee' against employee list...
+2026-02-23 10:30:00,717 [INFO] DEBUG: Role matched employee list.
+2026-02-23 10:30:00,717 [INFO] 🔍 Processing Employee 84e228c4-02ae-48a1-81e6-b0c817f72d86 for Org 87b9cb5d-ee9e-4e20-bf22-646b30b793ed
+2026-02-23 10:30:00,727 [ERROR] ❌ Error processing Kafka message: null value in column "consultation_fee" of relation "service_provider_organizationemployee" violates not-null constraint
+DETAIL:  Failing row contains (0a9dc5eb-2beb-4cc6-84ec-08a2c54f66e5, 84e228c4-02ae-48a1-81e6-b0c817f72d86, PENDING, 87b9cb5d-ee9e-4e20-bf22-646b30b793ed, null, null, 2026-02-23 10:30:00.723894+00, 2026-02-23 10:30:00.723917+00, 9c856d87-e98f-42fd-a474-dc71fc547537, rahul@gmail.com, Rahul, 7474748098, employee, {}, null, 0, 0, null, null).
+Traceback (most recent call last):
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/query.py", line 948, in get_or_create
+    return self.get(**kwargs), False
+           ~~~~~~~~^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/query.py", line 635, in get
+    raise self.model.DoesNotExist(
+        "%s matching query does not exist." % self.model._meta.object_name
+    )
+service_provider.models.OrganizationEmployee.DoesNotExist: OrganizationEmployee matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+psycopg2.errors.NotNullViolation: null value in column "consultation_fee" of relation "service_provider_organizationemployee" violates not-null constraint
+DETAIL:  Failing row contains (0a9dc5eb-2beb-4cc6-84ec-08a2c54f66e5, 84e228c4-02ae-48a1-81e6-b0c817f72d86, PENDING, 87b9cb5d-ee9e-4e20-bf22-646b30b793ed, null, null, 2026-02-23 10:30:00.723894+00, 2026-02-23 10:30:00.723917+00, 9c856d87-e98f-42fd-a474-dc71fc547537, rahul@gmail.com, Rahul, 7474748098, employee, {}, null, 0, 0, null, null).
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/kafka_consumer.py", line 98, in <module>
+    OrganizationEmployee.objects.update_or_create(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        auth_user_id=auth_user_id,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<10 lines>...
+        },
+        ^^
+    )
+    ^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/query.py", line 990, in update_or_create
+    obj, created = self.select_for_update().get_or_create(
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        create_defaults, **kwargs
+        ^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/query.py", line 955, in get_or_create
+    return self.create(**params), True
+           ~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/query.py", line 665, in create
+    obj.save(force_insert=True, using=self.db)
+    ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/service_provider/models.py", line 564, in save
+    f"{old_instance.provider_role} → {self.provider_role}"
+    ^^^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/base.py", line 902, in save
+    self.save_base(
+    ~~~~~~~~~~~~~~^
+        using=using,
+        ^^^^^^^^^^^^
+    ...<2 lines>...
+        update_fields=update_fields,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/base.py", line 1008, in save_base
+    updated = self._save_table(
+        raw,
+    ...<4 lines>...
+        update_fields,
+    )
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/base.py", line 1169, in _save_table
+    results = self._do_insert(
+        cls._base_manager, using, fields, returning_fields, raw
+    )
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/base.py", line 1210, in _do_insert
+    return manager._insert(
+           ~~~~~~~~~~~~~~~^
+        [self],
+        ^^^^^^^
+    ...<3 lines>...
+        raw=raw,
+        ^^^^^^^^
+    )
+    ^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/query.py", line 1873, in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/sql/compiler.py", line 1882, in execute_sql
+    cursor.execute(sql, params)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        sql, params, many=False, executor=self._execute
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+django.db.utils.IntegrityError: null value in column "consultation_fee" of relation "service_provider_organizationemployee" violates not-null constraint
+DETAIL:  Failing row contains (0a9dc5eb-2beb-4cc6-84ec-08a2c54f66e5, 84e228c4-02ae-48a1-81e6-b0c817f72d86, PENDING, 87b9cb5d-ee9e-4e20-bf22-646b30b793ed, null, null, 2026-02-23 10:30:00.723894+00, 2026-02-23 10:30:00.723917+00, 9c856d87-e98f-42fd-a474-dc71fc547537, rahul@gmail.com, Rahul, 7474748098, employee, {}, null, 0, 0, null, null).
+
+2026-02-23 10:32:08,607 [INFO] 🔥 Event: SEND_EMAIL | Role: employee | Service: auth_service
+2026-02-23 10:32:08,608 [WARNING] ⚠️ Unknown event type 'SEND_EMAIL' received.
+2026-02-23 10:32:08,614 [INFO] 🔥 Event: USER_CREATED | Role: employee | Service: auth_service
+2026-02-23 10:32:08,614 [INFO] DEBUG: Checking role 'employee' against employee list...
+2026-02-23 10:32:08,614 [INFO] DEBUG: Role matched employee list.
+2026-02-23 10:32:08,615 [INFO] 🔍 Processing Employee 5c3b54b9-aa99-441d-8598-df3aea0b59fd for Org 87b9cb5d-ee9e-4e20-bf22-646b30b793ed
+2026-02-23 10:32:08,630 [ERROR] ❌ Error processing Kafka message: null value in column "consultation_fee" of relation "service_provider_organizationemployee" violates not-null constraint
+DETAIL:  Failing row contains (e9ecdd1b-4357-4f91-99b2-9c6d245e6fab, 5c3b54b9-aa99-441d-8598-df3aea0b59fd, PENDING, 87b9cb5d-ee9e-4e20-bf22-646b30b793ed, null, null, 2026-02-23 10:32:08.624697+00, 2026-02-23 10:32:08.624748+00, 9c856d87-e98f-42fd-a474-dc71fc547537, rahull@gmail.com, Rahul, 7474748097, employee, {}, null, 0, 0, null, null).
+Traceback (most recent call last):
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/query.py", line 948, in get_or_create
+    return self.get(**kwargs), False
+           ~~~~~~~~^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/query.py", line 635, in get
+    raise self.model.DoesNotExist(
+        "%s matching query does not exist." % self.model._meta.object_name
+    )
+service_provider.models.OrganizationEmployee.DoesNotExist: OrganizationEmployee matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+psycopg2.errors.NotNullViolation: null value in column "consultation_fee" of relation "service_provider_organizationemployee" violates not-null constraint
+DETAIL:  Failing row contains (e9ecdd1b-4357-4f91-99b2-9c6d245e6fab, 5c3b54b9-aa99-441d-8598-df3aea0b59fd, PENDING, 87b9cb5d-ee9e-4e20-bf22-646b30b793ed, null, null, 2026-02-23 10:32:08.624697+00, 2026-02-23 10:32:08.624748+00, 9c856d87-e98f-42fd-a474-dc71fc547537, rahull@gmail.com, Rahul, 7474748097, employee, {}, null, 0, 0, null, null).
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/kafka_consumer.py", line 98, in <module>
+    OrganizationEmployee.objects.update_or_create(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        auth_user_id=auth_user_id,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<10 lines>...
+        },
+        ^^
+    )
+    ^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/query.py", line 990, in update_or_create
+    obj, created = self.select_for_update().get_or_create(
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        create_defaults, **kwargs
+        ^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/query.py", line 955, in get_or_create
+    return self.create(**params), True
+           ~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/query.py", line 665, in create
+    obj.save(force_insert=True, using=self.db)
+    ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/service_provider/models.py", line 564, in save
+    f"{old_instance.provider_role} → {self.provider_role}"
+    ^^^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/base.py", line 902, in save
+    self.save_base(
+    ~~~~~~~~~~~~~~^
+        using=using,
+        ^^^^^^^^^^^^
+    ...<2 lines>...
+        update_fields=update_fields,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/base.py", line 1008, in save_base
+    updated = self._save_table(
+        raw,
+    ...<4 lines>...
+        update_fields,
+    )
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/base.py", line 1169, in _save_table
+    results = self._do_insert(
+        cls._base_manager, using, fields, returning_fields, raw
+    )
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/base.py", line 1210, in _do_insert
+    return manager._insert(
+           ~~~~~~~~~~~~~~~^
+        [self],
+        ^^^^^^^
+    ...<3 lines>...
+        raw=raw,
+        ^^^^^^^^
+    )
+    ^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/query.py", line 1873, in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/models/sql/compiler.py", line 1882, in execute_sql
+    cursor.execute(sql, params)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        sql, params, many=False, executor=self._execute
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service/venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+django.db.utils.IntegrityError: null value in column "consultation_fee" of relation "service_provider_organizationemployee" violates not-null constraint
+DETAIL:  Failing row contains (e9ecdd1b-4357-4f91-99b2-9c6d245e6fab, 5c3b54b9-aa99-441d-8598-df3aea0b59fd, PENDING, 87b9cb5d-ee9e-4e20-bf22-646b30b793ed, null, null, 2026-02-23 10:32:08.624697+00, 2026-02-23 10:32:08.624748+00, 9c856d87-e98f-42fd-a474-dc71fc547537, rahull@gmail.com, Rahul, 7474748097, employee, {}, null, 0, 0, null, null).
+
+2026-02-23 10:32:38,459 [INFO] 🔥 Event: USER_DELETED | Role: employee | Service: auth_service
+2026-02-23 10:32:38,486 [INFO] 🗑️ Deleted user records for 84e228c4-02ae-48a1-81e6-b0c817f72d86
+2026-02-23 10:33:55,687 [INFO] 🔥 Event: EMPLOYEE_UPDATED | Role: employee | Service: None
+2026-02-23 10:33:55,689 [INFO] 🆙 Updated OrganizationEmployee 5c3b54b9-aa99-441d-8598-df3aea0b59fd
+2026-02-23 10:52:43,783 [INFO] 🔥 Event: EMPLOYEE_UPDATED | Role: employee | Service: None
+2026-02-23 10:52:43,787 [INFO] 🆙 Updated OrganizationEmployee 5c3b54b9-aa99-441d-8598-df3aea0b59fd
+2026-02-23 10:52:56,811 [INFO] 🔥 Event: EMPLOYEE_UPDATED | Role: employee | Service: None
+2026-02-23 10:52:56,813 [INFO] 🆙 Updated OrganizationEmployee 5c3b54b9-aa99-441d-8598-df3aea0b59fd
+2026-02-23 10:53:18,254 [INFO] 🔥 Event: USER_UPDATED | Role: provider | Service: None
+2026-02-23 10:53:18,259 [INFO] 🆙 Updated VerifiedUser 87b9cb5d-ee9e-4e20-bf22-646b30b793ed

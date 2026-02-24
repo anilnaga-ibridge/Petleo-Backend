@@ -271,6 +271,7 @@ class ProviderCategory(models.Model):
     )
     service_id = models.CharField(max_length=255, null=True, blank=True)  # Stored as string ID
     name = models.CharField(max_length=255)
+    description = models.TextField(blank=True, null=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -301,6 +302,13 @@ class ProviderFacility(models.Model):
     description = models.TextField(null=True, blank=True)
     price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     
+    # New Protocol & Pricing Fields
+    protocol_type = models.CharField(max_length=20, default='MINUTES_BASED')
+    duration_minutes = models.IntegerField(default=60)
+    pricing_strategy = models.CharField(max_length=20, default='FIXED')
+    base_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+
+    image = models.FileField(upload_to="facility_images/", null=True, blank=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -311,6 +319,17 @@ class ProviderFacility(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.category.name})"
+
+class ProviderFacilityImage(models.Model):
+    facility = models.ForeignKey(ProviderFacility, on_delete=models.CASCADE, related_name="gallery_images")
+    image = models.FileField(upload_to="facility_gallery/")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["created_at"]
+
+    def __str__(self):
+        return f"Image for {self.facility.name}"
 
 
 class ProviderPricing(models.Model):
@@ -337,6 +356,15 @@ class ProviderPricing(models.Model):
     price = models.DecimalField(max_digits=10, decimal_places=2)
     billing_unit = models.CharField(max_length=20, default="PER_SESSION", help_text="HOURLY, DAILY, WEEKLY, PER_SESSION, ONE_TIME")
     duration_minutes = models.IntegerField(null=True, blank=True, help_text="Duration for HOURLY/PER_SESSION billing")
+
+    # Protocol Fields
+    service_duration_type = models.CharField(max_length=50, default="MINUTES", help_text="MINUTES, HOURS, DAYS, SESSIONS, PRODUCT")
+    pricing_model = models.CharField(max_length=50, default="PER_UNIT", help_text="FIXED, PER_UNIT, DAILY, WEEKLY, MONTHLY, YEARLY")
+    duration_value = models.IntegerField(null=True, blank=True, help_text="Value for non-minute durations (e.g. 10 sessions)")
+
+    # Capacity Fields
+    daily_capacity = models.PositiveIntegerField(null=True, blank=True)
+    monthly_limit = models.PositiveIntegerField(null=True, blank=True)
     description = models.TextField(null=True, blank=True)
     
     is_active = models.BooleanField(default=True)
@@ -386,6 +414,7 @@ class ProviderTemplateCategory(models.Model):
         related_name="categories"
     )
     name = models.CharField(max_length=255)
+    description = models.TextField(blank=True, null=True)
     linked_capability = models.CharField(max_length=100, blank=True, null=True)
     
     created_at = models.DateTimeField(auto_now_add=True)
@@ -406,11 +435,47 @@ class ProviderTemplateFacility(models.Model):
     name = models.CharField(max_length=255)
     description = models.TextField(null=True, blank=True)
     
+    # Advanced Booking Fields
+    is_addon = models.BooleanField(default=False)
+    parent_facility = models.ForeignKey(
+        'self', 
+        on_delete=models.CASCADE, 
+        null=True, 
+        blank=True, 
+        related_name="addons"
+    )
+    default_capacity = models.PositiveIntegerField(default=1)
+    required_capability = models.CharField(
+        max_length=100, 
+        null=True, 
+        blank=True, 
+        help_text="The capability key required to perform this facility (e.g., VETERINARY_DOCTOR)"
+    )
+    default_duration_minutes = models.PositiveIntegerField(default=60, help_text="Default duration for this service in minutes")
+
+    # New Protocol & Pricing Fields (Synced from SuperAdmin)
+    protocol_type = models.CharField(max_length=20, default='MINUTES_BASED')
+    duration_minutes = models.IntegerField(default=60)
+    pricing_strategy = models.CharField(max_length=20, default='FIXED')
+    base_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+
+    image = models.FileField(upload_to="template_facility_images/", null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f"{self.name} (Template)"
+
+class ProviderTemplateFacilityImage(models.Model):
+    template_facility = models.ForeignKey(ProviderTemplateFacility, on_delete=models.CASCADE, related_name="gallery_images")
+    image = models.FileField(upload_to="template_facility_gallery/")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["created_at"]
+
+    def __str__(self):
+        return f"Gallery Image for {self.template_facility.name}"
 
 
 class ProviderTemplatePricing(models.Model):
@@ -438,6 +503,15 @@ class ProviderTemplatePricing(models.Model):
     price = models.DecimalField(max_digits=10, decimal_places=2)
     billing_unit = models.CharField(max_length=20, default="PER_SESSION", help_text="HOURLY, DAILY, WEEKLY, PER_SESSION, ONE_TIME")
     duration_minutes = models.IntegerField(null=True, blank=True, help_text="Duration for HOURLY/PER_SESSION billing")
+
+    # Protocol Fields
+    service_duration_type = models.CharField(max_length=50, default="MINUTES", help_text="MINUTES, HOURS, DAYS, SESSIONS, PRODUCT")
+    pricing_model = models.CharField(max_length=50, default="PER_UNIT", help_text="FIXED, PER_UNIT, DAILY, WEEKLY, MONTHLY, YEARLY")
+    duration_value = models.IntegerField(null=True, blank=True, help_text="Value for non-minute durations (e.g. 10 sessions)")
+
+    # Capacity Fields
+    daily_capacity = models.PositiveIntegerField(null=True, blank=True)
+    monthly_limit = models.PositiveIntegerField(null=True, blank=True)
     description = models.TextField(null=True, blank=True)
     
     created_at = models.DateTimeField(auto_now_add=True)

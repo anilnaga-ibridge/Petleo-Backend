@@ -3,6 +3,12 @@
 import os
 import sys
 
+# PATCH: Add Auth Service to path
+# We need to add the parent directory of Auth_Service to sys.path
+# Auth_Service is at ../Auth_Service relative to this file
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'Auth_Service', 'auth_service')))
+
 
 def main():
     """Run administrative tasks."""

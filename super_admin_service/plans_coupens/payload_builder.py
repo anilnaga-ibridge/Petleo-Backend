@@ -61,6 +61,7 @@ def build_unified_payload(user, plan, purchased_plan_id, auth_user_id):
             "id": str(cat.id),
             "service_id": str(cat.service.id),
             "name": cat.name,
+            "description": getattr(cat, "description", ""),
             "linked_capability": cat.linked_capability,
             "is_template": True
         })
@@ -70,7 +71,11 @@ def build_unified_payload(user, plan, purchased_plan_id, auth_user_id):
                 "id": str(fac.id),
                 "category_id": str(cat.id),
                 "name": fac.name,
-                "description": getattr(fac, "description", "")
+                "description": getattr(fac, "description", ""),
+                "protocol_type": getattr(fac, "protocol_type", "MINUTES_BASED"),
+                "duration_minutes": getattr(fac, "duration_minutes", 60),
+                "pricing_strategy": getattr(fac, "pricing_strategy", "PER_UNIT"),
+                "base_price": str(getattr(fac, "base_price", 0.00))
             })
 
     # Pricing
@@ -87,8 +92,14 @@ def build_unified_payload(user, plan, purchased_plan_id, auth_user_id):
             "category_id": p_cat_id,
             "facility_id": p_fac_id,
             "price": str(price.base_price),
-            "duration": getattr(price, 'duration_minutes', 'fixed'),
-            "description": f"Default pricing for {price.service.display_name}"
+            "billing_unit": price.billing_unit,
+            "service_duration_type": price.service_duration_type,
+            "pricing_model": price.pricing_model,
+            "duration_minutes": price.duration_minutes,
+            "duration_value": price.duration_value,
+            "daily_capacity": price.daily_capacity,
+            "monthly_limit": price.monthly_limit,
+            "description": getattr(price, "description", "") or f"Default pricing for {price.service.display_name}"
         })
 
     # 3. Dynamic Capabilities (The Tech Keys)

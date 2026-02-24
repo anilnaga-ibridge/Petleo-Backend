@@ -48,9 +48,13 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",  # Vue dev server
     "http://127.0.0.1:5174",
 ]
-CORS_ALLOW_ALL_ORIGINS = True
-ALLOWED_HOSTS = ["localhost", "127.0.0.1", "host.docker.internal"]
-
+CORS_ALLOW_ALL_ORIGINS = False # Must be False when Credentials = True
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:5174",
+    "http://127.0.0.1:5174",
+]
 CORS_ALLOW_METHODS = [
     "DELETE",
     "GET",
@@ -60,8 +64,16 @@ CORS_ALLOW_METHODS = [
     "PUT",
 ]
 
+CORS_ALLOW_CREDENTIALS = True
+from corsheaders.defaults import default_headers
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    "x-clinic-id",
+    "x-reset-token",
+    "authorization",
+]
+
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',  # 👈 must be first or near-top
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -72,13 +84,10 @@ MIDDLEWARE = [
     'admin_core.middleware.sync_verified_user.SyncVerifiedUserMiddleware',
     'middleware.log_auth_header.LogAuthHeaderMiddleware',
 ]
-# import logging
-# logging.warning("🔥 ACTIVE MIDDLEWARE ORDER:")
-# for m in MIDDLEWARE:
-#     logging.warning(" - " + m)
+
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'admin_core.authentication.CentralAuthJWTAuthentication',  # shared JWT
+        'admin_core.authentication.CentralAuthJWTAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
@@ -86,7 +95,7 @@ REST_FRAMEWORK = {
 }
 
 SIMPLE_JWT = {
-    "SIGNING_KEY": SECRET_KEY,  # must match auth_service
+    "SIGNING_KEY": SECRET_KEY,
     "ALGORITHM": "HS256",
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
@@ -96,18 +105,6 @@ SIMPLE_JWT = {
     "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
 }
 ROOT_URLCONF = 'super_admin_service.urls'
-
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.postgresql',
-#         'NAME': os.environ.get('POSTGRES_DB', 'Super_Admin'),
-#         'USER': os.environ.get('POSTGRES_USER', 'postgres'),
-#         'PASSWORD': os.environ.get('POSTGRES_PASSWORD', 'postgres'),
-#         'HOST': os.environ.get('POSTGRES_HOST', 'localhost'),
-        
-#         'PORT': os.environ.get('POSTGRES_PORT', '5432'),
-#     }
-# }
 
 DATABASES = {
     'default': {
@@ -125,19 +122,19 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR.parent, 'service_provider_service', 'media')
 
 # Static files (CSS, JavaScript, Images)
-STATIC_URL = '/static/'  # Required for admin and staticfiles app
-STATICFILES_DIRS = [BASE_DIR / "static"]  # Optional: for project-level static files
-STATIC_ROOT = BASE_DIR / "staticfiles"    # Optional: for collectstatic in production
+STATIC_URL = '/static/'
+STATICFILES_DIRS = [BASE_DIR / "static"]
+STATIC_ROOT = BASE_DIR / "staticfiles"
 
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / "templates"],  # optional, you can create a templates folder
-        'APP_DIRS': True,  # important: allows Django to find admin templates
+        'DIRS': [BASE_DIR / "templates"],
+        'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
                 'django.template.context_processors.debug',
-                'django.template.context_processors.request',  # required by admin
+                'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
             ],
@@ -159,15 +156,20 @@ LOGGING = {
             'class': 'logging.StreamHandler',
         },
     },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',
+    },
     'loggers': {
-        'kafka': {
-            'handlers': ['console'],
-            'level': 'CRITICAL',
-            'propagate': False,
-        },
         'django': {
             'handlers': ['console'],
             'level': 'INFO',
+            'propagate': False,
+        },
+        'admin_core': {  # For my authentication.py
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': False,
         },
     },
 }

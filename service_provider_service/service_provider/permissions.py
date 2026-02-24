@@ -3,18 +3,35 @@ from rest_framework import permissions
 
 class IsOrganizationAdmin(permissions.BasePermission):
     """
-    Allows access only to organization admins.
+    Allows access to organization and individual providers (owners who can manage their organization).
+    Employees are excluded.
     """
     def has_permission(self, request, view):
         if not request.user or not request.user.is_authenticated:
             return False
         
-        # In Provider Service, request.user is a VerifiedUser object
-        role = getattr(request.user, 'role', '')
-        if not role:
-            return False
+        # Check ServiceProvider.provider_type instead of user.role
+        try:
+            from .models import ServiceProvider
+            provider = ServiceProvider.objects.filter(verified_user__auth_user_id=request.user.auth_user_id).first()
             
-        return role.upper() == 'ORGANIZATION'
+            if provider and provider.provider_type:
+                provider_type = provider.provider_type.upper()
+                # Allow both ORGANIZATION and INDIVIDUAL providers
+                has_access = provider_type in ['ORGANIZATION', 'INDIVIDUAL']
+                
+                if not has_access:
+                    print(f"❌ IsOrganizationAdmin: Denied for provider_type={provider_type}")
+                else:
+                    print(f"✅ IsOrganizationAdmin: Granted for provider_type={provider_type}")
+                
+                return has_access
+        except Exception as e:
+            print(f"❌ IsOrganizationAdmin: Error checking provider type: {e}")
+        
+        # Fallback: Check user.role (for backwards compatibility)
+        role = getattr(request.user, 'role', '').upper()
+        return role in ['ORGANIZATION', 'INDIVIDUAL']
 
 
 class HasProviderPermission(permissions.BasePermission):
@@ -30,6 +47,16 @@ class HasProviderPermission(permissions.BasePermission):
         return True
 
     def has_object_permission(self, request, view, obj):
+        # Allow owners to manage their own resources
+        from provider_dynamic_fields.views import get_effective_provider_user
+        
+        verified_user = get_effective_provider_user(request.user)
+        
+        # Check if this is the owner's resource
+        if hasattr(obj, 'provider') and obj.provider == verified_user:
+            # Owner has full permissions
+            return True
+        
         # Determine the action type
         if request.method in permissions.SAFE_METHODS:
             action = "view"
@@ -79,7 +106,6 @@ class HasProviderPermission(permissions.BasePermission):
         # Check permission in DB
         from provider_dynamic_fields.models import ProviderCapabilityAccess
 
-        verified_user = request.user
         perms = ProviderCapabilityAccess.objects.filter(user=verified_user, service_id=str(service_id))
         
         if category_id:

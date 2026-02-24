@@ -141,10 +141,9 @@ def publish_permissions_synced(auth_user_id, permissions):
     except Exception as e:
         logger.error(f"❌ Failed to publish permission sync event: {e}")
 
-def publish_user_profile_updated(auth_user_id, full_name=None, email=None, phone_number=None, role=None):
+def publish_user_profile_updated(auth_user_id, full_name=None, email=None, phone_number=None, role=None, avatar_url=None, banner_image_url=None):
     """
-    Publishes an EMPLOYEE_UPDATED event to sync profile changes back to Auth Service.
-    The Auth Service consumer listens for EMPLOYEE_UPDATED and updates the User model.
+    Publishes an PLAYER_UPDATED (or similar) event to sync profile changes back to Auth Service.
     """
     producer = get_kafka_producer()
     if not producer:
@@ -158,9 +157,11 @@ def publish_user_profile_updated(auth_user_id, full_name=None, email=None, phone
     if email is not None: data["email"] = email
     if phone_number is not None: data["phone_number"] = phone_number
     if role is not None: data["role"] = role
+    if avatar_url is not None: data["avatar_url"] = avatar_url
+    if banner_image_url is not None: data["banner_image_url"] = banner_image_url
 
     payload = {
-        "event_type": "EMPLOYEE_UPDATED", # Auth Service consumer expects this
+        "event_type": "USER_UPDATED", # Better event name for generic sync
         "role": role or "provider",
         "data": data
     }

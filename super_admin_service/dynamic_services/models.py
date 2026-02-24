@@ -5,8 +5,26 @@ class BillingUnit(models.TextChoices):
     HOURLY = "HOURLY", "Hourly"
     DAILY = "DAILY", "Daily"
     WEEKLY = "WEEKLY", "Weekly"
+    MONTHLY = "MONTHLY", "Monthly"
+    YEARLY = "YEARLY", "Yearly"
     PER_SESSION = "PER_SESSION", "Per Session"
     ONE_TIME = "ONE_TIME", "One Time"
+
+class ServiceDurationType(models.TextChoices):
+    MINUTES = "MINUTES", "Minutes (Slots)"
+    HOURS = "HOURS", "Hours"
+    DAYS = "DAYS", "Days (Date Range)"
+    SESSIONS = "SESSIONS", "Sessions (Packages)"
+    DOCTOR_VISIT = "DOCTOR_VISIT", "Doctor Visit"
+    PRODUCT = "PRODUCT", "Product (Quantity Only)"
+    SUBSCRIPTION = "SUBSCRIPTION", "Subscription"
+
+class PricingModel(models.TextChoices):
+    FIXED = "FIXED", "Fixed Total"
+    PER_UNIT = "PER_UNIT", "Per Unit (Min/Hr/Day)"
+    WEEKLY = "WEEKLY", "Weekly Rate"
+    MONTHLY = "MONTHLY", "Monthly Rate"
+    YEARLY = "YEARLY", "Yearly Rate"
 
 class Service(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

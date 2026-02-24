@@ -1,5 +1,6 @@
 
 import os
+import json
 import sys
 import django
 import argparse
@@ -56,6 +57,7 @@ def republish_permissions(email, dry_run=True):
                 "end_date": pp.end_date.isoformat() if pp.end_date else None,
             }
             
+            print(f"DEBUG: Publishing templates for user {auth_id}: {json.dumps(templates, indent=2)}")
             publish_permissions_updated(
                 auth_id, 
                 str(pp.id), 

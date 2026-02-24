@@ -1,7 +1,7 @@
 
 from django.db.models.signals import post_save, post_delete, m2m_changed
 from django.dispatch import receiver
-from .models import OrganizationEmployee, ProviderRole, ProviderRoleCapability
+from .models import OrganizationEmployee, ProviderRole, ProviderRoleCapability, VerifiedUser
 from provider_dynamic_fields.models import ProviderCapabilityAccess
 
 @receiver([post_save, post_delete], sender=OrganizationEmployee)
@@ -34,3 +34,30 @@ def invalidate_org_employees_cache(sender, instance, **kwargs):
     except Exception:
         # If no profile yet or other issue, skip
         pass
+@receiver(post_save, sender=VerifiedUser)
+def sync_provider_type(sender, instance, created, **kwargs):
+    """
+    Ensure ServiceProvider.provider_type matches VerifiedUser.role.
+    This fixes inconsistencies where Organization users appear as Individuals.
+    """
+    if not instance.role:
+        return
+
+    from service_provider.models import ServiceProvider
+
+    role_lower = instance.role.lower()
+    target_type = None
+
+    if role_lower in ['organization', 'serviceprovider', 'service_provider']:
+        target_type = 'ORGANIZATION'
+    elif role_lower in ['individual', 'provider']:
+        target_type = 'INDIVIDUAL'
+    
+    if target_type:
+        # Get or create provider profile
+        provider, _ = ServiceProvider.objects.get_or_create(verified_user=instance)
+        
+        if provider.provider_type != target_type:
+            provider.provider_type = target_type
+            provider.save()
+            print(f"🔄 [Signal] Auto-corrected provider_type to {target_type} for {instance.email}")

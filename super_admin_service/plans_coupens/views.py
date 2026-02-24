@@ -509,7 +509,7 @@ class ProviderPlanView(generics.ListAPIView):
         print(f"DEBUG: Filtering by target_type: {target_type}")
 
         if target_type:
-            qs = qs.filter(target_type=target_type)
+            qs = qs.filter(target_type__iexact=target_type)
             
         print(f"DEBUG: Final Plan Count: {qs.count()}")
         return qs

@@ -104,7 +104,9 @@ for message in consumer:
                                 "phone_number": data.get("phone_number"),
                                 "role": role,
                                 "status": "PENDING",
-                                "created_by": data.get("created_by")
+                                "created_by": data.get("created_by"),
+                                "average_rating": 0.0,
+                                "total_ratings": 0
                             },
                         )
                         logger.info(f"✅ Created OrganizationEmployee {auth_user_id} (Invited)")
@@ -126,7 +128,9 @@ for message in consumer:
                                     "phone_number": data.get("phone_number"),
                                     "role": role,
                                     "status": "PENDING",
-                                    "created_by": data.get("created_by")
+                                    "created_by": data.get("created_by"),
+                                    "average_rating": 0.0,
+                                    "total_ratings": 0
                                 },
                             )
                             logger.info(f"✅ Created OrganizationEmployee {auth_user_id} (Invited) after recovery")
@@ -151,7 +155,7 @@ for message in consumer:
             # ==========================
             # VERIFIED USER SYNC (ALL ROLES)
             # ==========================
-            if role in ["individual", "organization", "serviceprovider", "pet_owner", "employee", "receptionist", "veterinarian", "groomer", "doctor", "labtech", "lab tech", "pharmacy", "vitalsstaff", "vitals staff", "superadmin", "super_admin", "admin"]:
+            if role in ["individual", "organization", "serviceprovider", "petowner", "pet_owner", "employee", "receptionist", "veterinarian", "groomer", "doctor", "labtech", "lab tech", "pharmacy", "vitalsstaff", "vitals staff", "superadmin", "super_admin", "admin"]:
                 with transaction.atomic():
                     user, created = VerifiedUser.objects.update_or_create(
                         auth_user_id=auth_user_id,
@@ -160,6 +164,7 @@ for message in consumer:
                             "email": data.get("email"),
                             "phone_number": data.get("phone_number"),
                             "role": role,
+                            "avatar_url": data.get("avatar_url"),
                             "permissions": get_default_capabilities(role),
                         },
                     )
@@ -167,11 +172,23 @@ for message in consumer:
                         f"{'✅ Created' if created else '🔄 Updated'} VerifiedUser {user.email}"
                     )
                     
-                    # Auto-create ServiceProvider profile for organizations
+                    # Auto-create ServiceProvider profile for organizations and individuals
                     if role in ["organization", "serviceprovider"]:
-                        provider, p_created = ServiceProvider.objects.get_or_create(verified_user=user)
+                        provider, p_created = ServiceProvider.objects.update_or_create(
+                            verified_user=user,
+                            defaults={"provider_type": "ORGANIZATION"}
+                        )
                         if p_created:
-                            logger.info(f"✅ Auto-created ServiceProvider profile for {user.email}")
+                            logger.info(f"✅ Auto-created ServiceProvider profile (ORGANIZATION) for {user.email}")
+                        else:
+                            logger.info(f"🔄 Updated ServiceProvider provider_type to ORGANIZATION for {user.email}")
+                    elif role == "individual":
+                        provider, p_created = ServiceProvider.objects.update_or_create(
+                            verified_user=user,
+                            defaults={"provider_type": "INDIVIDUAL"}
+                        )
+                        if p_created:
+                            logger.info(f"✅ Auto-created ServiceProvider profile (INDIVIDUAL) for {user.email}")
 
         elif event_type == "EMPLOYEE_UPDATED":
             auth_user_id = data.get("auth_user_id")
@@ -188,25 +205,47 @@ for message in consumer:
                     logger.warning(f"⚠️ OrganizationEmployee {auth_user_id} not found for update")
 
         # ==========================
-        # USER UPDATED (NON-EMPLOYEE ONLY)
+        # USER UPDATED (ALL ROLES)
         # ==========================
         elif event_type == "USER_UPDATED":
-            if role in ["employee", "receptionist", "veterinarian", "groomer", "doctor", "labtech", "pharmacy", "vitalsstaff"]:
-                continue
-
             auth_user_id = data.get("auth_user_id")
             if not auth_user_id:
                 continue
 
-            updated = VerifiedUser.objects.filter(auth_user_id=auth_user_id).update(
+            # [FIX] Use update_or_create for robustness, especially for SuperAdmins
+            if role in ["superadmin", "super_admin", "admin"]:
+                user, created = VerifiedUser.objects.update_or_create(
+                    auth_user_id=auth_user_id,
+                    defaults={
+                        "full_name": data.get("full_name"),
+                        "email": data.get("email"),
+                        "phone_number": data.get("phone_number"),
+                        "role": role,
+                        "avatar_url": data.get("avatar_url"),
+                    }
+                )
+                if created:
+                    logger.info(f"✅ JIT Created VerifiedUser via UPDATED event: {auth_user_id}")
+                else:
+                    logger.info(f"🆙 Updated VerifiedUser {auth_user_id}")
+            else:
+                updated = VerifiedUser.objects.filter(auth_user_id=auth_user_id).update(
+                    full_name=data.get("full_name"),
+                    email=data.get("email"),
+                    phone_number=data.get("phone_number"),
+                    role=role,
+                    avatar_url=data.get("avatar_url"),
+                )
+                if updated:
+                    logger.info(f"🆙 Updated VerifiedUser {auth_user_id}")
+                
+            # Also update Employee record if it exists
+            OrganizationEmployee.objects.filter(auth_user_id=auth_user_id).update(
                 full_name=data.get("full_name"),
                 email=data.get("email"),
                 phone_number=data.get("phone_number"),
-                role=role,
-                permissions=get_default_capabilities(role),
+                role=role
             )
-            if updated:
-                logger.info(f"🆙 Updated VerifiedUser {auth_user_id}")
 
         # ==========================
         # USER DELETED
@@ -320,6 +359,7 @@ for message in consumer:
                                         defaults={
                                             "service": service_obj,
                                             "name": cat["name"],
+                                            "description": cat.get("description", ""),
                                             "linked_capability": cat.get("linked_capability")
                                         }
                                     )
@@ -340,7 +380,11 @@ for message in consumer:
                                         defaults={
                                             "category": cat_obj,
                                             "name": fac["name"],
-                                            "description": fac.get("description", "")
+                                            "description": fac.get("description", ""),
+                                            "protocol_type": fac.get("protocol_type", "MINUTES_BASED"),
+                                            "duration_minutes": fac.get("duration_minutes", 60),
+                                            "pricing_strategy": fac.get("pricing_strategy", "PER_UNIT"),
+                                            "base_price": fac.get("base_price", 0.00)
                                         }
                                     )
                                 except ProviderTemplateCategory.DoesNotExist:
@@ -425,6 +469,11 @@ for message in consumer:
                                                 "price": price["price"],
                                                 "billing_unit": billing_unit,
                                                 "duration_minutes": duration_minutes,  # Explicitly None if not provided
+                                                "service_duration_type": price.get("service_duration_type", "MINUTES"),
+                                                "pricing_model": price.get("pricing_model", "PER_UNIT"),
+                                                "duration_value": price.get("duration_value"),
+                                                "daily_capacity": price.get("daily_capacity"),
+                                                "monthly_limit": price.get("monthly_limit"),
                                                 "description": price.get("description", "")
                                             }
                                         )
@@ -455,8 +504,36 @@ for message in consumer:
                         # Dictionary to track unique permissions: (service, category, facility, pricing) -> dict
                         perms_map = {}
                         
-                        # Helper to add/update permission
-                        def add_perm(s_id, c_id, f_id, p_id, **kwargs):
+                        # 4. Pricing Lookup Map
+                        # (service_id, category_id, facility_id) -> pricing_id
+                        price_lookup = {}
+                        for p in templates.get("pricing", []):
+                            sid = p["service_id"]
+                            cid = p.get("category_id")
+                            fid = p.get("facility_id")
+                            pid = p["id"]
+                            
+                            if fid:
+                                # Case A: Direct Facility Price
+                                price_lookup[(sid, cid, fid)] = pid
+                            elif cid:
+                                # Case B: Category Level Price - will be mapped to all facilities later
+                                # We'll handle this by checking if a direct price exists, otherwise fallback to category price
+                                price_lookup[(sid, cid, None)] = pid
+
+                        # Helper to add/update permission with lookup
+                        def add_perm(s_id, c_id, f_id, p_id=None, **kwargs):
+                            # Try to find pricing if not provided
+                            if not p_id:
+                                # 1. Try explicit facility price
+                                p_id = price_lookup.get((s_id, c_id, f_id))
+                                # 2. Try category fallback price
+                                if not p_id and f_id:
+                                    p_tmpl_id = price_lookup.get((s_id, c_id, None))
+                                    if p_tmpl_id:
+                                        # Use the composite ID format we used during template sync
+                                        p_id = f"{p_tmpl_id}_{f_id}"
+
                             key = (s_id, c_id, f_id, p_id)
                             if key not in perms_map:
                                 perms_map[key] = {
@@ -464,23 +541,24 @@ for message in consumer:
                                     "category_id": c_id,
                                     "facility_id": f_id,
                                     "pricing_id": p_id,
-                                    "can_view": True, 
-                                    "can_create": False,
-                                    "can_edit": False,
-                                    "can_delete": False
+                                    "can_view": kwargs.get("can_view", True), 
+                                    "can_create": kwargs.get("can_create", False),
+                                    "can_edit": kwargs.get("can_edit", False),
+                                    "can_delete": kwargs.get("can_delete", False)
                                 }
-                            perms_map[key].update(kwargs)
+                            else:
+                                perms_map[key].update(kwargs)
 
                         # A. Auto-generate from Templates (Robust Sync)
                         # 1. Services
                         for svc in templates.get("services", []):
-                            add_perm(svc["id"], None, None, None)
+                            add_perm(svc["id"], None, None)
                             
                         # 2. Categories
                         cat_service_map = {} 
                         for cat in templates.get("categories", []):
                             cat_service_map[cat["id"]] = cat["service_id"]
-                            add_perm(cat["service_id"], cat["id"], None, None)
+                            add_perm(cat["service_id"], cat["id"], None)
                             
                         # 3. Facilities
                         for fac in templates.get("facilities", []):
@@ -488,20 +566,19 @@ for message in consumer:
                             if cat_id:
                                 s_id = cat_service_map.get(cat_id)
                                 if s_id:
-                                    add_perm(s_id, cat_id, fac["id"], None)
+                                    add_perm(s_id, cat_id, fac["id"])
 
-                        # 4. Pricing
+                        # 4. Explicit Pricing from Payload (Overrides/Additions)
                         for price in templates.get("pricing", []):
-                            # Strict Hierarchy: Price -> Facility -> Category -> Service
-                            if not price.get("facility_id"):
-                                continue
-
-                            add_perm(
-                                price["service_id"], 
-                                price.get("category_id"), 
-                                price.get("facility_id"), 
-                                price["id"]
-                            )
+                            # Only add if it's a direct facility price or if we want to ensure category prices are in DB
+                            # but perms_map focuses on hierarchy.
+                            if price.get("facility_id"):
+                                add_perm(
+                                    price["service_id"], 
+                                    price.get("category_id"), 
+                                    price.get("facility_id"), 
+                                    price["id"]
+                                )
 
                         # B. Apply Explicit Permissions (Overrides)
                         for perm in permissions_list:
@@ -640,6 +717,15 @@ for message in consumer:
                             }
                         )
                         logger.info(f"✅ Synced Subscription for user {auth_user_id}")
+
+                        # 🛡️ AUTOMATIC ACTIVATION & VERIFICATION
+                        # Once a provider has a valid subscription, we mark them as active 
+                        # and verified so they appear in the marketplace search.
+                        ServiceProvider.objects.filter(verified_user=user).update(
+                            profile_status='active',
+                            is_fully_verified=True
+                        )
+                        logger.info(f"🚀 Automaticaly ACTIVATED & VERIFIED Provider for {user.email}")
 
                     # 5. DYNAMIC CAPABILITIES (NEW System)
                     # 5. DYNAMIC CAPABILITIES (NEW System)

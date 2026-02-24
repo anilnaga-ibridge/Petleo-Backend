@@ -35,6 +35,40 @@ def normalize_target(request):
     return t if t in ["individual", "organization", "employee"] else None
 
 
+def resolve_service_id(service_param):
+    """
+    Resolves a service parameter (UUID, name, or key) to a Super Admin Service ID (UUID).
+    """
+    if not service_param:
+        return None
+
+    # 1. Check if already a UUID
+    import uuid
+    try:
+        uuid.UUID(str(service_param))
+        return service_param
+    except (ValueError, TypeError):
+        pass
+
+    # 2. Resolve from ProviderTemplateService
+    from .models import ProviderTemplateService
+    
+    # Normalize: lowercase and replace hyphens/spaces with underscores
+    normalized = str(service_param).lower().replace("-", "_").replace(" ", "_")
+    
+    # Try match on standardized name
+    svc = ProviderTemplateService.objects.filter(name__iexact=normalized).first()
+    if svc:
+        return svc.super_admin_service_id
+        
+    # Try exact match on original name
+    svc = ProviderTemplateService.objects.filter(name__iexact=service_param).first()
+    if svc:
+        return svc.super_admin_service_id
+        
+    return service_param # Fallback
+
+
 # ----------------------------------------------------------
 # 1) FETCH FIELD DEFINITIONS FROM SUPERADMIN
 # ----------------------------------------------------------
@@ -381,7 +415,7 @@ class ProviderCategoryViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         qs = ProviderCategory.objects.filter(provider=self.get_verified_user()).order_by("-created_at")
-        service_id = self.request.query_params.get("service")
+        service_id = resolve_service_id(self.request.query_params.get("service"))
         if service_id:
             qs = qs.filter(service_id=service_id)
         return qs
@@ -448,19 +482,29 @@ class ProviderCategoryViewSet(viewsets.ModelViewSet):
         return super().update(request, *args, **kwargs)
 
     def list(self, request, *args, **kwargs):
-        service_id = request.query_params.get("service")
+        service_id = resolve_service_id(request.query_params.get("service"))
         
         # 1. Custom Categories
         custom_qs = self.get_queryset()
         custom_data = self.get_serializer(custom_qs, many=True).data
         
-        # 2. Template Categories
+        # 2. Template Categories (Filtered by Permissions)
         template_data = []
         if service_id:
-            from .models import ProviderTemplateCategory, ProviderTemplateService, ProviderTemplateFacility
+            from .models import ProviderTemplateCategory, ProviderTemplateService, ProviderTemplateFacility, ProviderCapabilityAccess
             try:
+                # 🛡️ SECURITY FIX: Only show templates authorized in ProviderCapabilityAccess
+                authorized_cat_ids = ProviderCapabilityAccess.objects.filter(
+                    user=self.get_verified_user(),
+                    service_id=service_id,
+                    category_id__isnull=False
+                ).values_list('category_id', flat=True)
+                
                 template_service = ProviderTemplateService.objects.get(super_admin_service_id=service_id)
-                templates = ProviderTemplateCategory.objects.filter(service=template_service)
+                templates = ProviderTemplateCategory.objects.filter(
+                    service=template_service,
+                    super_admin_category_id__in=authorized_cat_ids
+                )
                 
                 # Filter out templates that already exist in custom_data (by name)
                 existing_names = {c["name"] for c in custom_data}
@@ -473,8 +517,10 @@ class ProviderCategoryViewSet(viewsets.ModelViewSet):
                         "id": f"TEMPLATE_{t.id}",
                         "original_id": t.super_admin_category_id,
                         "name": t.name,
+                        "description": t.description or "",
                         "service_id": service_id,
                         "is_template": True,
+                        "is_active": True,
                         "facilities": []
                     }
                     
@@ -595,56 +641,68 @@ class ProviderFacilityViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         qs = ProviderFacility.objects.filter(provider=self.get_verified_user()).order_by("-created_at")
-        service_id = self.request.query_params.get("service")
+        service_id = resolve_service_id(self.request.query_params.get("service"))
         if service_id:
             # Filter facilities by categories belonging to the service
             qs = qs.filter(category__service_id=service_id)
         return qs
 
-    def create(self, request, *args, **kwargs):
-        data = request.data.copy()
+    def _resolve_template_category(self, data, t_fac=None):
+        """Helper to resolve TEMPLATE_ category IDs to real categories."""
         category_id = data.get("category")
-
-        if category_id and str(category_id).startswith("TEMPLATE_"):
-            # Resolve Template Category
-            from .models import ProviderTemplateCategory, ProviderCategory
+        
+        if not category_id or str(category_id).startswith("TEMPLATE_"):
+            from .models import ProviderCategory, ProviderTemplateCategory
             
-            # Extract original ID
-            # Format: TEMPLATE_<uuid> or just TEMPLATE_<id>
-            # But wait, in list() we set id = f"TEMPLATE_{t.id}" where t.id is the LOCAL PK of ProviderTemplateCategory
-            # So we need to strip "TEMPLATE_" and find the ProviderTemplateCategory
+            target_template_cat = None
+            if not category_id:
+                if t_fac:
+                    target_template_cat = t_fac.category
+                else:
+                    return None # No way to resolve
+            else:
+                try:
+                    template_pk = str(category_id).replace("TEMPLATE_", "")
+                    target_template_cat = ProviderTemplateCategory.objects.get(id=template_pk)
+                except (ProviderTemplateCategory.DoesNotExist, ValueError):
+                    return "Invalid template category ID"
             
-            try:
-                template_pk = str(category_id).replace("TEMPLATE_", "")
-                template_cat = ProviderTemplateCategory.objects.get(id=template_pk)
-                
-                # Check if a real ProviderCategory already exists for this template
-                # We need a way to link them. 
-                # Currently ProviderCategory has `service_id` and `name`.
-                # It does NOT have a link to `ProviderTemplateCategory`.
-                # But we can match by name and service_id?
-                # Or we should have added `original_template_id` to ProviderCategory?
-                
-                # For now, let's match by name and service_id
+            if target_template_cat:
                 real_cat = ProviderCategory.objects.filter(
                     provider=self.get_verified_user(),
-                    service_id=template_cat.service.super_admin_service_id,
-                    name=template_cat.name
+                    service_id=target_template_cat.service.super_admin_service_id,
+                    name=target_template_cat.name
                 ).first()
                 
                 if not real_cat:
-                    # Create it
                     real_cat = ProviderCategory.objects.create(
                         provider=self.get_verified_user(),
-                        service_id=template_cat.service.super_admin_service_id,
-                        name=template_cat.name,
+                        service_id=target_template_cat.service.super_admin_service_id,
+                        name=target_template_cat.name,
                         is_active=True
                     )
-                
-                data["category"] = real_cat.id
-                
-            except (ProviderTemplateCategory.DoesNotExist, ValueError):
-                return Response({"error": "Invalid template category ID"}, status=400)
+                return real_cat.id, None
+        
+        return category_id, None
+
+    def create(self, request, *args, **kwargs):
+        # Avoid request.data.copy() as it can trigger pickling errors with file uploads (BufferedRandom)
+        if hasattr(request.data, 'dict'):
+            data = request.data.dict()
+            if hasattr(request.data, 'getlist'):
+                for key in request.data.keys():
+                    vals = request.data.getlist(key)
+                    if len(vals) > 1:
+                        data[key] = vals
+        else:
+            data = dict(request.data)
+
+        resolved_cat, error = self._resolve_template_category(data)
+        if error:
+            return Response({"error": error}, status=400)
+        
+        if resolved_cat:
+            data["category"] = resolved_cat
 
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
@@ -653,7 +711,22 @@ class ProviderFacilityViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
     def perform_create(self, serializer):
-        serializer.save(provider=self.get_verified_user())
+        from .models import ProviderFacilityImage
+        instance = serializer.save(provider=self.get_verified_user())
+        
+        # Handle additional gallery images
+        gallery_files = self.request.FILES.getlist('gallery')
+        for f in gallery_files:
+            ProviderFacilityImage.objects.create(facility=instance, image=f)
+
+    def perform_update(self, serializer):
+        from .models import ProviderFacilityImage
+        instance = serializer.save()
+        
+        # Handle additional gallery images (incremental addition)
+        gallery_files = self.request.FILES.getlist('gallery')
+        for f in gallery_files:
+            ProviderFacilityImage.objects.create(facility=instance, image=f)
 
     def destroy(self, request, *args, **kwargs):
         pk = kwargs.get("pk")
@@ -693,30 +766,24 @@ class ProviderFacilityViewSet(viewsets.ModelViewSet):
                 sa_fac_id = t_fac.super_admin_facility_id
                 
                 # 1. Create Real Facility (Shadow)
-                data = request.data.copy()
-                # We need to ensure category is set correctly.
-                # If the user is editing a facility, they might be changing its category too.
-                # But usually they just change name/price.
-                # If they don't send category, we should use the template's category (resolved to real).
+                # Avoid request.data.copy() as it can trigger pickling errors with file uploads (BufferedRandom)
+                if hasattr(request.data, 'dict'):
+                    data = request.data.dict()
+                    if hasattr(request.data, 'getlist'):
+                        for key in request.data.keys():
+                            vals = request.data.getlist(key)
+                            if len(vals) > 1:
+                                data[key] = vals
+                else:
+                    data = dict(request.data)
+
+                # Resolve category (either provided template ID or default from template facility)
+                resolved_cat, error = self._resolve_template_category(data, t_fac=t_fac)
+                if error:
+                    return Response({"error": error}, status=400)
                 
-                if not data.get("category"):
-                    # Resolve template category to real category
-                    from .models import ProviderCategory, ProviderTemplateCategory
-                    t_cat = t_fac.category
-                    real_cat = ProviderCategory.objects.filter(
-                        provider=self.get_verified_user(),
-                        service_id=t_cat.service.super_admin_service_id,
-                        name=t_cat.name
-                    ).first()
-                    
-                    if not real_cat:
-                        real_cat = ProviderCategory.objects.create(
-                            provider=self.get_verified_user(),
-                            service_id=t_cat.service.super_admin_service_id,
-                            name=t_cat.name,
-                            is_active=True
-                        )
-                    data["category"] = real_cat.id
+                if resolved_cat:
+                    data["category"] = resolved_cat
 
                 serializer = self.get_serializer(data=data)
                 serializer.is_valid(raise_exception=True)
@@ -736,21 +803,31 @@ class ProviderFacilityViewSet(viewsets.ModelViewSet):
         return super().update(request, *args, **kwargs)
 
     def list(self, request, *args, **kwargs):
-        service_id = request.query_params.get("service")
+        service_id = resolve_service_id(request.query_params.get("service"))
         
         # 1. Custom Facilities
         custom_qs = self.get_queryset()
         custom_data = self.get_serializer(custom_qs, many=True).data
         
-        # 2. Template Facilities
+        # 2. Template Facilities (Filtered by Permissions)
         template_data = []
         if service_id:
-            from .models import ProviderTemplateFacility, ProviderTemplateCategory, ProviderTemplateService
+            from .models import ProviderTemplateFacility, ProviderTemplateCategory, ProviderTemplateService, ProviderCapabilityAccess
             try:
+                # 🛡️ SECURITY FIX: Only show template facilities authorized in ProviderCapabilityAccess
+                authorized_fac_ids = ProviderCapabilityAccess.objects.filter(
+                    user=self.get_verified_user(),
+                    service_id=service_id,
+                    facility_id__isnull=False
+                ).values_list('facility_id', flat=True)
+
                 # We need facilities belonging to categories of this service
                 template_service = ProviderTemplateService.objects.get(super_admin_service_id=service_id)
                 categories = ProviderTemplateCategory.objects.filter(service=template_service)
-                templates = ProviderTemplateFacility.objects.filter(category__in=categories)
+                templates = ProviderTemplateFacility.objects.filter(
+                    category__in=categories,
+                    super_admin_facility_id__in=authorized_fac_ids
+                )
                 
                 for t in templates:
                     cat_id_debug = f"TEMPLATE_{t.category.id}"
@@ -902,7 +979,7 @@ class ProviderPricingViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         qs = ProviderPricing.objects.filter(provider=self.get_verified_user()).order_by("-created_at")
-        service_id = self.request.query_params.get("service")
+        service_id = resolve_service_id(self.request.query_params.get("service"))
         if service_id:
             qs = qs.filter(service_id=service_id)
         return qs
@@ -1130,34 +1207,50 @@ class ProviderPricingViewSet(viewsets.ModelViewSet):
         return super().update(request, *args, **kwargs)
 
     def list(self, request, *args, **kwargs):
-        service_id = request.query_params.get("service")
+        service_id = resolve_service_id(request.query_params.get("service"))
         
         # 1. Custom Pricing
         custom_qs = self.get_queryset()
         custom_data = self.get_serializer(custom_qs, many=True).data
         
-        # 2. Template Pricing
+        # 2. Template Pricing (Filtered by Permissions)
         template_data = []
         if service_id:
-            from .models import ProviderTemplatePricing, ProviderTemplateService
+            from .models import ProviderTemplatePricing, ProviderTemplateService, ProviderCapabilityAccess
             try:
+                # 🛡️ SECURITY FIX: Only show template pricing authorized in ProviderCapabilityAccess
+                authorized_price_ids = ProviderCapabilityAccess.objects.filter(
+                    user=self.get_verified_user(),
+                    service_id=service_id,
+                    pricing_id__isnull=False
+                ).values_list('pricing_id', flat=True)
+
                 template_service = ProviderTemplateService.objects.get(super_admin_service_id=service_id)
-                templates = ProviderTemplatePricing.objects.filter(service=template_service)
+                templates = ProviderTemplatePricing.objects.filter(
+                    service=template_service,
+                    super_admin_pricing_id__in=authorized_price_ids
+                )
                 
-                # Pre-fetch existing real categories to avoid N+1
-                real_cats_map = {} # template_cat_id_str -> real_cat_obj
+                # Pre-fetch existing real categories and facilities to avoid N+1
+                real_cats_map = {} # category_name -> real_cat_obj
+                real_facs_map = {} # (category_name, facility_name) -> real_facility_obj
                 try:
-                    from .models import ProviderCategory, ProviderTemplateCategory
+                    from .models import ProviderCategory, ProviderTemplateCategory, ProviderFacility
                     # Find categories for this service belonging to this provider
                     real_cats = ProviderCategory.objects.filter(
                         provider=self.get_verified_user(), 
                         service_id=service_id
                     )
                     for rc in real_cats:
-                        # Find corresponding template cat
-                        # This is tricky because real_cat doesn't store template_id directly
-                        # We have to match by name
                         real_cats_map[rc.name] = rc
+                    
+                    # Find facilities for this service belonging to this provider
+                    real_facs = ProviderFacility.objects.filter(
+                        provider=self.get_verified_user(),
+                        category__service_id=service_id
+                    ).select_related('category')
+                    for rf in real_facs:
+                        real_facs_map[(rf.category.name, rf.name)] = rf
                 except Exception:
                     pass
 
@@ -1181,7 +1274,19 @@ class ProviderPricingViewSet(viewsets.ModelViewSet):
                     if t_cat_name and t_cat_name in real_cats_map:
                         rc = real_cats_map[t_cat_name]
                         cat_id = str(rc.id)
-                        # cat_name = rc.name # Should be same
+
+                    fac_id = None
+                    if t.facility:
+                        # Try to match with Real Facility
+                        if t_cat_name and (t_cat_name, t.facility.name) in real_facs_map:
+                            rf = real_facs_map[(t_cat_name, t.facility.name)]
+                            fac_id = str(rf.id)
+                        else:
+                            fac_id = f"TEMPLATE_{t.facility.id}"
+
+                    duration = t.duration_minutes
+                    if not duration and t.billing_unit == 'HOURLY':
+                        duration = 60
 
                     template_data.append({
                         "id": f"TEMPLATE_{t.id}",
@@ -1189,12 +1294,13 @@ class ProviderPricingViewSet(viewsets.ModelViewSet):
                         "service_id": service_id,
                         "category_id": cat_id,
                         "category_name": cat_name,
-                        "facility": t.facility.super_admin_facility_id if t.facility else None,
+                        "facility": fac_id,
                         "facility_name": t.facility.name if t.facility else "All Facilities",
+                        "facility_description": t.facility.description if t.facility else "",
                         "price": str(t.price),
                         "billing_unit": t.billing_unit,
-                        "duration": t.duration_minutes,
-                        "description": t.description,
+                        "duration": duration or 0,
+                        "description": t.description or (t.facility.description if t.facility else ""),
                         "is_template": True,
                         "is_active": True
                     })
