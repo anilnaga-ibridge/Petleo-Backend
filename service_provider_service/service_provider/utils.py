@@ -142,17 +142,35 @@ def _build_permission_tree(user, request=None):
                 "gallery": [_get_abs_url(img.image) for img in tmpl.gallery.all()] if tmpl and hasattr(tmpl, 'gallery') else []
             }
         
-        # --- RESOLVE PRICING ---
+        # --- RESOLVE PRICING & CUSTOMIZATIONS ---
         # 1. Start with existing data (might have been set by a previous cap record)
         target_fac = tree[sid]["categories"][cid]["facilities"][fid]
         
         # 2. Check for Custom Override (Highest Priority)
+        # This occurs when a user edits a template facility, creating a shadow copy 
+        # in the ProviderFacility table with a link back to the template category.
         custom_key = (sid, cid, fid)
+        
+        # We need to look up if there's a ProviderFacility for this Template shadow.
+        # The frontend sends `category_id` = template ID when editing templates.
+        from provider_dynamic_fields.models import ProviderFacility
+        shadow_fac = ProviderFacility.objects.filter(
+            provider=user, category_id=cid, name=target_fac["name"], is_active=True
+        ).first()
+
+        if shadow_fac:
+            target_fac["description"] = shadow_fac.description or target_fac["description"]
+            if shadow_fac.image:
+                target_fac["image_url"] = _get_abs_url(shadow_fac.image)
+            if hasattr(shadow_fac, 'gallery_images') and shadow_fac.gallery_images.count() > 0:
+                target_fac["gallery"] = [_get_abs_url(img.image) for img in shadow_fac.gallery_images.all()]
+
         if custom_key in custom_pricing:
             p_custom = custom_pricing[custom_key]
             target_fac["price"] = str(p_custom.price)
             target_fac["duration"] = p_custom.duration_minutes
-            target_fac["description"] = p_custom.description
+            if p_custom.description:
+                target_fac["description"] = p_custom.description
             target_fac["pricing_id"] = f"CUSTOM_{p_custom.id}"
         
         # 3. Check for Template Pricing (Fallback)

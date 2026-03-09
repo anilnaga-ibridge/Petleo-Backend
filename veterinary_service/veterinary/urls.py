@@ -11,11 +11,14 @@ from .views import (
     CreateOnlineAppointmentView,
     LabTestViewSet, MedicineViewSet, PrescriptionViewSet,
     PharmacyTransactionViewSet, VisitInvoiceViewSet,
-    StaffAssignmentViewSet
+    StaffAssignmentViewSet,
+    TreatmentEstimateViewSet, EstimateLineItemViewSet,
+    PreVisitFormViewSet
 )
 
 router = DefaultRouter()
 router.register(r'clinics', ClinicViewSet, basename='clinics')
+router.register(r'pre-visit', PreVisitFormViewSet, basename='pre-visit-forms')
 router.register(r'owners', PetOwnerViewSet, basename='owners')
 router.register(r'pets', PetViewSet, basename='pets')
 router.register(r'visits', VisitViewSet, basename='visits')
@@ -41,12 +44,18 @@ router.register(r'catalog/medicines', MedicineViewSet, basename='catalog-medicin
 router.register(r'prescriptions', PrescriptionViewSet, basename='prescriptions')
 router.register(r'pharmacy/transactions', PharmacyTransactionViewSet, basename='pharmacy-transactions')
 router.register(r'billing/invoices', VisitInvoiceViewSet, basename='billing-invoices')
+router.register(r'billing/estimates', TreatmentEstimateViewSet, basename='billing-estimates')
+router.register(r'billing/estimates/items', EstimateLineItemViewSet, basename='billing-estimate-items')
 
 # Custom route for generic dynamic entities
 from .views import DynamicEntityViewSet
 dynamic_entity_list = DynamicEntityViewSet.as_view({'post': 'create'})
 
 router.register(r'assignments', StaffAssignmentViewSet, basename='assignments')
+
+from .views import VaccineMasterViewSet, PetVaccinationRecordViewSet
+router.register(r'vaccines', VaccineMasterViewSet, basename='vaccines')
+router.register(r'vaccinations', PetVaccinationRecordViewSet, basename='vaccinations')
 
 
 urlpatterns = [

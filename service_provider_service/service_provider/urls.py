@@ -13,6 +13,8 @@ from .views import (
     PublicProviderRatingView,
     PublicProviderRatingView,
     resolve_booking_details,
+    calendar_feed,
+    resource_occupancy,
 )
 from .views_profile import (
     ProviderProfileViewSet, 
@@ -36,12 +38,14 @@ urlpatterns = [
     path("providers/active/", PublicProviderViewSet.as_view({'get': 'active'}), name="active_providers"),
     path("rating/", RatingSubmitView.as_view(), name="submit_rating"),
     path('resolve-details/', resolve_booking_details, name='resolve_details'),
+    path('calendar-feed/', calendar_feed, name='calendar_feed'),
+    path('resource-occupancy/', resource_occupancy, name='resource_occupancy'),
     path("public-ratings/<uuid:provider_id>/", PublicProviderRatingView.as_view(), name="public_ratings"),
     path("public-profile/<uuid:provider_id>/", PublicProviderProfileView.as_view(), name="public_provider_profile"),
 ]
 
 from rest_framework.routers import DefaultRouter
-from .views import EmployeeViewSet, EmployeeAssignmentViewSet, CapabilityViewSet, ProviderRoleViewSet, ConsultationTypeViewSet
+from .views import EmployeeViewSet, EmployeeAssignmentViewSet, CapabilityViewSet, ProviderRoleViewSet, ConsultationTypeViewSet, DashboardViewSet
 from .views_availability import AvailabilityViewSet, ScheduleViewSet, LeaveViewSet, BlockTimeViewSet
 
 router = DefaultRouter()
@@ -50,6 +54,7 @@ router.register(r'employees', EmployeeViewSet, basename='employee')
 router.register(r'employee-assignments', EmployeeAssignmentViewSet, basename='employee-assignments')
 router.register(r'capabilities', CapabilityViewSet, basename='capabilities')
 router.register(r'roles', ProviderRoleViewSet, basename='roles')
+router.register(r'dashboard', DashboardViewSet, basename='dashboard')
 router.register(r'consultation-types', ConsultationTypeViewSet, basename='consultation-types')
 router.register(r'availability', AvailabilityViewSet, basename='availability')
 router.register(r'schedules', ScheduleViewSet, basename='schedules')

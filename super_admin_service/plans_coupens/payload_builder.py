@@ -32,10 +32,10 @@ def build_unified_payload(user, plan, purchased_plan_id, auth_user_id):
             "facility_id": str(p.facility.id) if p.facility else None,
             "facility_name": getattr(p.facility, "name", None),
             "linked_capability": getattr(p.category, "linked_capability", None) if p.category else None,
-            "can_view": p.permissions.get("can_view", True) if p.permissions else True,
-            "can_create": p.permissions.get("can_create", False) if p.permissions else False,
-            "can_edit": p.permissions.get("can_edit", False) if p.permissions else False,
-            "can_delete": p.permissions.get("can_delete", False) if p.permissions else False,
+            "can_view": bool(p.permissions.get("can_view", True)) if p.permissions else True,
+            "can_create": bool(p.permissions.get("can_create", False)) if p.permissions else False,
+            "can_edit": bool(p.permissions.get("can_edit", False)) if p.permissions else False,
+            "can_delete": bool(p.permissions.get("can_delete", False)) if p.permissions else False,
         })
 
     # 2. Collect templates

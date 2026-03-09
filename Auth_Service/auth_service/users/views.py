@@ -375,12 +375,14 @@ class VerifyOTPView(APIView):
 
         user.is_active = True
         user.status = 'ACTIVE'
+        if not user.verified_at:
+            user.verified_at = timezone.now()
         if hasattr(user, "is_verified"):
             user.is_verified = True
         user.save(
-            update_fields=["is_active", "is_verified", "status"]
+            update_fields=["is_active", "is_verified", "status", "verified_at"]
             if hasattr(user, "is_verified")
-            else ["is_active", "status"]
+            else ["is_active", "status", "verified_at"]
         )
 
         # Kafka event
@@ -414,11 +416,13 @@ class VerifyOTPView(APIView):
         if user.status == 'PENDING':
             user.status = 'ACTIVE'
             user.is_active = True
+            if not user.verified_at:
+                user.verified_at = now_local
             if hasattr(user, 'is_verified'):
                 user.is_verified = True
             logger.info(f"🔓 Auto-activated PENDING user {user.phone_number} upon login")
 
-        user.save(update_fields=["last_otp_login", "status", "is_active"] + (["is_verified"] if hasattr(user, "is_verified") else []))
+        user.save(update_fields=["last_otp_login", "status", "is_active", "verified_at"] + (["is_verified"] if hasattr(user, "is_verified") else []))
         
         # NOTE: We do NOT extend PIN validity here. 
         # If the PIN was set yesterday, it is invalid today. User must set a new one.
@@ -438,12 +442,14 @@ class VerifyOTPView(APIView):
 
         if not user.is_active:
             user.is_active = True
+            if not user.verified_at:
+                user.verified_at = timezone.now()
             if hasattr(user, "is_verified"):
                 user.is_verified = True
             user.save(
-                update_fields=["is_active", "is_verified"]
+                update_fields=["is_active", "is_verified", "verified_at"]
                 if hasattr(user, "is_verified")
-                else ["is_active"]
+                else ["is_active", "verified_at"]
             )
 
             try:
@@ -1254,6 +1260,7 @@ def transform_for_frontend(tokens, user, require_set_pin=False):
             "avatar": user.avatar_url,
             "email": user.email or f"{user.phone_number}@demo.com",
             "role": user.role.name.upper() if user.role else None,
+            "is_superuser": user.is_superuser,
             "permissions": [p.codename for p in user.role.permissions.all()] if user.role else [],
             "phoneNumber": user.phone_number,
             "phone_number": user.phone_number,

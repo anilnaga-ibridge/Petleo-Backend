@@ -102,6 +102,7 @@ class PublicProviderSerializer(serializers.ModelSerializer):
     full_name = serializers.CharField(source='verified_user.full_name', read_only=True)
     role = serializers.CharField(source='verified_user.role', read_only=True)
     avatar = serializers.ImageField(read_only=True)
+    auth_user_id = serializers.UUIDField(source='verified_user.auth_user_id', read_only=True)
     
     # Location
     location = serializers.SerializerMethodField()
@@ -109,7 +110,7 @@ class PublicProviderSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ServiceProvider
-        fields = ['id', 'full_name', 'role', 'avatar', 'location', 'services', 'profile_status', 'average_rating', 'total_ratings']
+        fields = ['id', 'auth_user_id', 'full_name', 'role', 'avatar', 'location', 'services', 'profile_status', 'average_rating', 'total_ratings']
 
     def get_location(self, obj):
         from .utils import get_user_dynamic_location
@@ -156,24 +157,42 @@ class PublicProviderDetailSerializer(PublicProviderSerializer):
         fields = PublicProviderSerializer.Meta.fields + ['bio', 'menu', 'email', 'phone_number', 'rating', 'review_count', 'address', 'employees']
         
     def get_employees(self, obj):
-        try:
-             # Return only active employees
-             employees = obj.employees.filter(status='ACTIVE', deleted_at__isnull=True)
-             return [
-                 {
-                     "id": str(e.id),
-                     "auth_user_id": str(e.auth_user_id),
-                     "full_name": e.full_name,
-                     "role": e.provider_role.name if e.provider_role else e.role,
-                     "specialization": e.specialization,
-                     "consultation_fee": e.consultation_fee,
-                     "average_rating": e.average_rating,
-                     "total_ratings": e.total_ratings
-                 }
-                 for e in employees
-             ]
-        except:
-             return []
+         # Return only active employees
+         employees = obj.employees.filter(status='ACTIVE', deleted_at__isnull=True)
+         request = self.context.get("request")
+         
+         from service_provider.models import VerifiedUser
+         
+         employee_data = []
+         for e in employees:
+             avatar_url = None
+             
+             # Fetch the VerifiedUser to get the avatar URL
+             try:
+                 vu = VerifiedUser.objects.filter(auth_user_id=e.auth_user_id).first()
+                 if vu and vu.avatar_url:
+                      # avatar_url is typically already an absolute S3/Cloudinary URL, 
+                      # but if it's relative, build an absolute uri
+                      if request and not vu.avatar_url.startswith('http'):
+                          avatar_url = request.build_absolute_uri(vu.avatar_url)
+                      else:
+                          avatar_url = vu.avatar_url
+             except Exception:
+                 pass
+
+             employee_data.append({
+                 "id": str(e.id),
+                 "auth_user_id": str(e.auth_user_id),
+                 "full_name": e.full_name,
+                 "role": e.provider_role.name if e.provider_role else e.role,
+                 "specialization": e.specialization,
+                 "consultation_fee": e.consultation_fee,
+                 "average_rating": e.average_rating,
+                 "total_ratings": e.total_ratings,
+                 "avatar": avatar_url
+             })
+         return employee_data
+
         
     def get_address(self, obj):
         # Prefer direct location, fallback to billing contact
@@ -238,9 +257,18 @@ class ProviderRoleSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         ret = super().to_representation(instance)
+        
+        # 🛡️ Robust Model Resolution via apps.get_model to avoid any shadowing/related-manager collisions
+        from django.apps import apps
+        CapabilityModel = apps.get_model('service_provider', 'Capability')
+        
         # 1. Capabilities with Labels
-        cap_keys = instance.capabilities.values_list('capability_key', flat=True)
-        caps = Capability.objects.filter(key__in=cap_keys)
+        # Note: instance.capabilities is the RelatedManager for ProviderRoleCapability
+        cap_keys = list(instance.capabilities.values_list('capability_key', flat=True))
+        
+        # Query CapabilityModel explicitly
+        caps = CapabilityModel.objects.filter(key__in=cap_keys)
+        
         ret['capabilities_details'] = [
             {"key": c.key, "label": c.label, "group": c.group} for c in caps
         ]
@@ -370,6 +398,7 @@ class PublicProviderProfileSerializer(serializers.ModelSerializer):
     providerType = serializers.CharField(source='verified_user.role', read_only=True)
     averageRating = serializers.FloatField(source='average_rating', read_only=True)
     totalRatings = serializers.IntegerField(source='total_ratings', read_only=True)
+    auth_user_id = serializers.UUIDField(source='verified_user.auth_user_id', read_only=True)
     
     # New fields to match existing detail view expectations
     menu = serializers.SerializerMethodField()
@@ -383,7 +412,7 @@ class PublicProviderProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = ServiceProvider
         fields = [
-            'id', 'providerName', 'providerType', 'avatar', 'banner_image',
+            'id', 'auth_user_id', 'providerName', 'providerType', 'avatar', 'banner_image',
             'averageRating', 'totalRatings', 'detailed_profile', 
             'custom_services', 'certifications', 'gallery', 'policy', 'ratings',
             'menu', 'bio', 'email', 'phone_number', 'location', 'address', 'employees'
@@ -402,14 +431,23 @@ class PublicProviderProfileSerializer(serializers.ModelSerializer):
     def get_menu(self, obj):
         from .utils import _build_permission_tree
         try:
-            return _build_permission_tree(obj.verified_user)
-        except:
+            request = self.context.get("request")
+            user_target = getattr(obj, 'verified_user', obj)
+            return _build_permission_tree(user_target, request=request)
+        except Exception as e:
+            print(f"MENU ERROR (ProfileSerializer): {e}")
             return []
 
     def get_bio(self, obj):
         if hasattr(obj, 'detailed_profile'):
             return obj.detailed_profile.about_text
-        return f"Welcome to {obj.verified_user.full_name or 'our clinic'}!"
+        
+        # Handle cases where obj is either a ServiceProvider or just a VerifiedUser
+        name = getattr(obj, 'full_name', None)
+        if not name and hasattr(obj, 'verified_user'):
+            name = obj.verified_user.full_name
+            
+        return f"Welcome to {name or 'our clinic'}!"
 
     def get_location(self, obj):
         from .utils import get_user_dynamic_location

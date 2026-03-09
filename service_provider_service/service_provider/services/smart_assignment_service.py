@@ -150,7 +150,7 @@ class SmartAssignmentService:
     def _score_candidates(employee_list, facility_id, date):
         """
         Given a list of OrganizationEmployee objects, return scored & sorted
-        list of {'employee': emp, 'booking_count': n, 'rating': r}.
+        list of {'employee': emp, 'total_minutes': n, 'rating': r}.
         """
         from datetime import date as date_type, datetime as datetime_type
         if isinstance(date, str):
@@ -159,13 +159,26 @@ class SmartAssignmentService:
         scored = []
         for emp in employee_list:
             bookings = AvailabilityService._get_confirmed_bookings(str(emp.auth_user_id), date)
+            
+            total_minutes = 0
+            for b in bookings:
+                try:
+                    # Calculate duration from HH:MM strings
+                    start = datetime_type.strptime(b['start'], '%H:%M')
+                    end = datetime_type.strptime(b['end'], '%H:%M')
+                    duration = (end - start).total_seconds() / 60
+                    total_minutes += max(0, duration)
+                except Exception:
+                    # Fallback to a default duration if parsing fails
+                    total_minutes += 30
+            
             scored.append({
                 'employee': emp,
-                'booking_count': len(bookings),
+                'total_minutes': total_minutes,
                 'rating': float(emp.average_rating or 0),
             })
-        # Least busy first, then highest rated
-        scored.sort(key=lambda x: (x['booking_count'], -x['rating']))
+        # Least busy by minutes first, then highest rated
+        scored.sort(key=lambda x: (x['total_minutes'], -x['rating']))
         return scored
 
     @staticmethod

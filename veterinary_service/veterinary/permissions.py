@@ -84,10 +84,9 @@ class HasVeterinaryAccess(permissions.BasePermission):
             return True
             
         # 2. Ownership Boundary: Organization/Individual Owners can access their own clinics
-        if user_role in ['ORGANIZATION', 'INDIVIDUAL', 'PROVIDER', 'ORGANIZATION_PROVIDER']:
-            is_owner = clinic.organization_id == str(user.username)
-            log(f"Ownership Check: Clinic Org({clinic.organization_id}) == User Username({user.username}) -> {is_owner}")
-            return is_owner
+        if clinic.organization_id == str(user.username):
+            log(f"Global Ownership Match: Clinic Org({clinic.organization_id}) == User UUID({user.username}) -> ACCESS GRANTED")
+            return True
             
         # 3. Staff Boundary: Staff must have an assignment to this clinic
         if user_role not in ['CUSTOMER']:
@@ -112,6 +111,42 @@ class HasVeterinaryAccess(permissions.BasePermission):
         
         log(f"Permission denied for Role: {user_role}, Clinic ID: {clinic.id}")
         return False
+
+class HasGranularCapability(permissions.BasePermission):
+    """
+    10/10 Enterprise Permission.
+    Checks if the user possesses the specific granular capability.
+    """
+    def __init__(self, capability_key=None):
+        self.capability_key = capability_key
+
+    def has_permission(self, request, view):
+        if not request.user or not request.user.is_authenticated:
+            return False
+            
+        # Standardize: capabilities are stored in request.user.permissions
+        user_perms = getattr(request.user, 'permissions', [])
+        
+        if not self.capability_key:
+            return len(user_perms) > 0
+
+        # Check for direct match or wildcard (module.*)
+        if self.capability_key in user_perms:
+            return True
+            
+        if '.' in self.capability_key:
+            module = self.capability_key.split('.')[0]
+            if f"{module}.*" in user_perms:
+                return True
+                
+        return False
+
+def require_granular_capability(capability_key):
+    """Factory for DRF permission_classes."""
+    class DynamicHasCapability(HasGranularCapability):
+        def __init__(self):
+            super().__init__(capability_key)
+    return DynamicHasCapability
 
 class IsClinicStaffOfPet(permissions.BasePermission):
     """
@@ -139,13 +174,14 @@ from rest_framework.exceptions import PermissionDenied
 def require_capability(capability):
     """
     Decorator to enforce strict capability checks on API views.
-    Usage: @require_capability('VETERINARY_VITALS')
-           @require_capability(['VETERINARY_VISITS', 'VETERINARY_DOCTOR']) # OR Logic
+    Supports granular 'module.action' codes and 'module.*' wildcards.
+    Usage: @require_capability('vitals.create')
+           @require_capability(['appointment.create', 'appointment.view']) # OR Logic
     """
     def decorator(func):
         @wraps(func)
         def wrapper(view, request, *args, **kwargs):
-            # 1. Get User Permissions (from JWT or DB)
+            # 1. Get User Permissions
             user_perms = getattr(request.user, 'permissions', None)
             
             # [SENIOR DEV SAFETY NET] Proactively Resolve if missing for Owners
@@ -155,31 +191,39 @@ def require_capability(capability):
                     from .views import get_clinic_context
                     clinic_id = get_clinic_context(request)
                     if clinic_id:
+                        # Full granular suite for owners
                         request.user.permissions = [
-                            "VETERINARY_CORE", "VETERINARY_ADMIN", "VETERINARY_VISITS", 
-                            "VETERINARY_VITALS", "VETERINARY_PRESCRIPTIONS", "VETERINARY_LABS", 
-                            "VETERINARY_VACCINES", "VETERINARY_MEDICINE_REMINDERS", "VETERINARY_DOCTOR", "VETERINARY_PHARMACY"
+                            "appointment.*", "consultation.*", "vitals.*", 
+                            "lab.*", "pharmacy.*", "vaccination.*", 
+                            "billing.*", "reminder.*", "analytics.view",
+                            "VETERINARY_CORE" # Legacy compatibility
                         ]
                         user_perms = request.user.permissions
                     else:
                         request.user.permissions = []
                         user_perms = []
             
-            # 2. Check Capability (Support OR logic for lists)
+            # 2. Check Capability
             allowed = False
             current_perms = user_perms or []
             
-            if isinstance(capability, list) or isinstance(capability, tuple):
-                # OR Logic: Pass if user has ANY of the required capabilities
-                if any(cap in current_perms for cap in capability):
+            req_caps = [capability] if isinstance(capability, str) else capability
+            
+            for req_cap in req_caps:
+                # Direct match
+                if req_cap in current_perms:
                     allowed = True
-            else:
-                # Single String Check
-                if capability in current_perms:
-                    allowed = True
-                    
+                    break
+                
+                # Wildcard match (e.g. 'vitals.create' matches 'vitals.*')
+                if '.' in req_cap:
+                    module = req_cap.split('.')[0]
+                    if f"{module}.*" in current_perms:
+                        allowed = True
+                        break
+                        
             if not allowed:
-                raise PermissionDenied(f"Permission denied. Missing capability: {capability}")
+                raise PermissionDenied(f"Permission denied. Missing granular capability: {capability}")
             
             return func(view, request, *args, **kwargs)
         return wrapper

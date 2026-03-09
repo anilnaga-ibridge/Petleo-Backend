@@ -360,6 +360,7 @@ def purchase_plan(request):
                         "id": str(p.category.id),
                         "service_id": str(p.category.service.id),
                         "name": p.category.name,
+                        "description": getattr(p.category, "description", ""),
                         "linked_capability": p.category.linked_capability,
                         "is_template": True
                     })

@@ -85,6 +85,11 @@ class PurchasedPlan(models.Model):
     price_amount = models.DecimalField(max_digits=12, decimal_places=2)
     price_currency = models.CharField(max_length=10, default="INR")
     
+    # Stripe Payment Tracking Fields
+    payment_gateway = models.CharField(max_length=50, default='STRIPE')
+    transaction_id = models.CharField(max_length=255, null=True, blank=True)
+    checkout_session_url = models.URLField(max_length=1000, null=True, blank=True)
+    
     start_date = models.DateTimeField(default=timezone.now)
     end_date = models.DateTimeField(null=True, blank=True)
     

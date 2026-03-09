@@ -87,10 +87,7 @@ class VeterinaryPermissionMiddleware(MiddlewareMixin):
                     log(f"Attempting Strict Clinic Match: OrgID={auth_user_id}, ClinicID={target_clinic_id}")
                     clinic = Clinic.objects.filter(organization_id=str(auth_user_id), id=target_clinic_id).first()
                 
-                if clinic:
-                    log(f"Clinic MATCHED: {clinic.name}")
-                    request.user.clinic_id = clinic.id
-                    # Owners/Admins get all clinical capabilities
+                    # Owners/Admins get all granular clinical capabilities
                     request.user.permissions = [
                         "VETERINARY_CORE", 
                         "VETERINARY_ADMIN", 
@@ -99,8 +96,13 @@ class VeterinaryPermissionMiddleware(MiddlewareMixin):
                         "VETERINARY_PRESCRIPTIONS", 
                         "VETERINARY_LABS", 
                         "VETERINARY_VACCINES",
-                        "VETERINARY_MEDICINE_REMINDERS"
-                    ] 
+                        "VETERINARY_MEDICINE_REMINDERS",
+                        "VETERINARY_PHARMACY",
+                        "VETERINARY_DOCTOR",
+                        "VETERINARY_SCHEDULE",
+                        "VETERINARY_ONLINE_CONSULT",
+                        "analytics.*"
+                    ]
                 else:
                     log(f"Clinic NOT FOUND or NOT OWNED. target_clinic_id was: {target_clinic_id}")
                     request.user.clinic_id = None
@@ -126,9 +128,23 @@ class VeterinaryPermissionMiddleware(MiddlewareMixin):
                         log(f"Using Primary Assignment: {assignment is not None}")
 
                     if assignment:
-                        request.user.permissions = assignment.permissions
+                        # [FIX] Fallback to role-based permissions if assignment perms are empty
+                        perms = assignment.permissions
+                        assigned_role = assignment.role or staff.role
+                        
+                        # [SENIOR DEV FIX] If local assignment is generic 'employee', prefer specific role from token
+                        if assigned_role.lower() == 'employee' and token_role:
+                            log(f"Overriding generic 'employee' role with specific token role: {token_role}")
+                            assigned_role = token_role
+
+                        if not perms and assigned_role:
+                            from .services import RolePermissionService
+                            perms = RolePermissionService.get_permissions_for_role(assigned_role)
+                            log(f"Empty perms in assignment. Falling back to role '{assigned_role}' defaults.")
+                        
+                        request.user.permissions = perms
                         request.user.clinic_id = assignment.clinic_id
-                        request.user.role = assignment.role or staff.role
+                        request.user.role = assigned_role
                         log(f"Assignment Active. Clinic ID set to: {assignment.clinic_id}")
                     else:
                         log("No Assignment Found.")

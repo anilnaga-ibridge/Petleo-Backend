@@ -22,15 +22,17 @@ class CartItem(models.Model):
     provider_id = models.UUIDField()
     pet = models.ForeignKey(Pet, on_delete=models.CASCADE, related_name='cart_items')
     
-    service_id = models.UUIDField()
-    facility_id = models.UUIDField()
+    service_id = models.CharField(max_length=255)
+    facility_id = models.CharField(max_length=255)
     
     selected_time = models.DateTimeField(null=True, blank=True)
     selected_addons = models.JSONField(default=list, blank=True, help_text="List of UUIDs for selected add-ons")
     
-    employee_id = models.UUIDField(null=True, blank=True, help_text="UUID of the selected doctor/employee")
+    employee_id = models.CharField(max_length=255, null=True, blank=True, help_text="ID of the selected doctor/employee")
     
     price_snapshot = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    provider_auth_id = models.CharField(max_length=255, null=True, blank=True)
+    service_snapshot = models.JSONField(default=dict, blank=True)
     
     extra_notes = models.TextField(blank=True)
     

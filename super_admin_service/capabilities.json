@@ -1,5 +1,12 @@
 [
     {
+        "key": "VETERINARY_CORE",
+        "label": "Veterinary Core Access",
+        "description": "Basic access to veterinary module",
+        "group": "Core",
+        "service": "VETERINARY"
+    },
+    {
         "key": "VETERINARY_VISITS",
         "label": "Reception & Check-in",
         "description": "Register pets, create visits, and check patients in",
@@ -32,6 +39,13 @@
         "label": "Pharmacy & Medicine Dispensing",
         "description": "Dispense medicines and complete visits",
         "group": "Pharmacy",
+        "service": "VETERINARY"
+    },
+    {
+        "key": "VETERINARY_VACCINES",
+        "label": "Vaccination Management",
+        "description": "Manage pet vaccinations and reminders",
+        "group": "Nursing",
         "service": "VETERINARY"
     },
     {

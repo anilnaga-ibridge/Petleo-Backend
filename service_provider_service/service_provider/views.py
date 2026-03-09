@@ -20,6 +20,7 @@ from .models import (
     AllowedService,
     Capability,
     ProviderRole,
+    ProviderRoleCapability,
     OrganizationEmployee,
     PermissionAuditLog,
     ProviderRating,
@@ -98,6 +99,9 @@ class ServiceProviderProfileView(APIView):
         # 1. Fetch Dynamic Field Definitions
         field_definitions_qs = LocalFieldDefinition.objects.filter(target=target).order_by('order')
         
+        # Get provider record for field mapping
+        provider = getattr(verified_user, 'provider_profile', None)
+
         # 2. Merge with Values
         fields_data = []
         for fd in field_definitions_qs:
@@ -120,16 +124,41 @@ class ServiceProviderProfileView(APIView):
                 value = saved_value.value if saved_value else None
 
                 # Source of Truth for basic fields
+                is_org = provider and provider.provider_type == 'ORGANIZATION'
+                clinic_name = None
+                if is_org:
+                    try:
+                        from .models import ProviderProfile
+                        p_profile = getattr(provider, 'detailed_profile', None)
+                        clinic_name = p_profile.clinic_name if p_profile else None
+                    except Exception:
+                        pass
+
                 if fd.name == "first_name":
                     full_name = verified_user.full_name or ""
-                    value = full_name.split(" ", 1)[0] if full_name else ""
+                    # [ENHANCEMENT] If full_name is likely the clinic name (no separate clinic_name exists), 
+                    # don't split it into personal name fields for owners.
+                    if is_org and not clinic_name and full_name:
+                        value = ""
+                    else:
+                        value = full_name.split(" ", 1)[0] if full_name else ""
                 elif fd.name == "last_name":
                     full_name = verified_user.full_name or ""
-                    value = full_name.split(" ", 1)[1] if " " in full_name else ""
+                    if is_org and not clinic_name and full_name:
+                        value = ""
+                    else:
+                        value = full_name.split(" ", 1)[1] if " " in full_name else ""
                 elif fd.name == "email":
                     value = verified_user.email
                 elif fd.name == "phone_number":
                     value = verified_user.phone_number
+                elif fd.name == "organization_name":
+                    # Fetch from ProviderProfile.clinic_name
+                    if is_org:
+                        # Fallback to full_name if clinic_name is empty (initial state)
+                        value = clinic_name or verified_user.full_name
+                    else:
+                        value = None
                 elif fd.name == "country":
                     # Fetch from BillingProfile
                     try:
@@ -173,10 +202,12 @@ class ServiceProviderProfileView(APIView):
         display_role = (display_role or "").replace("_", " ").title()
 
         return Response({
+            "id": str(provider.id) if provider else None,
             "fullName": verified_user.full_name or verified_user.username or verified_user.email,
             "email": verified_user.email,
             "phoneNumber": verified_user.phone_number,
             "role": display_role,
+            "is_superuser": (verified_user.role or "").lower() == 'superadmin',
             "provider_type": provider.provider_type if provider else None,
             "avatar": avatar_url,
             "banner_image": banner_url,
@@ -243,6 +274,12 @@ class ServiceProviderProfileView(APIView):
                     billing, _ = BillingProfile.objects.get_or_create(verified_user=verified_user)
                     billing.country = value
                     billing.save()
+                elif fd.name == "organization_name":
+                    # Update ProviderProfile.clinic_name
+                    from .models import ProviderProfile
+                    p_profile, _ = ProviderProfile.objects.get_or_create(provider=provider)
+                    p_profile.clinic_name = value
+                    p_profile.save()
                 elif fd.name.lower() in ["location", "city"]:
                     from .models import BillingProfile
                     billing, _ = BillingProfile.objects.get_or_create(verified_user=verified_user)
@@ -360,13 +397,15 @@ class ServiceProviderProfileView(APIView):
 
         return Response({
             "message": "Profile updated successfully",
-            "avatar": verified_user.avatar_url, # [FIX] For UserProfile.vue
             "debug": debug_log,
             "user_profile": {
                 "fullName": verified_user.full_name or verified_user.username or verified_user.email,
                 "email": verified_user.email,
                 "phoneNumber": verified_user.phone_number,
-                "avatar": verified_user.avatar_url # [FIX] For AccountSettingsAccount.vue
+                "role": getattr(verified_user, 'role', 'User'),
+                "provider_type": provider.provider_type if provider else None,
+                "clinicName": getattr(getattr(provider, 'detailed_profile', None), 'clinic_name', None),
+                "avatar": request.build_absolute_uri(provider.avatar.url) if (provider and provider.avatar) else verified_user.avatar_url
             }
         })
 
@@ -409,14 +448,30 @@ def get_my_permissions(request):
     # Helper to get display role - Calculate EARLY to ensure it's available for error responses
     display_role = getattr(user, 'role', 'User')
 
-    # [FIX] Explicit Super Admin Check (Bypasses incorrect 'Individual' role in DB)
+    # [DEFINITIVE FIX] Explicit Super Admin Check (Bypasses incorrect 'Individual' role in DB)
+    # Super Admins have NO provider subscription and should NEVER go through permission checks.
+    # Returning early prevents the subscription path from overwriting user_profile.role with
+    # a title-cased 'Super Admin' string which would break frontend routing.
     is_super_admin = (
         str(user.phone_number) == "9876543210" or 
         (hasattr(user, 'role') and str(user.role).lower() == 'superadmin')
     )
     
     if is_super_admin:
-        display_role = 'Super Admin'
+        print(f"✅ [Port 8002] Super Admin detected ({user.email}). Returning early with empty permissions.")
+        return Response({
+            "permissions": [],
+            "plan": None,
+            "user_profile": {
+                "fullName": getattr(user, 'full_name', None) or getattr(user, 'username', None) or getattr(user, 'email', 'Super Admin'),
+                "email": getattr(user, 'email', ''),
+                "phoneNumber": getattr(user, 'phone_number', None),
+                "role": "SUPERADMIN",  # Always use uppercase — matches frontend routing check
+                "provider_type": None,
+                "provider_id": None,
+                "avatar": getattr(user, 'avatar_url', None),
+            }
+        })
     
     # Get ServiceProvider record for provider_type (needed for both role and avatar)
     provider = None
@@ -475,21 +530,46 @@ def get_my_permissions(request):
             # Ensure full URL if it's a relative path
             if avatar_url.startswith('/'):
                 avatar_url = request.build_absolute_uri(avatar_url)
+    except Exception:
+        pass
 
-        if avatar_url:
-            print(f"✅ [Port 8002] AVATAR READY for {user.email}: {avatar_url}")
-        else:
-            print(f"⚠️ [Port 8002] NO AVATAR found for {user.email}")
+    if avatar_url:
+        print(f"✅ [Port 8002] AVATAR READY for {user.email}: {avatar_url}")
+    else:
+        print(f"⚠️ [Port 8002] NO AVATAR found for {user.email}")
+
+    # [FIX] Prioritize individual's name for employees and owners
+    # VerifiedUser.full_name often contains the Organization Name for org-level accounts.
+    full_name = getattr(user, 'full_name', None)
+    clinic_name = None
+    
+    # 1. Resolve Clinic Name for Organizations
+    if provider and provider.provider_type == 'ORGANIZATION':
+        try:
+            from .models import ProviderProfile
+            p_profile = getattr(provider, 'detailed_profile', None)
+            if p_profile and p_profile.clinic_name:
+                clinic_name = p_profile.clinic_name
+        except Exception:
+            pass
+
+    # 2. Resolve Individual Name from OrganizationEmployee (Staff)
+    try:
+        emp = OrganizationEmployee.objects.filter(auth_user_id=user.auth_user_id).first()
+        if emp and emp.full_name:
+            full_name = emp.full_name
+            print(f"👤 [Port 8002] Resolved individual name from OrganizationEmployee: {full_name}")
     except Exception:
         pass
 
     user_profile = {
-        "fullName": getattr(user, 'full_name', None) or getattr(user, 'username', None) or getattr(user, 'email', 'Unknown'),
+        "fullName": full_name or getattr(user, 'username', None) or getattr(user, 'email', 'Unknown'),
         "email": getattr(user, 'email', 'Unknown'),
         "phoneNumber": getattr(user, 'phone_number', None),
         "role": display_role,
         "provider_type": provider.provider_type if provider else None,
         "provider_id": str(provider.id) if provider else None,
+        "clinicName": clinic_name,
         "avatar": avatar_url
     }
 
@@ -594,60 +674,54 @@ def get_my_permissions(request):
         print(f"🔍 Filtering permission tree by employee capabilities...")
         print(f"   Tree size before filter: {len(permissions_list)}")
         
+        # Build a mapping of known aliases (template name -> capability key)
+        SERVICE_KEY_ALIASES = {
+            "VETERINARY": "VETERINARY_CORE",
+        }
+        
         filtered_permissions = []
         for service in permissions_list:
             service_key = service.get('service_key')
             service_name = service.get('service_name')
             
-            print(f"   🔍 Checking service: {service_name} (key: {service_key})")
-            print(f"      Service key in user_caps? {service_key in user_caps}")
+            # Check if this service key (or its alias) is in user_caps
+            resolved_key = SERVICE_KEY_ALIASES.get(service_key, service_key)
+            has_service_access = (service_key in user_caps) or (resolved_key in user_caps)
             
-            # Check if employee has access to this service
-            if service_key in user_caps:
-                print(f"      ✅ MATCH - Service accessible, now filtering categories...")
+            print(f"   🔍 Checking service: {service_name} (key: {service_key} → {resolved_key})")
+            print(f"      Service key in user_caps? {has_service_access}")
+            
+            # Always filter categories by employee role - never pass org-level can_view as-is
+            filtered_categories = []
+            for category in service.get('categories', []):
+                cat_key = category.get('linked_capability') or category.get('category_key')
+                cat_name = category.get('name') or category.get('category_name')
+                print(f"         Category: {cat_name} (key: {cat_key})")
                 
-                # CRITICAL FIX: Even if service is accessible, filter categories by employee caps
-                filtered_categories = []
-                for category in service.get('categories', []):
-                    cat_key = category.get('linked_capability') or category.get('category_key')
-                    cat_name = category.get('name') or category.get('category_name')
-                    print(f"         Category: {cat_name} (key: {cat_key})")
-                    
-                    # Check if employee has this specific category capability
-                    if cat_key and cat_key in user_caps:
-                        print(f"            ✅ Category MATCH - Including")
-                        filtered_categories.append(category)
-                    else:
-                        print(f"            ❌ Category NO MATCH - Excluding")
-                
-                # Include service with filtered categories
+                # Check if employee has this specific category capability
+                if cat_key and cat_key in user_caps:
+                    print(f"            ✅ Category MATCH - Including")
+                    # IMPORTANT: Rebuild category with ROLE-based perms (True since they have access)
+                    rebuilt_category = category.copy()
+                    rebuilt_category['can_view'] = True
+                    rebuilt_category['can_create'] = True
+                    rebuilt_category['can_edit'] = True
+                    rebuilt_category['can_delete'] = False  # Delete is admin-only by default
+                    filtered_categories.append(rebuilt_category)
+                else:
+                    print(f"            ❌ Category NO MATCH - Excluding")
+            
+            # Include this service only if employee has service-level access OR matching categories
+            if has_service_access or filtered_categories:
+                print(f"      ➕ Adding service with {len(filtered_categories)} filtered categories")
                 filtered_service = service.copy()
                 filtered_service['categories'] = filtered_categories
+                # Normalize service_key to VETERINARY_CORE if applicable
+                if service_key != resolved_key:
+                    filtered_service['service_key'] = resolved_key
                 filtered_permissions.append(filtered_service)
-                print(f"      ➕ Added service with {len(filtered_categories)} filtered categories")
-                
             else:
-                print(f"      ❌ NO MATCH - Checking if any categories match...")
-                # Check categories - maybe they have access to specific categories
-                filtered_categories = []
-                for category in service.get('categories', []):
-                    cat_key = category.get('linked_capability') or category.get('category_key')
-                    cat_name = category.get('name') or category.get('category_name')
-                    print(f"         Category: {cat_name} (key: {cat_key})")
-                    if cat_key and cat_key in user_caps:
-                        print(f"            ✅ Category MATCH")
-                        filtered_categories.append(category)
-                    else:
-                        print(f"            ❌ Category NO MATCH")
-                
-                # If employee has access to any categories, include service with filtered categories
-                if filtered_categories:
-                    print(f"      ➕ Adding service with {len(filtered_categories)} filtered categories")
-                    filtered_service = service.copy()
-                    filtered_service['categories'] = filtered_categories
-                    filtered_permissions.append(filtered_service)
-                else:
-                    print(f"      ⏭️ SKIPPING - No matching categories")
+                print(f"      ⏭️ SKIPPING - No access at service or category level")
         
         permissions_list = filtered_permissions
         print(f"   Tree size after filter: {len(permissions_list)}")
@@ -835,9 +909,16 @@ class EmployeeViewSet(viewsets.ModelViewSet):
         
         # Find the ServiceProvider associated with the logged-in user
         try:
-            provider = ServiceProvider.objects.get(verified_user=user)
-            with open("debug_views.log", "a") as f:
-                f.write(f"[{timezone.now()}] Found Provider: {provider.id}\\n")
+            # [FIX] Logic for employees to see their own org members
+            emp_record = OrganizationEmployee.objects.filter(auth_user_id=user.auth_user_id).first()
+            if emp_record:
+                 provider = emp_record.organization
+                 with open("debug_views.log", "a") as f:
+                    f.write(f"[{timezone.now()}] User is employee. Org: {provider.id}\n")
+            else:
+                 provider = ServiceProvider.objects.get(verified_user=user)
+                 with open("debug_views.log", "a") as f:
+                    f.write(f"[{timezone.now()}] Found Provider Owner: {provider.id}\n")
             
             qs = OrganizationEmployee.objects.filter(organization=provider, deleted_at__isnull=True)
             
@@ -922,7 +1003,7 @@ class EmployeeViewSet(viewsets.ModelViewSet):
                     pass
 
             # 6. Create the OrganizationEmployee record directly
-            OrganizationEmployee.objects.update_or_create(
+            emp, created = OrganizationEmployee.objects.update_or_create(
                 auth_user_id=emp_auth_user_id,
                 defaults={
                     "organization": org_provider,
@@ -931,13 +1012,19 @@ class EmployeeViewSet(viewsets.ModelViewSet):
                     "phone_number": auth_data["phone_number"],
                     "role": auth_data["role"],
                     "provider_role": provider_role,
-                    "status": "ACTIVE",
+                    "status": "PENDING",
+                    "joined_at": None, # Will be set when they accept invite/activate
                     "created_by": str(user.auth_user_id),  # FIX: NOT NULL constraint
                     "average_rating": 0.0,
                     "total_ratings": 0,
                 }
             )
             logger.info(f"✅ Directly created OrganizationEmployee {emp_auth_user_id} for org {user.auth_user_id}")
+            
+            # Sync to Kafka immediately so permissions propagate to other services
+            from .kafka_producer import publish_employee_updated
+            publish_employee_updated(emp)
+            
         else:
             logger.warning("⚠️ Auth Service did not return auth_user_id — employee record not created directly")
 
@@ -1142,8 +1229,12 @@ class EmployeeAssignmentViewSet(viewsets.ViewSet):
         
         try:
             provider = ServiceProvider.objects.get(verified_user=request.user)
+        except (ServiceProvider.DoesNotExist, ValueError):
+            return Response({"error": "Provider not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        try:
             employee = OrganizationEmployee.objects.get(id=pk, organization=provider)
-        except (ServiceProvider.DoesNotExist, OrganizationEmployee.DoesNotExist):
+        except OrganizationEmployee.DoesNotExist:
             return Response({"error": "Employee not found"}, status=status.HTTP_404_NOT_FOUND)
 
         try:
@@ -1238,36 +1329,58 @@ class ProviderRoleViewSet(viewsets.ModelViewSet):
         try:
             provider = ServiceProvider.objects.get(verified_user=self.request.user)
             return ProviderRole.objects.filter(provider=provider)
-        except ServiceProvider.DoesNotExist:
+        except (ServiceProvider.DoesNotExist, ValueError):
             return ProviderRole.objects.none()
 
     def perform_create(self, serializer):
-        provider = ServiceProvider.objects.get(verified_user=self.request.user)
-        role = serializer.save(provider=provider)
+        try:
+            provider = ServiceProvider.objects.get(verified_user=self.request.user)
+        except (ServiceProvider.DoesNotExist, ValueError):
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError("Provider profile not found.")
+
+        from django.db import IntegrityError
+        from rest_framework.exceptions import ValidationError
+        try:
+            role = serializer.save(provider=provider)
+        except IntegrityError:
+            raise ValidationError({"name": ["A role with this name already exists for your organization."]})
         
-        # 🛡️ Audit Log
+        # 🛡️ Audit Log (Guard against TransientUser in actor)
+        actor = self.request.user if isinstance(self.request.user, VerifiedUser) else None
+        
         PermissionAuditLog.log_action(
-            actor=self.request.user,
+            actor=actor,
             action='ROLE_CREATED',
             target_role=role,
             details={
                 'name': role.name,
-                'description': role.description
+                'description': role.description,
+                'actor_info': str(self.request.user)
             },
             request=self.request
         )
 
     def perform_update(self, serializer):
-        role = serializer.save()
+        from django.db import IntegrityError
+        from rest_framework.exceptions import ValidationError
         
-        # 🛡️ Audit Log
+        try:
+            role = serializer.save()
+        except IntegrityError:
+            raise ValidationError({"name": ["A role with this name already exists for your organization."]})
+        
+        # 🛡️ Audit Log (Guard against TransientUser)
+        actor = self.request.user if isinstance(self.request.user, VerifiedUser) else None
+        
         PermissionAuditLog.log_action(
-            actor=self.request.user,
+            actor=actor,
             action='ROLE_UPDATED',
             target_role=role,
             details={
                 'name': role.name,
-                'description': role.description
+                'description': role.description,
+                'actor_info': str(self.request.user)
             },
             request=self.request
         )
@@ -1278,21 +1391,23 @@ class ProviderRoleViewSet(viewsets.ModelViewSet):
         role_id = instance.id
         logger.info(f"🗑️ Attempting to delete ProviderRole: {role_name} ({role_id})")
         
-        # 🛡️ Audit Log
+        # 🛡️ Audit Log (Guard against TransientUser)
+        actor = self.request.user if isinstance(self.request.user, VerifiedUser) else None
+        
         PermissionAuditLog.log_action(
-            actor=self.request.user,
+            actor=actor,
             action='ROLE_DELETED',
+            target_role=None, # Role is about to be deleted
             details={
                 'name': role_name,
-                'id': str(role_id)
+                'id': str(role_id),
+                'actor_info': str(self.request.user)
             },
             request=self.request
         )
         
-        instance.delete()
-
         # 1. Explicit Model-based Cleanup of Capabilities
-        # Avoids reverse-manager ambiguity
+        # Note: CASCADE will do this too, but we do it manually for logging/clarity
         caps_qs = ProviderRoleCapability.objects.filter(provider_role=instance)
         caps_count = caps_qs.count()
         caps_qs.delete()
@@ -1388,6 +1503,8 @@ def get_dashboard_summary(request):
     """
     import requests
     user = request.user
+    service_id = request.GET.get('service_id')
+    
     try:
         # Find the ServiceProvider associated with the logged-in user
         provider = ServiceProvider.objects.get(verified_user__auth_user_id=user.auth_user_id)
@@ -1418,12 +1535,15 @@ def get_dashboard_summary(request):
             logger.error(f"Error fetching clinic count from Veterinary Service: {e}")
 
         # Fetch Bookings Count from Customer Service
-        booking_stats = {"total_bookings": 0, "pending_bookings": 0, "trend": []}
+        booking_stats = {"total_bookings": 0, "pending_bookings": 0, "total_revenue": 0, "trend": []}
         try:
             auth_header = request.headers.get('Authorization')
             if auth_header:
                 # Call the new stats endpoint
                 STATS_URL = f"http://127.0.0.1:8005/api/pet-owner/bookings/bookings/stats/?provider_id={provider.id}"
+                if service_id:
+                    STATS_URL += f"&service_id={service_id}"
+                
                 response = requests.get(
                     STATS_URL, 
                     headers={"Authorization": auth_header},
@@ -1699,91 +1819,348 @@ def resolve_booking_details(request):
     """
     service_id = request.query_params.get('service_id')
     facility_id = request.query_params.get('facility_id')
-
     consultation_type_id = request.query_params.get('consultation_type_id')
     employee_id = request.query_params.get('employee_id')
+    provider_id_param = request.query_params.get('provider_id')
 
     if not service_id or not facility_id:
         return Response({"error": "service_id and facility_id are required."}, status=status.HTTP_400_BAD_REQUEST)
 
-    from provider_dynamic_fields.models import ProviderTemplateFacility, ProviderTemplateService, ProviderTemplatePricing
+    from provider_dynamic_fields.models import (
+        ProviderFacility, ProviderCategory, ProviderPricing,
+        ProviderTemplateFacility, ProviderTemplateService, ProviderTemplatePricing
+    )
     from .models import ConsultationType, OrganizationEmployee
-    
+
+    facility = None
+    category = None
+    service = None
+    provider_name = "Service Provider"
+    price_snapshot = {}
+    is_template = False
+
+    # 1. Try resolving Custom Facility (Provider-Created)
     try:
-        facility = ProviderTemplateFacility.objects.get(super_admin_facility_id=facility_id)
+        facility = ProviderFacility.objects.get(id=facility_id)
         category = facility.category
-        service = category.service
-        
-        # Try to find the template price
-        price_snapshot = {}
+        # Note: Custom categories store service_id as a string (SuperAdmin ID)
+        # We try to get the template service to get the display name
         try:
-            pricing = ProviderTemplatePricing.objects.filter(facility=facility).first()
-            if pricing:
-                price_snapshot = {
-                    "price": str(pricing.price),
-                    "billing_unit": pricing.billing_unit,
-                    "service_duration_type": pricing.service_duration_type,
-                    "pricing_model": pricing.pricing_model,
-                    "duration_value": pricing.duration_value,
-                    "duration_minutes": pricing.duration_minutes,
-                    "daily_capacity": pricing.daily_capacity,
-                    "monthly_limit": pricing.monthly_limit,
-                }
-        except Exception:
+            service_obj = ProviderTemplateService.objects.get(super_admin_service_id=category.service_id)
+            service_name = service_obj.display_name
+        except ProviderTemplateService.DoesNotExist:
+            service_name = category.service_id or "General Service"
+
+        price_snapshot = {
+            "price": str(facility.price),
+            "billing_unit": "PER_SESSION", # Default for custom
+            "duration_minutes": facility.duration_minutes,
+            "protocol_type": facility.protocol_type,
+            "pricing_strategy": facility.pricing_strategy,
+        }
+        
+        # Check for explicit Pricing rules
+        pricing = ProviderPricing.objects.filter(facility=facility, is_active=True).first()
+        if pricing:
+            price_snapshot.update({
+                "price": str(pricing.price),
+                "billing_unit": pricing.billing_unit,
+                "duration_minutes": pricing.duration_minutes or facility.duration_minutes,
+                "service_duration_type": pricing.service_duration_type,
+                "pricing_model": pricing.pricing_model,
+                "duration_value": pricing.duration_value,
+            })
+
+    except (ProviderFacility.DoesNotExist, ValueError, TypeError):
+        # 2. Try resolving Template Facility (SuperAdmin)
+        try:
+            facility = ProviderTemplateFacility.objects.get(super_admin_facility_id=facility_id)
+            category = facility.category
+            service = category.service
+            service_name = service.display_name
+            is_template = True
+
+            # Try to find the template price
+            try:
+                pricing = ProviderTemplatePricing.objects.filter(facility=facility).first()
+                if pricing:
+                    price_snapshot = {
+                        "price": str(pricing.price),
+                        "billing_unit": pricing.billing_unit,
+                        "service_duration_type": pricing.service_duration_type,
+                        "pricing_model": pricing.pricing_model,
+                        "duration_value": pricing.duration_value,
+                        "duration_minutes": pricing.duration_minutes,
+                        "daily_capacity": pricing.daily_capacity,
+                        "monthly_limit": pricing.monthly_limit,
+                    }
+            except Exception:
+                pass
+        except ProviderTemplateFacility.DoesNotExist:
             pass
 
-        # 🚀 Handle Consultation Type Override
-        final_price = price_snapshot.get("price", str(facility.base_price))
-        final_duration = price_snapshot.get("duration_minutes", facility.duration_minutes)
-
-        if consultation_type_id:
+    if not facility:
+        # Fallback to service-only resolution
+        provider_name = "Service Provider"
+        if provider_id_param:
             try:
-                ct = ConsultationType.objects.get(id=consultation_type_id)
-                final_price = str(ct.consultation_fee)
-                final_duration = ct.duration_minutes
-                price_snapshot["price"] = final_price
-                price_snapshot["duration_minutes"] = final_duration
-                price_snapshot["consultation_type_name"] = ct.name
-            except ConsultationType.DoesNotExist:
-                pass
+                from .models import ServiceProvider
+                prov = ServiceProvider.objects.get(id=provider_id_param)
+                provider_name = prov.verified_user.full_name or "Service Provider"
+            except Exception: pass
 
-        # 🚀 Handle Employee (Doctor) Specific Fee Override
-        if employee_id:
-            try:
-                emp = OrganizationEmployee.objects.get(id=employee_id)
-                # Only override if the doctor has a specific fee set (greater than 0)
-                if emp.consultation_fee > 0:
-                    final_price = str(emp.consultation_fee)
-                    price_snapshot["price"] = final_price
-                    price_snapshot["doctor_name"] = emp.full_name
-                    price_snapshot["specialization"] = emp.specialization
-            except OrganizationEmployee.DoesNotExist:
-                pass
-
-        return Response({
-            "service_name": service.display_name,
-            "category_name": category.name,
-            "facility_name": facility.name,
-            "protocol_type": facility.protocol_type,
-            "duration_minutes": final_duration,
-            "pricing_strategy": facility.pricing_strategy,
-            "base_price": str(facility.base_price),
-            "price_snapshot": price_snapshot,
-            "is_medical": (service.display_name.upper() == "VETERINARY"),
-            # Legacy fields for backward compatibility
-            "price": final_price,
-            "billing_unit": price_snapshot.get("billing_unit", "PER_SESSION"),
-            "duration": final_duration
-        })
-    except ProviderTemplateFacility.DoesNotExist:
-        # Try finding by service_id as a fallback if facility_id is complex
         try:
-            service = ProviderTemplateService.objects.get(super_admin_service_id=service_id)
+            service_obj = ProviderTemplateService.objects.get(super_admin_service_id=service_id)
             return Response({
-                "service_name": service.display_name,
+                "provider_name": provider_name,
+                "service_name": service_obj.display_name,
                 "category_name": "General",
                 "facility_name": "Service",
                 "price": "0.00"
             })
         except ProviderTemplateService.DoesNotExist:
             return Response({"error": "Service/Facility not found."}, status=status.HTTP_404_NOT_FOUND)
+
+    # Resolve Provider Name from facility owner
+    if facility:
+        try:
+            provider_name = facility.provider.full_name or "Service Provider"
+        except Exception:
+            if provider_id_param:
+                try:
+                    from .models import ServiceProvider
+                    prov = ServiceProvider.objects.get(id=provider_id_param)
+                    provider_name = prov.verified_user.full_name or "Service Provider"
+                except Exception: pass
+
+    # 🚀 Handle Consultation Type Override (VET)
+    final_price = price_snapshot.get("price", str(getattr(facility, 'base_price', facility.price if not is_template else 0)))
+    final_duration = price_snapshot.get("duration_minutes", facility.duration_minutes)
+
+    if consultation_type_id:
+        try:
+            ct = ConsultationType.objects.get(id=consultation_type_id)
+            final_price = str(ct.consultation_fee)
+            final_duration = ct.duration_minutes
+            price_snapshot["price"] = final_price
+            price_snapshot["duration_minutes"] = final_duration
+            price_snapshot["consultation_type_name"] = ct.name
+        except ConsultationType.DoesNotExist:
+            pass
+
+    # 🚀 Handle Employee (Doctor) Specific Fee Override
+    if employee_id:
+        try:
+            emp = OrganizationEmployee.objects.get(id=employee_id)
+            if emp.consultation_fee > 0:
+                final_price = str(emp.consultation_fee)
+                price_snapshot["price"] = final_price
+                price_snapshot["doctor_name"] = emp.full_name
+                price_snapshot["specialization"] = emp.specialization
+        except OrganizationEmployee.DoesNotExist:
+            pass
+
+    return Response({
+        "provider_name": provider_name,
+        "service_name": service_name,
+        "category_name": category.name,
+        "category_description": category.description or "",
+        "facility_name": facility.name,
+        "facility_description": facility.description or "",
+        "protocol_type": getattr(facility, 'protocol_type', 'MINUTES_BASED'),
+        "duration_minutes": final_duration,
+        "pricing_strategy": getattr(facility, 'pricing_strategy', 'FIXED'),
+        "base_price": str(getattr(facility, 'base_price', final_price)),
+        "price_snapshot": price_snapshot,
+        "is_medical": (service_name.upper() == "VETERINARY"),
+        "price": final_price,
+        "billing_unit": price_snapshot.get("billing_unit", "PER_SESSION"),
+        "duration": final_duration
+    })
+
+from rest_framework import viewsets
+from .models import DashboardWidget, UserDashboardLayout, VerifiedUser
+
+class DashboardViewSet(viewsets.ViewSet):
+    permission_classes = [IsAuthenticated]
+
+    @action(detail=False, methods=['get'])
+    def widgets(self, request):
+        """Returns all available dashboard widgets with their required capabilities."""
+        widgets = DashboardWidget.objects.filter(is_active=True).order_by('order')
+        data = []
+        for w in widgets:
+            data.append({
+                "id": w.key,
+                "name": w.label,
+                "component": w.component_name,
+                "required_capabilities": list(w.required_capabilities.values_list('key', flat=True)),
+                "logic_type": w.logic_type,
+                "order": w.order
+            })
+        return Response(data)
+
+    @action(detail=False, methods=['get', 'post'], url_path='layout')
+    def layout(self, request):
+        """Gets or sets the user's custom dashboard layout."""
+        # Standardize auth_user_id lookup
+        auth_id = getattr(request.user, 'auth_user_id', None)
+        if not auth_id:
+            return Response({"error": "Auth ID missing"}, status=status.HTTP_400_BAD_REQUEST)
+            
+        vu = VerifiedUser.objects.filter(auth_user_id=auth_id).first()
+        if not vu:
+             return Response({"error": "User profile not found"}, status=status.HTTP_404_NOT_FOUND)
+             
+        layout, _ = UserDashboardLayout.objects.get_or_create(user=vu)
+        
+        if request.method == 'POST':
+            layout.layout_json = request.data.get('layout_json', [])
+            layout.save()
+            return Response({"status": "success", "layout": layout.layout_json})
+            
+        return Response({"layout_json": layout.layout_json})
+
+
+# ============================================================
+# CALENDAR FEED
+# GET /api/provider/calendar-feed/?start=<ISO>&end=<ISO>
+# Proxies BookingItems from customer_service formatted for FullCalendar.
+# ============================================================
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def calendar_feed(request):
+    """
+    Returns bookings for the authenticated provider in FullCalendar event format.
+    Queries customer_service internally using the provider's JWT.
+    """
+    start = request.GET.get("start")
+    end = request.GET.get("end")
+
+    try:
+        provider = ServiceProvider.objects.get(verified_user__auth_user_id=request.user.auth_user_id)
+    except ServiceProvider.DoesNotExist:
+        # Also handle employee case - get their org's provider
+        try:
+            emp = OrganizationEmployee.objects.get(auth_user_id=request.user.auth_user_id)
+            provider = emp.organization
+        except OrganizationEmployee.DoesNotExist:
+            return Response({"error": "Provider profile not found"}, status=404)
+
+    auth_header = request.headers.get("Authorization", "")
+    params = {"provider_id": str(provider.id)}
+    if start:
+        params["start"] = start
+    if end:
+        params["end"] = end
+
+    events = []
+    try:
+        resp = requests.get(
+            "http://127.0.0.1:8005/api/pet-owner/bookings/bookings/",
+            headers={"Authorization": auth_header},
+            params=params,
+            timeout=5,
+        )
+        if resp.status_code == 200:
+            data = resp.json()
+            items = data.get("results", data) if isinstance(data, dict) else data
+            # Flatten: bookings → items
+            for booking in items:
+                for item in booking.get("items", []):
+                    snapshot = item.get("service_snapshot") or {}
+                    duration = snapshot.get("duration_minutes", 60)
+                    selected_time = item.get("selected_time")
+                    end_time = item.get("end_time")
+                    status_val = item.get("status", booking.get("status", "PENDING"))
+                    color_map = {
+                        "PENDING": "#F59E0B",
+                        "CONFIRMED": "#3B82F6",
+                        "IN_PROGRESS": "#8B5CF6",
+                        "COMPLETED": "#10B981",
+                        "CANCELLED": "#EF4444",
+                        "REJECTED": "#94A3B8",
+                    }
+                    events.append({
+                        "id": str(item.get("id", booking.get("id"))),
+                        "title": f"{booking.get('pet_name', 'Pet')} – {snapshot.get('service_name', 'Service')}",
+                        "start": selected_time,
+                        "end": end_time,
+                        "backgroundColor": color_map.get(status_val, "#94A3B8"),
+                        "borderColor": "transparent",
+                        "extendedProps": {
+                            "status": status_val,
+                            "pet_name": booking.get("pet_name"),
+                            "service_name": snapshot.get("service_name"),
+                            "employee_id": item.get("assigned_employee_id"),
+                            "facility_id": item.get("facility_id"),
+                            "duration_minutes": duration,
+                            "booking_id": booking.get("id"),
+                        },
+                    })
+    except Exception as e:
+        logger.warning(f"[calendar_feed] Could not fetch from customer_service: {e}")
+        # Return empty list rather than 500 – calendar renders empty gracefully
+        return Response([])
+
+    return Response(events)
+
+
+# ============================================================
+# RESOURCE OCCUPANCY
+# GET /api/provider/resource-occupancy/
+# Returns employee booking counts as resource utilisation for the Operations Hub.
+# ============================================================
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def resource_occupancy(request):
+    """
+    Returns a list of employee resource utilisation objects.
+    Used by the OperationsCommandCenter to show workload per employee.
+    """
+    try:
+        try:
+            provider = ServiceProvider.objects.get(verified_user__auth_user_id=request.user.auth_user_id)
+        except ServiceProvider.DoesNotExist:
+            emp = OrganizationEmployee.objects.get(auth_user_id=request.user.auth_user_id)
+            provider = emp.organization
+
+        employees = OrganizationEmployee.objects.filter(
+            organization=provider, deleted_at__isnull=True
+        ).values("id", "full_name", "role", "specialization")
+
+        # Fetch today's booking counts per employee from customer_service
+        auth_header = request.headers.get("Authorization", "")
+        today = timezone.now().date().isoformat()
+
+        result = []
+        for emp in employees:
+            booking_count = 0
+            try:
+                resp = requests.get(
+                    "http://127.0.0.1:8005/api/pet-owner/bookings/bookings/internal_employee_bookings/",
+                    headers={"Authorization": auth_header},
+                    params={"employee_id": str(emp["id"]), "date": today},
+                    timeout=3,
+                )
+                if resp.status_code == 200:
+                    booking_count = len(resp.json())
+            except Exception:
+                pass
+
+            result.append({
+                "employee_id": str(emp["id"]),
+                "name": emp["full_name"] or "Employee",
+                "role": emp["role"] or "Staff",
+                "specialization": emp["specialization"] or "",
+                "bookings_today": booking_count,
+                "utilization_pct": min(booking_count * 10, 100),  # rough %: 10 bookings = 100%
+            })
+
+        return Response(result)
+
+    except OrganizationEmployee.DoesNotExist:
+        return Response({"error": "Provider profile not found"}, status=404)
+    except Exception as e:
+        logger.error(f"[resource_occupancy] Error: {e}")
+        return Response([], status=200)

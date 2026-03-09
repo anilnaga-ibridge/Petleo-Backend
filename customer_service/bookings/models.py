@@ -4,6 +4,33 @@ from django.utils import timezone
 from customers.models import PetOwnerProfile
 from pets.models import Pet
 
+from pets.models import Pet
+
+class VisitGroup(models.Model):
+    """
+    Atomic unit for a multi-service cart. 
+    Groups multiple BookingItems into a single conceptual visit.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    organization_id = models.UUIDField(help_text="The clinic or provider where this visit takes place", db_index=True)
+    pet = models.ForeignKey(Pet, on_delete=models.CASCADE, related_name='visit_groups')
+    owner = models.ForeignKey(PetOwnerProfile, on_delete=models.CASCADE, related_name='visit_groups')
+    
+    idempotency_key = models.UUIDField(null=True, blank=True, unique=True, help_text="To prevent duplicate bookings on retries")
+    
+    status = models.CharField(max_length=20, default='PENDING', db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['organization_id', 'status']),
+            models.Index(fields=['idempotency_key']),
+        ]
+
+    def __str__(self):
+        return f"Visit {self.id} - {self.status}"
+
 class Booking(models.Model):
     """Parent model for a booking transaction (Header)"""
     
@@ -30,6 +57,11 @@ class Booking(models.Model):
     payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default='PENDING')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
     
+    # Stripe Payment Tracking Fields
+    payment_gateway = models.CharField(max_length=50, default='STRIPE')
+    transaction_id = models.CharField(max_length=255, null=True, blank=True, help_text="Stripe checkout session ID or Payment Intent ID")
+    checkout_session_url = models.URLField(max_length=1000, null=True, blank=True, help_text="Stripe hosted checkout URL")
+    
     address_snapshot = models.JSONField(null=True, blank=True, help_text="Snapshot of the address at time of booking")
     notes = models.TextField(blank=True)
     
@@ -49,6 +81,7 @@ class BookingItem(models.Model):
     ITEM_STATUS_CHOICES = [
         ('PENDING', 'Pending'),
         ('CONFIRMED', 'Confirmed'),
+        ('IN_PROGRESS', 'In Progress'),
         ('COMPLETED', 'Completed'),
         ('CANCELLED', 'Cancelled'),
         ('REJECTED', 'Rejected'),
@@ -56,15 +89,17 @@ class BookingItem(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     booking = models.ForeignKey(Booking, on_delete=models.CASCADE, related_name='items')
+    visit_group = models.ForeignKey(VisitGroup, on_delete=models.SET_NULL, null=True, blank=True, related_name='items')
     
     # Target Info
     provider_id = models.UUIDField(help_text="UUID of the service provider")
-    assigned_employee_id = models.UUIDField(null=True, blank=True, help_text="UUID of the assigned employee")
+    provider_auth_id = models.CharField(max_length=255, null=True, blank=True, help_text="Auth ID of the organization/clinic")
+    assigned_employee_id = models.CharField(max_length=255, null=True, blank=True, help_text="ID of the assigned employee")
     pet = models.ForeignKey(Pet, on_delete=models.CASCADE, related_name='booking_items')
     
     # Service Info
-    service_id = models.UUIDField()
-    facility_id = models.UUIDField()
+    service_id = models.CharField(max_length=255)
+    facility_id = models.CharField(max_length=255)
     
     selected_time = models.DateTimeField()
     end_time = models.DateTimeField(null=True, blank=True, help_text="End time for range-based bookings (e.g. Boarding)")
@@ -89,6 +124,12 @@ class BookingItem(models.Model):
 
     class Meta:
         ordering = ['selected_time']
+        indexes = [
+            models.Index(fields=['provider_id', 'selected_time', 'end_time']),
+            models.Index(fields=['assigned_employee_id', 'selected_time']),
+            models.Index(fields=['pet', 'selected_time', 'end_time']),
+            models.Index(fields=['visit_group']),
+        ]
 
     def __str__(self):
         return f"Item {self.id} for Order {self.booking.id}"

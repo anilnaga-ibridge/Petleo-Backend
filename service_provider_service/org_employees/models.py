@@ -23,7 +23,16 @@ class OrganizationEmployee(models.Model):
         related_name="employee_profile"
     )
 
-    role = models.CharField(max_length=50, default="staff")
+    # Legacy field
+    role_name = models.CharField(max_length=50, default="staff")
+    
+    # New capability-based role table
+    role = models.ForeignKey(
+        'OrganizationRole',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name="assigned_employees"
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
     is_active = models.BooleanField(default=True)
@@ -31,7 +40,45 @@ class OrganizationEmployee(models.Model):
     profile_data = models.JSONField(default=dict, blank=True)
 
     def __str__(self):
-        return f"{self.verified_user.full_name} - {self.role}"
+        return f"{self.verified_user.full_name} - {self.role.name if self.role else self.role_name}"
+
+    def get_final_permissions(self):
+        """
+        Returns a flat list of capability strings (module.action)
+        combined from the dynamic role and any explicit override permissions.
+        """
+        capabilities = set()
+        
+        # 1. Add capabilities from the assigned Role
+        if self.role and isinstance(self.role.capabilities, list):
+            capabilities.update(self.role.capabilities)
+            
+        # 2. Add explicit direct permissions (if any)
+        if isinstance(self.permissions, list):
+            capabilities.update(self.permissions)
+            
+        return list(capabilities)
+
+
+class OrganizationRole(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    organization = models.ForeignKey(
+        OrganizationProfile,
+        on_delete=models.CASCADE,
+        related_name="custom_roles",
+        null=True, blank=True # Null for system templates
+    )
+    name = models.CharField(max_length=100)
+    capabilities = models.JSONField(default=list, help_text="List of module.action permission strings")
+    is_system = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('organization', 'name')
+
+    def __str__(self):
+        return f"{self.name} ({'System' if self.is_system else self.organization.business_name})"
 
 
 def employee_doc_upload_path(instance, filename):

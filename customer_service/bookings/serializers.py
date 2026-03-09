@@ -42,7 +42,7 @@ class BookingSerializer(serializers.ModelSerializer):
             'provider_name', 'service_name', 'category_name', 'facility_name',
             'service_id', 'facility_id', 'selected_time', 'address_snapshot', 'service_snapshot',
             'notes', 'status', 'rejection_reason', 'completed_at', 'created_at',
-            'updated_at', 'status_history', 'item_id', 'completion_otp'
+            'updated_at', 'status_history', 'item_id', 'completion_otp', 'total_price'
         ]
         read_only_fields = [
             'id', 'owner', 'status', 'rejection_reason', 'created_at', 'updated_at',
@@ -132,10 +132,10 @@ class BookingSerializer(serializers.ModelSerializer):
     # ── Snapshot-derived display fields ────────────────────────────────────────
 
     def get_provider_name(self, obj):
-        return self._snapshot(obj).get('provider_name') or 'Anil Vet Clinic'
+        return self._snapshot(obj).get('provider_name') or 'Service Provider'
 
     def get_service_name(self, obj):
-        return self._snapshot(obj).get('service_name') or 'Veterinary Consultation'
+        return self._snapshot(obj).get('service_name') or 'General Service'
 
     def get_category_name(self, obj):
         snap = self._snapshot(obj)
@@ -182,10 +182,10 @@ class BookingItemSerializer(serializers.ModelSerializer):
         return snap if isinstance(snap, dict) else {}
 
     def get_provider_name(self, obj):
-        return self._snap(obj).get('provider_name') or 'Anil Vet Clinic'
+        return self._snap(obj).get('provider_name') or 'Service Provider'
 
     def get_service_name(self, obj):
-        return self._snap(obj).get('service_name') or 'Veterinary Consultation'
+        return self._snap(obj).get('service_name') or 'General Service'
 
     def get_category_name(self, obj):
         snap = self._snap(obj)

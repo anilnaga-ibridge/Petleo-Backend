@@ -129,6 +129,7 @@ def build_templates_for_plan(purchased_plan):
                 "id": str(cat.id),
                 "service_id": str(cat.service.id),
                 "name": cat.name,
+                "description": getattr(cat, "description", ""),
                 "linked_capability": cat.linked_capability
             })
             seen_categories.add(cat.id)

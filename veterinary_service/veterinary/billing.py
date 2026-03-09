@@ -21,10 +21,17 @@ def create_visit_invoice(sender, instance, created, **kwargs):
             if instance.appointment.consultation_type:
                 description = f"Consultation: {instance.appointment.consultation_type}"
         
+        from decimal import Decimal
+        
+        try:
+            fee_decimal = Decimal(str(fee))
+        except:
+            fee_decimal = Decimal('0.00')
+
         InvoiceLineItem.objects.create(
             invoice=invoice,
             charge_type='CONSULTATION',
-            unit_price=fee,
+            unit_price=fee_decimal,
             description=description
         )
         logger.info(f"✅ Created invoice and base charge for Visit {instance.id}")
@@ -56,7 +63,7 @@ def handle_form_submission_billing(sender, instance, created, **kwargs):
             return
 
         # If it's a prescription form
-        if instance.form_definition.code == 'PRESCRIPTION_FORM':
+        if instance.form_definition.code == 'PRESCRIPTION':
             # Add medicine charges based on data
             # This is a simplified example
             InvoiceLineItem.objects.create(

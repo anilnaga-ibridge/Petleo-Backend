@@ -16,6 +16,13 @@ services:
         paths:
           - /provider
 
+  - name: booking-service
+    url: http://booking_service:8000
+    routes:
+      - name: booking-route
+        paths:
+          - /booking
+
   - name: superadmin-service
     url: http://super_admin_service:8000
     routes:

@@ -26,8 +26,8 @@ def get_role_templates():
         },
         {
             "id": "vet_doctor",
-            "title": "Doctor Queue",
-            "description": "Access active doctor consultation queue",
+            "title": "Doctor Station",
+            "description": "Access doctor consultation station",
             "icon": "tabler-stethoscope",
             "capabilities": ["VETERINARY_DOCTOR"]
         },

@@ -12,7 +12,10 @@ from pets.permissions import IsOwner
 import requests
 from django.db import transaction, IntegrityError
 from datetime import datetime, timedelta
+from .services import SlotLockService, AvailabilityCacheService
 from .engines.router import BookingRouter
+from .kafka_producer import publish_booking_event
+from .coordinator import VisitCoordinatorService
 
 class BookingViewSet(viewsets.ModelViewSet):
     """
@@ -28,6 +31,16 @@ class BookingViewSet(viewsets.ModelViewSet):
 
         queryset = Booking.objects.all()
         filters = Q()
+
+        # Filter by service_id if provided
+        service_id_param = self.request.query_params.get('service_id')
+        if service_id_param:
+            filters &= Q(items__service_id=service_id_param)
+        
+        # Filter by status if provided
+        status_param = self.request.query_params.get('status')
+        if status_param and status_param.upper() != 'ALL':
+            filters &= Q(status=status_param.upper())
         
         # Get role from validated token (request.auth)
         role = (self.request.auth.get('role') or "").lower() if self.request.auth else ""
@@ -90,7 +103,7 @@ class BookingViewSet(viewsets.ModelViewSet):
             with transaction.atomic():
                 # 1. Resolve details for snapshot (Crucial for pricing Engine)
                 consultation_type_id = self.request.data.get('consultation_type_id')
-                resolve_url = f"http://localhost:8002/api/provider/resolve-details/?service_id={serializer.validated_data['service_id']}&facility_id={serializer.validated_data['facility_id']}"
+                resolve_url = f"http://localhost:8002/api/provider/resolve-details/?service_id={serializer.validated_data['service_id']}&facility_id={serializer.validated_data['facility_id']}&provider_id={provider_id}"
                 if consultation_type_id:
                     resolve_url += f"&consultation_type_id={consultation_type_id}"
                 
@@ -138,6 +151,36 @@ class BookingViewSet(viewsets.ModelViewSet):
                     else:
                         raise ValidationError(assign_resp.json().get('error', 'No qualified employee available for this slot.'))
 
+                # 4.5 Temporary Slot Hold (Redis)
+                # Ensure the slot is held for 5 minutes during creation/payment
+                lock_success = SlotLockService.lock_slot(
+                    employee_id=employee_id,
+                    service_id=serializer.validated_data['service_id'],
+                    facility_id=serializer.validated_data['facility_id'],
+                    start_time=selected_time,
+                    end_time=end_time
+                )
+                if not lock_success:
+                    raise ValidationError("This slot was just reserved by another user. Please choose another time.")
+
+                # 4.6 FINAL DB OVERLAP CHECK (Safety Layer)
+                # Redis is performance tier; DB is truth tier.
+                if BookingItem.objects.filter(
+                    assigned_employee_id=employee_id,
+                    selected_time__lt=end_time,
+                    end_time__gt=selected_time,
+                    status__in=['PENDING', 'CONFIRMED', 'IN_PROGRESS']
+                ).exists():
+                    # If someone beat us, clean up the Lock and fail
+                    SlotLockService.release_slot(
+                        employee_id=employee_id,
+                        service_id=serializer.validated_data['service_id'],
+                        facility_id=serializer.validated_data['facility_id'],
+                        start_time=selected_time,
+                        end_time=end_time
+                    )
+                    raise ValidationError("This slot was just booked by another user. Please choose another time.")
+
                 # Inject medical/consultation fields from the frontend payload into snapshot
                 is_medical = self.request.data.get('is_medical', False)
                 consultation_type = self.request.data.get('consultation_type', '')
@@ -157,6 +200,7 @@ class BookingViewSet(viewsets.ModelViewSet):
                 BookingItem.objects.create(
                     booking=booking,
                     provider_id=provider_id,
+                    provider_auth_id=self.request.data.get('provider_auth_id'),
                     service_id=serializer.validated_data['service_id'],
                     facility_id=serializer.validated_data['facility_id'],
                     pet=serializer.validated_data['pet'],
@@ -174,16 +218,29 @@ class BookingViewSet(viewsets.ModelViewSet):
                     new_status='PENDING',
                     changed_by=self.request.user.id
                 )
-                return booking
-                
-                # Initial history record
-                BookingStatusHistory.objects.create(
-                    booking=booking,
-                    previous_status='NONE',
-                    new_status='PENDING',
-                    changed_by=self.request.user.id
+
+                # Publish Event for Notifications (Providers/Employees)
+                publish_booking_event('BOOKING_CREATED', booking)
+
+                # Extend the lock to 30 mins to allow for Stripe Checkout payment flow
+                SlotLockService.extend_lock(
+                    employee_id=employee_id,
+                    service_id=serializer.validated_data['service_id'],
+                    facility_id=serializer.validated_data['facility_id'],
+                    start_time=selected_time,
+                    end_time=end_time,
+                    new_ttl_seconds=1800
                 )
-                return booking # Return the header
+                
+                # 7. Invalidate Availability Cache (Atomic on Commit)
+                # Target the date of the booking to force recalculation on next query
+                transaction.on_commit(lambda: AvailabilityCacheService.invalidate_slots(
+                    employee_id, 
+                    serializer.validated_data['facility_id'], 
+                    selected_time.date()
+                ))
+
+                return booking
         except ValidationError as e:
             raise e
         except requests.exceptions.RequestException as e:
@@ -206,11 +263,10 @@ class BookingViewSet(viewsets.ModelViewSet):
             item = instance.items.first()
             if not item: return serializer.save()
 
-            if selected_time != item.selected_time.isoformat():
-                provider_id = item.provider_id
             try:
                 # 1. Validate slot availability
                 date_str = selected_time.split('T')[0] if 'T' in selected_time else selected_time.split(' ')[0]
+                provider_id = item.provider_id
                 url = f"http://localhost:8002/api/provider/availability/{provider_id}/available-slots/?date={date_str}"
                 resp = requests.get(url, timeout=5)
                 
@@ -223,6 +279,7 @@ class BookingViewSet(viewsets.ModelViewSet):
                     time_str = dt.strftime('%H:%M')
                 except Exception:
                     time_str = selected_time.split('T')[1][:5] if 'T' in selected_time else selected_time.split(' ')[1][:5]
+                    dt = None
                     
                 if time_str not in available_slots:
                     raise ValidationError(f"Selected slot {time_str} is no longer available.")
@@ -231,7 +288,7 @@ class BookingViewSet(viewsets.ModelViewSet):
                 assign_url = f"http://localhost:8002/api/provider/availability/{provider_id}/assign-employee/"
                 assign_resp = requests.post(assign_url, json={"selected_time": selected_time}, timeout=5)
                 
-                assigned_employee_id = instance.assigned_employee_id
+                assigned_employee_id = item.assigned_employee_id
                 if assign_resp.status_code == 200:
                     assigned_employee_id = assign_resp.json().get('employee_id')
                 elif assign_resp.status_code == 400:
@@ -239,7 +296,14 @@ class BookingViewSet(viewsets.ModelViewSet):
 
                 # 3. Save with transaction
                 with transaction.atomic():
-                    serializer.save(assigned_employee_id=assigned_employee_id)
+                    # Update the header (e.g. status if changed, notes, etc)
+                    serializer.save()
+                    
+                    # Update the actual item with new time and employee
+                    if dt:
+                        item.selected_time = dt
+                    item.assigned_employee_id = assigned_employee_id
+                    item.save()
                     
                     # Log change in history
                     BookingStatusHistory.objects.create(
@@ -292,13 +356,17 @@ class BookingViewSet(viewsets.ModelViewSet):
                 return
 
             # Resolve the provider (clinic) ID in veterinary_service
-            # provider_id in items is the ServiceProvider UUID, which maps to Clinic.provider_id
-            provider_id = str(item.provider_id)
+            # We now use the provider_auth_id which corresponds to organization_id in Clinic 
+            clinic_auth_id = str(item.provider_auth_id) if item.provider_auth_id else str(item.provider_id)
             employee_id = str(item.assigned_employee_id) if item.assigned_employee_id else None
 
             if not employee_id:
                 logger.warning(f"[VetSync] No assigned employee for booking {booking.id}, skipping sync")
                 return
+
+            # Resolve full details for pet and owner
+            pet = item.pet
+            owner = booking.owner
 
             # Build appointment payload
             selected_time = item.selected_time
@@ -307,10 +375,23 @@ class BookingViewSet(viewsets.ModelViewSet):
 
             payload = {
                 'booking_id': str(booking.id),
-                'clinic_id': provider_id,
+                'clinic_id': clinic_auth_id,
                 'doctor_auth_id': employee_id,
-                'pet_owner_auth_id': str(booking.owner.auth_user_id) if booking.owner else '',
-                'pet_external_id': str(item.pet_id) if item.pet_id else '',
+                'pet_owner_auth_id': str(owner.auth_user_id) if owner else '',
+                'pet_external_id': str(pet.id) if pet else '',
+                
+                # Clinical Details
+                'pet_name': pet.name if pet else 'Online Pet',
+                'species': pet.species if pet else 'DOG',
+                'breed': pet.breed if pet else '',
+                'gender': pet.gender if pet else 'MALE',
+                'date_of_birth': pet.date_of_birth.isoformat() if pet and pet.date_of_birth else None,
+                'weight_kg': str(pet.weight_kg) if pet and pet.weight_kg else '0',
+
+                'owner_name': owner.full_name if owner else 'Online Pet Owner',
+                'owner_phone': owner.phone_number if owner else '',
+                'owner_email': owner.email if owner else '',
+
                 'service_id': str(item.facility_id) if item.facility_id else str(item.service_id),
                 'appointment_date': appointment_date,
                 'start_time': start_time_str,
@@ -368,6 +449,52 @@ class BookingViewSet(viewsets.ModelViewSet):
                 return True
 
         return False
+
+    @action(detail=False, methods=['post'])
+    def create_visit(self, request):
+        """
+        Enterprise-Grade Multi-Service Booking Creation.
+        Accepts a list of booking items and processes them atomically via VisitCoordinatorService.
+        """
+        items_data = request.data.get('items', [])
+        organization_id = request.data.get('organization_id')
+        idempotency_key = request.data.get('idempotency_key')
+        
+        if not items_data or not organization_id:
+            return Response({"error": "Items and organization_id are required."}, status=400)
+            
+        try:
+            visit = VisitCoordinatorService.create_visit_cart(
+                owner=request.user.petownerprofile if hasattr(request.user, 'petownerprofile') else request.user,
+                items_data=items_data,
+                organization_id=organization_id,
+                idempotency_key=idempotency_key
+            )
+            
+            return Response({
+                "message": "Visit processed successfully.",
+                "visit_id": str(visit.id),
+                "status": visit.status
+            }, status=status.HTTP_201_CREATED)
+            
+        except ValueError as e:
+            error_msg = str(e)
+            # Map structured errors to HTTP status codes
+            status_code = status.HTTP_400_BAD_REQUEST
+            if any(x in error_msg for x in ["LOCK_CONFLICT", "CONCURRENCY_FAIL", "PET_BUSY"]):
+                status_code = status.HTTP_409_CONFLICT
+            
+            return Response({
+                "error": error_msg,
+                "code": error_msg.split(':')[0] if ':' in error_msg else error_msg
+            }, status=status_code)
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return Response({
+                "error": "INTERNAL_SERVER_ERROR",
+                "details": str(e)
+            }, status=500)
 
     @action(detail=True, methods=['post'])
     def accept(self, request, pk=None):
@@ -465,6 +592,44 @@ class BookingViewSet(viewsets.ModelViewSet):
         return Response([b.selected_time.strftime('%H:%M') for b in queryset])
 
     @action(detail=False, methods=['get'], permission_classes=[permissions.AllowAny])
+    def internal_provider_bookings(self, request):
+        """
+        Internal API for fetching ALL confirmed booking ranges for a provider.
+        Returns [{'start': 'HH:MM', 'end': 'HH:MM', 'facility_id': '...'}]
+        """
+        provider_id = request.query_params.get('provider_id')
+        date_str = request.query_params.get('date')
+
+        if not provider_id or not date_str:
+            return Response({"error": "provider_id and date are required"}, status=400)
+
+        from .models import BookingItem
+        queryset = BookingItem.objects.filter(
+            provider_id=provider_id,
+            status__in=['PENDING', 'CONFIRMED', 'IN_PROGRESS'],
+            selected_time__date=date_str
+        )
+
+        results = []
+        for item in queryset:
+            duration = 60
+            if item.price_snapshot and 'duration_minutes' in item.price_snapshot:
+                duration = item.price_snapshot['duration_minutes']
+            elif item.service_snapshot and 'duration' in item.service_snapshot:
+                duration = item.service_snapshot['duration']
+            
+            start_time = item.selected_time
+            end_time = start_time + timedelta(minutes=duration)
+            
+            results.append({
+                "start": start_time.strftime('%H:%M'),
+                "end": end_time.strftime('%H:%M'),
+                "facility_id": str(item.facility_id)
+            })
+            
+        return Response(results)
+
+    @action(detail=False, methods=['get'], permission_classes=[permissions.AllowAny])
     def internal_employee_bookings(self, request):
         """
         Internal API for fetching confirmed booking ranges for an employee.
@@ -479,7 +644,7 @@ class BookingViewSet(viewsets.ModelViewSet):
         from .models import BookingItem
         queryset = BookingItem.objects.filter(
             assigned_employee_id=employee_id,
-            status__in=['PENDING', 'CONFIRMED'],
+            status__in=['PENDING', 'CONFIRMED', 'IN_PROGRESS'],
             selected_time__date=date_str
         )
 
@@ -506,54 +671,68 @@ class BookingViewSet(viewsets.ModelViewSet):
     def stats(self, request):
         """
         Returns booking statistics for the provider dashboard.
-        Query Params: provider_id
+        Query Params: provider_id, service_id (optional)
         """
         provider_id = request.query_params.get('provider_id')
+        service_id = request.query_params.get('service_id')
+        
         if not provider_id:
             return Response({"error": "provider_id is required"}, status=400)
             
-        # Verify permission (User must be the provider or an employee of the provider)
-        # For simplicity in this microservice call, we trust the inter-service auth if present,
-        # OR we check if the requesting user is linked to the provider.
-        # Since this is likely called by Service Provider Service via server-to-server, 
-        # we might need to relax strict user checks if it's a service token, 
-        # but here we rely on the user context passed through headers.
-        
-        from django.db.models import Count
+        from django.db.models import Count, Sum
         from django.db.models.functions import TruncDate
         from datetime import timedelta
-        
-        # 1. Total Counts
         from .models import BookingItem
-        total_bookings = BookingItem.objects.filter(provider_id=provider_id).count()
-        pending_bookings = BookingItem.objects.filter(provider_id=provider_id, status='PENDING').count()
         
-        # 2. Last 7 Days Trend
+        # 0. Initial Filters
+        base_filters = Q(provider_id=provider_id)
+        if service_id:
+            base_filters &= Q(service_id=service_id)
+
+        # 1. Total Counts & Revenue
+        stats_data = BookingItem.objects.filter(base_filters).aggregate(
+            total_bookings=Count('id'),
+            pending_bookings=Count('id', filter=Q(status='PENDING')),
+            total_revenue=Sum('booking__total_price', filter=Q(status='COMPLETED'))
+        )
+        
+        total_bookings = stats_data['total_bookings'] or 0
+        pending_bookings = stats_data['pending_bookings'] or 0
+        total_revenue = float(stats_data['total_revenue'] or 0)
+        
+        # 2. Last 7 Days Trend (Daily Counts and Revenue)
         last_7_days = timezone.now().date() - timedelta(days=6)
         
         trend_data = BookingItem.objects.filter(
-            provider_id=provider_id,
-            selected_time__date__gte=last_7_days
+            base_filters & Q(selected_time__date__gte=last_7_days)
         ).annotate(
             date=TruncDate('selected_time')
         ).values('date').annotate(
-            count=Count('id')
+            count=Count('id'),
+            revenue=Sum('booking__total_price', filter=Q(status='COMPLETED'))
         ).order_by('date')
         
         # Fill in missing days
-        trend_map = {item['date'].strftime('%Y-%m-%d'): item['count'] for item in trend_data}
+        trend_map = {item['date'].strftime('%Y-%m-%d'): {
+            "count": item['count'],
+            "revenue": float(item['revenue'] or 0)
+        } for item in trend_data}
+        
         filled_trend = []
         for i in range(7):
             day = last_7_days + timedelta(days=i)
             day_str = day.strftime('%Y-%m-%d')
+            day_data = trend_map.get(day_str, {"count": 0, "revenue": 0.0})
             filled_trend.append({
                 "date": day_str,
-                "count": trend_map.get(day_str, 0)
+                "count": day_data["count"],
+                "revenue": day_data["revenue"]
             })
             
         return Response({
             "total_bookings": total_bookings,
             "pending_bookings": pending_bookings,
+            "total_revenue": total_revenue,
             "trend": filled_trend
         })
 

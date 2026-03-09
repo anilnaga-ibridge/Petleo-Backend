@@ -74,6 +74,11 @@ def publish_employee_updated(employee):
     except Exception:
         org_id = None
 
+    try:
+        perms = employee.get_final_permissions()
+    except Exception:
+        perms = []
+
     payload = {
         "event_type": "EMPLOYEE_UPDATED",
         "role": employee.role or "employee",
@@ -83,14 +88,16 @@ def publish_employee_updated(employee):
             "full_name": employee.full_name,
             "email": employee.email,
             "phone_number": employee.phone_number,
-            "role": employee.role or "employee"
+            "role": employee.role or "employee",
+            "permissions": perms,
+            "consultation_fee": float(employee.consultation_fee) if employee.consultation_fee else 0.00
         }
     }
     
     try:
         producer.send(topic, payload)
         producer.flush()
-        logger.info(f"📤 Published EMPLOYEE_UPDATED for {employee.auth_user_id}")
+        logger.info(f"📤 Published EMPLOYEE_UPDATED for {employee.auth_user_id} with {len(perms)} perms")
     except Exception as e:
         logger.error(f"❌ Failed to publish employee update event: {e}")
 
@@ -162,7 +169,7 @@ def publish_user_profile_updated(auth_user_id, full_name=None, email=None, phone
 
     payload = {
         "event_type": "USER_UPDATED", # Better event name for generic sync
-        "role": role or "provider",
+        "role": role,
         "data": data
     }
     

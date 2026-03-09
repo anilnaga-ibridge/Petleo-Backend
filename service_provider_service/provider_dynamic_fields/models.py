@@ -308,6 +308,10 @@ class ProviderFacility(models.Model):
     pricing_strategy = models.CharField(max_length=20, default='FIXED')
     base_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
 
+    # Slot Generation Configuration
+    buffer_minutes = models.PositiveIntegerField(default=0, help_text="Buffer time after the service in minutes")
+    slot_granularity = models.PositiveIntegerField(default=15, help_text="Minimum interval between slots in minutes")
+
     image = models.FileField(upload_to="facility_images/", null=True, blank=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -417,6 +421,23 @@ class ProviderTemplateCategory(models.Model):
     description = models.TextField(blank=True, null=True)
     linked_capability = models.CharField(max_length=100, blank=True, null=True)
     
+    display_name = models.CharField(max_length=255, null=True, blank=True)
+    duration_minutes = models.PositiveIntegerField(default=60)
+    base_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    
+    EXECUTION_MODE_CHOICES = [
+        ('SEQUENTIAL', 'Sequential (One after another)'),
+        ('PARALLEL', 'Parallel (Concurrent execution)'),
+    ]
+    execution_mode = models.CharField(max_length=20, choices=EXECUTION_MODE_CHOICES, default='SEQUENTIAL')
+    
+    # We use string reference to avoid circular imports with service_provider.models_scheduling
+    required_resources = models.ManyToManyField(
+        'service_provider.ProviderResource',
+        blank=True,
+        related_name='category_templates'
+    )
+    
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -458,6 +479,10 @@ class ProviderTemplateFacility(models.Model):
     duration_minutes = models.IntegerField(default=60)
     pricing_strategy = models.CharField(max_length=20, default='FIXED')
     base_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+
+    # Slot Generation Configuration
+    buffer_minutes = models.PositiveIntegerField(default=0, help_text="Buffer time after the service in minutes")
+    slot_granularity = models.PositiveIntegerField(default=15, help_text="Minimum interval between slots in minutes")
 
     image = models.FileField(upload_to="template_facility_images/", null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)

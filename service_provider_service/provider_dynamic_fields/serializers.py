@@ -282,7 +282,11 @@ class ProviderFacilitySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ProviderFacility
-        fields = ["id", "category", "category_name", "name", "description", "price", "image", "image_url", "gallery", "is_active", "created_at"]
+        fields = [
+            "id", "category", "category_name", "name", "description", "price", 
+            "protocol_type", "pricing_strategy", "base_price", "duration_minutes",
+            "image", "image_url", "gallery", "is_active", "created_at"
+        ]
         read_only_fields = ["id", "created_at"]
 
     def get_image_url(self, obj):
@@ -300,6 +304,9 @@ class ProviderFacilitySerializer(serializers.ModelSerializer):
 class ProviderPricingSerializer(serializers.ModelSerializer):
     facility_name = serializers.CharField(source="facility.name", read_only=True)
     facility_description = serializers.CharField(source="facility.description", read_only=True)
+    facility_image_url = serializers.SerializerMethodField()
+    facility_gallery = serializers.SerializerMethodField()
+    
     # We need to fetch category name. Since category_id is CharField (not FK), we can't use source="category.name".
     # But wait, ProviderPricing.category_id stores the ID. 
     # If it's a ProviderCategory, we can look it up.
@@ -312,7 +319,12 @@ class ProviderPricingSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ProviderPricing
-        fields = ["id", "service_id", "category_id", "category_name", "facility", "facility_name", "facility_description", "price", "billing_unit", "duration", "description", "is_active", "created_at"]
+        fields = [
+            "id", "service_id", "category_id", "category_name", "facility", 
+            "facility_name", "facility_description", "facility_image_url", "facility_gallery", "price", "billing_unit", 
+            "duration", "service_duration_type", "pricing_model", "duration_value",
+            "daily_capacity", "monthly_limit", "description", "is_active", "created_at"
+        ]
         read_only_fields = ["id", "created_at"]
 
     def get_category_name(self, obj):
@@ -325,3 +337,17 @@ class ProviderPricingSerializer(serializers.ModelSerializer):
             return cat.name
         except:
             return "Unknown Category"
+
+    def get_facility_image_url(self, obj):
+        if obj.facility and obj.facility.image and hasattr(obj.facility.image, "url"):
+            request = self.context.get("request")
+            if request:
+                return request.build_absolute_uri(obj.facility.image.url)
+            return obj.facility.image.url
+        return None
+
+    def get_facility_gallery(self, obj):
+        if obj.facility:
+            images = obj.facility.gallery_images.all()
+            return ProviderFacilityImageSerializer(images, many=True, context=self.context).data
+        return []

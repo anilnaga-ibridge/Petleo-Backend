@@ -209,82 +209,129 @@ def checkout_cart(request):
 
     with transaction.atomic():
 
-        for item in cart.items.all():
-            # Calculate end date based on billing cycle name
-            from datetime import timedelta
-            start_date = timezone.now()
-            end_date = None
-            
-            cycle_name = (item.billing_cycle_name or "").upper()
-            if "MONTH" in cycle_name:
-                end_date = start_date + timedelta(days=30)
-            elif "YEAR" in cycle_name:
-                end_date = start_date + timedelta(days=365)
-            elif "WEEK" in cycle_name:
-                end_date = start_date + timedelta(days=7)
-            elif "DAY" in cycle_name:
-                end_date = start_date + timedelta(days=1)
+        import stripe
+        from django.conf import settings
+        stripe.api_key = settings.STRIPE_SECRET_KEY
+        
+        # We will handle the first plan only to redirect to a single Stripe session.
+        # Typically subscriptions are checked out one at a time.
+        item = cart.items.first()
+        
+        # Calculate end date based on billing cycle name
+        from datetime import timedelta
+        start_date = timezone.now()
+        end_date = None
+        
+        cycle_name = (item.billing_cycle_name or "").upper()
+        if "MONTH" in cycle_name:
+            end_date = start_date + timedelta(days=30)
+            stripe_interval = 'month'
+        elif "YEAR" in cycle_name:
+            end_date = start_date + timedelta(days=365)
+            stripe_interval = 'year'
+        elif "WEEK" in cycle_name:
+            end_date = start_date + timedelta(days=7)
+            stripe_interval = 'week'
+        elif "DAY" in cycle_name:
+            end_date = start_date + timedelta(days=1)
+            stripe_interval = 'day'
+        else:
+            stripe_interval = 'month'
 
-            # Create local purchase record
-            PurchasedPlan.objects.create(
-                verified_user=verified_user,
-                plan_id=item.plan_id,
-                plan_title=item.plan_title,
-                billing_cycle_id=item.billing_cycle_id,
-                billing_cycle_name=item.billing_cycle_name,
-                price_amount=item.price_amount,
-                price_currency=item.price_currency,
-                start_date=start_date,
-                end_date=end_date,
-                is_active=True
+        # Generate Stripe Checkout Session
+        success_url = f"http://localhost:5173/provider/dashboard"
+        cancel_url = f"http://localhost:5173/provider/cart"
+        
+        try:
+            checkout_session = stripe.checkout.Session.create(
+                payment_method_types=['card'],
+                line_items=[{
+                    'price_data': {
+                        'currency': item.price_currency.lower(),
+                        'product_data': {
+                            'name': item.plan_title,
+                            'description': f"{item.plan_title} ({item.billing_cycle_name})",
+                        },
+                        'unit_amount': int(item.price_amount * 100),
+                        'recurring': {
+                            'interval': stripe_interval,
+                        },
+                    },
+                    'quantity': 1,
+                }],
+                mode='subscription',
+                success_url=success_url,
+                cancel_url=cancel_url,
+            )
+        except Exception as e:
+            return Response({"error": f"Failed to connect to Stripe: {str(e)}"}, status=500)
+
+        # Create local purchase record in PENDING / inactive state until webhook confirms
+        purchase = PurchasedPlan.objects.create(
+            verified_user=verified_user,
+            plan_id=item.plan_id,
+            plan_title=item.plan_title,
+            billing_cycle_id=item.billing_cycle_id,
+            billing_cycle_name=item.billing_cycle_name,
+            price_amount=item.price_amount,
+            price_currency=item.price_currency,
+            start_date=start_date,
+            end_date=end_date,
+            is_active=False,  # <--- FALSE until Webhook activates it
+            payment_gateway='STRIPE',
+            transaction_id=checkout_session.id,
+            checkout_session_url=checkout_session.url
+        )
+            
+        # ✅ Sync Permissions from Super Admin
+        sa_data = {}
+        try:
+            import requests
+            # Assuming Super Admin is on port 8003
+            SUPER_ADMIN_URL = "http://127.0.0.1:8003"
+            headers = {}
+            if "Authorization" in request.headers:
+                headers["Authorization"] = request.headers["Authorization"]
+            
+            # 1. Notify Super Admin of Purchase (Creates Permissions in Super Admin DB)
+            purchase_payload = {
+                "plan_id": str(item.plan_id),
+                "billing_cycle_id": item.billing_cycle_id
+            }
+            
+            with open("checkout_debug.log", "a") as f:
+                f.write(f"Sending purchase request to SA: {purchase_payload}\n")
+                f.write(f"Headers: {headers}\n")
+
+            purchase_response = requests.post(
+                f"{SUPER_ADMIN_URL}/api/superadmin/purchase/",
+                json=purchase_payload,
+                headers=headers
             )
             
-            # ✅ Sync Permissions from Super Admin
-            sa_data = {}
-            try:
-                import requests
-                # Assuming Super Admin is on port 8003
-                SUPER_ADMIN_URL = "http://127.0.0.1:8003"
-                headers = {}
-                if "Authorization" in request.headers:
-                    headers["Authorization"] = request.headers["Authorization"]
-                
-                # 1. Notify Super Admin of Purchase (Creates Permissions in Super Admin DB)
-                purchase_payload = {
-                    "plan_id": str(item.plan_id),
-                    "billing_cycle_id": item.billing_cycle_id
-                }
-                
-                with open("checkout_debug.log", "a") as f:
-                    f.write(f"Sending purchase request to SA: {purchase_payload}\n")
-                    f.write(f"Headers: {headers}\n")
+            with open("checkout_debug.log", "a") as f:
+                f.write(f"SA Response: {purchase_response.status_code} - {purchase_response.text}\n")
 
-                purchase_response = requests.post(
-                    f"{SUPER_ADMIN_URL}/api/superadmin/purchase/",
-                    json=purchase_payload,
-                    headers=headers
-                )
-                
-                with open("checkout_debug.log", "a") as f:
-                    f.write(f"SA Response: {purchase_response.status_code} - {purchase_response.text}\n")
+            if purchase_response.status_code == 201:
+                sa_data = purchase_response.json()
+            else:
+                print(f"Super Admin Purchase Failed: {purchase_response.text}")
+            
+            # We rely on Kafka to sync permissions to ProviderCapabilityAccess
+            print("Purchase successful. Waiting for Kafka sync...")
 
-                if purchase_response.status_code == 201:
-                    sa_data = purchase_response.json()
-                else:
-                    print(f"Super Admin Purchase Failed: {purchase_response.text}")
-                
-                # We rely on Kafka to sync permissions to ProviderCapabilityAccess
-                print("Purchase successful. Waiting for Kafka sync...")
+        except Exception as e:
+            print(f"Error during checkout sync: {e}")
 
-            except Exception as e:
-                print(f"Error during checkout sync: {e}")
-
+        # Note: Do not check out the whole cart if it has multiple items. 
+        # But we assume one item at checkout for subscriptions.
         cart.status = "checked_out"
         cart.save()
 
     return Response({
-        "detail": "Payment successful. Plans activated.",
-        "sa_data": sa_data
+        "detail": "Redirecting to Stripe payment checkout.",
+        "sa_data": sa_data,
+        "checkout_url": checkout_session.url
     })
 
 
@@ -343,6 +390,10 @@ def purchase_plan_direct(request):
 
     # 2. Purchase Logic
     with transaction.atomic():
+        import stripe
+        from django.conf import settings
+        stripe.api_key = settings.STRIPE_SECRET_KEY
+
         from datetime import timedelta
         start_date = timezone.now()
         end_date = None
@@ -350,12 +401,46 @@ def purchase_plan_direct(request):
         cycle_name = (data.get("billing_cycle_name") or "").upper()
         if "MONTH" in cycle_name:
             end_date = start_date + timedelta(days=30)
+            stripe_interval = 'month'
         elif "YEAR" in cycle_name:
             end_date = start_date + timedelta(days=365)
+            stripe_interval = 'year'
         elif "WEEK" in cycle_name:
             end_date = start_date + timedelta(days=7)
+            stripe_interval = 'week'
         elif "DAY" in cycle_name:
             end_date = start_date + timedelta(days=1)
+            stripe_interval = 'day'
+        else:
+            stripe_interval = 'month'
+
+        # Generate Stripe Checkout Session
+        success_url = f"http://localhost:5173/provider/dashboard"
+        cancel_url = f"http://localhost:5173/provider/plans"
+        
+        try:
+            checkout_session = stripe.checkout.Session.create(
+                payment_method_types=['card'],
+                line_items=[{
+                    'price_data': {
+                        'currency': data.get("price_currency", "INR").lower(),
+                        'product_data': {
+                            'name': data["plan_title"],
+                            'description': f"{data['plan_title']} ({data['billing_cycle_name']})",
+                        },
+                        'unit_amount': int(data["price_amount"] * 100),
+                        'recurring': {
+                            'interval': stripe_interval,
+                        },
+                    },
+                    'quantity': 1,
+                }],
+                mode='subscription',
+                success_url=success_url,
+                cancel_url=cancel_url,
+            )
+        except Exception as e:
+            return Response({"error": f"Failed to connect to Stripe: {str(e)}"}, status=500)
 
         purchase = PurchasedPlan.objects.create(
             verified_user=verified_user,
@@ -367,7 +452,10 @@ def purchase_plan_direct(request):
             price_currency=data.get("price_currency", "INR"),
             start_date=start_date,
             end_date=end_date,
-            is_active=True
+            is_active=False, # PENDING WEBHOOK
+            payment_gateway='STRIPE',
+            transaction_id=checkout_session.id,
+            checkout_session_url=checkout_session.url
         )
 
         # 3. Synchronize with Super Admin
@@ -397,9 +485,10 @@ def purchase_plan_direct(request):
             print(f"Direct purchase sync error: {e}")
 
     return Response({
-        "detail": "Plan purchased directly and activated.",
+        "detail": "Redirecting to Stripe payment checkout.",
         "purchase_id": str(purchase.id),
-        "sa_data": sa_data
+        "sa_data": sa_data,
+        "checkout_url": checkout_session.url
     }, status=201)
 
 

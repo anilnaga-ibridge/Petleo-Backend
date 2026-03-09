@@ -37,6 +37,7 @@ while not consumer:
             "organization_events",
             "admin_events",
             "service_provider_events",
+            "booking_events",
             bootstrap_servers="localhost:9093",
             group_id="service-provider-group",
             auto_offset_reset="latest",
@@ -95,7 +96,7 @@ for message in consumer:
                             verified_user__auth_user_id=organization_id
                         )
                         
-                        OrganizationEmployee.objects.update_or_create(
+                        employee, created = OrganizationEmployee.objects.get_or_create(
                             auth_user_id=auth_user_id,
                             defaults={
                                 "organization": org_provider,
@@ -107,8 +108,17 @@ for message in consumer:
                                 "created_by": data.get("created_by"),
                                 "average_rating": 0.0,
                                 "total_ratings": 0
-                            },
+                            }
                         )
+                        if not created:
+                            # Update fields but do NOT overwrite status to PENDING
+                            employee.organization = org_provider
+                            employee.full_name = data.get("full_name") or employee.full_name
+                            employee.email = data.get("email") or employee.email
+                            employee.phone_number = data.get("phone_number") or employee.phone_number
+                            employee.role = role or employee.role
+                            employee.created_by = data.get("created_by") or employee.created_by
+                            employee.save()
                         logger.info(f"✅ Created OrganizationEmployee {auth_user_id} (Invited)")
                         
                     except ServiceProvider.DoesNotExist:
@@ -119,7 +129,7 @@ for message in consumer:
                             logger.info(f"✅ Recovered/Created ServiceProvider for {organization_id}")
                             
                             # Retry creation
-                            OrganizationEmployee.objects.update_or_create(
+                            employee, created = OrganizationEmployee.objects.get_or_create(
                                 auth_user_id=auth_user_id,
                                 defaults={
                                     "organization": org_provider,
@@ -131,8 +141,16 @@ for message in consumer:
                                     "created_by": data.get("created_by"),
                                     "average_rating": 0.0,
                                     "total_ratings": 0
-                                },
+                                }
                             )
+                            if not created:
+                                employee.organization = org_provider
+                                employee.full_name = data.get("full_name") or employee.full_name
+                                employee.email = data.get("email") or employee.email
+                                employee.phone_number = data.get("phone_number") or employee.phone_number
+                                employee.role = role or employee.role
+                                employee.created_by = data.get("created_by") or employee.created_by
+                                employee.save()
                             logger.info(f"✅ Created OrganizationEmployee {auth_user_id} (Invited) after recovery")
                             
                         except VerifiedUser.DoesNotExist:
@@ -155,17 +173,22 @@ for message in consumer:
             # ==========================
             # VERIFIED USER SYNC (ALL ROLES)
             # ==========================
-            if role in ["individual", "organization", "serviceprovider", "petowner", "pet_owner", "employee", "receptionist", "veterinarian", "groomer", "doctor", "labtech", "lab tech", "pharmacy", "vitalsstaff", "vitals staff", "superadmin", "super_admin", "admin"]:
+            if role in ["individual", "organization", "serviceprovider", "provider", "petowner", "pet_owner", "employee", "receptionist", "veterinarian", "groomer", "doctor", "labtech", "lab tech", "pharmacy", "vitalsstaff", "vitals staff", "superadmin", "super_admin", "admin"]:
                 with transaction.atomic():
+                    # Handle 'provider' as 'organization' for backward compatibility or generic events
+                    actual_role = role
+                    if role == "provider":
+                        actual_role = "organization"
+
                     user, created = VerifiedUser.objects.update_or_create(
                         auth_user_id=auth_user_id,
                         defaults={
                             "full_name": data.get("full_name"),
                             "email": data.get("email"),
                             "phone_number": data.get("phone_number"),
-                            "role": role,
+                            "role": actual_role,
                             "avatar_url": data.get("avatar_url"),
-                            "permissions": get_default_capabilities(role),
+                            "permissions": get_default_capabilities(actual_role),
                         },
                     )
                     logger.info(
@@ -173,7 +196,7 @@ for message in consumer:
                     )
                     
                     # Auto-create ServiceProvider profile for organizations and individuals
-                    if role in ["organization", "serviceprovider"]:
+                    if actual_role in ["organization", "serviceprovider", "provider"]:
                         provider, p_created = ServiceProvider.objects.update_or_create(
                             verified_user=user,
                             defaults={"provider_type": "ORGANIZATION"}
@@ -229,13 +252,19 @@ for message in consumer:
                 else:
                     logger.info(f"🆙 Updated VerifiedUser {auth_user_id}")
             else:
-                updated = VerifiedUser.objects.filter(auth_user_id=auth_user_id).update(
-                    full_name=data.get("full_name"),
-                    email=data.get("email"),
-                    phone_number=data.get("phone_number"),
-                    role=role,
-                    avatar_url=data.get("avatar_url"),
-                )
+                # [FIX] Protect role field — don't let 'provider' or empty role overwrite specific values
+                update_fields = {
+                    "full_name": data.get("full_name"),
+                    "email": data.get("email"),
+                    "phone_number": data.get("phone_number"),
+                    "avatar_url": data.get("avatar_url"),
+                }
+                
+                # Only update role if it's a specific, valid role
+                if role and role not in ["provider", "serviceprovider"]:
+                    update_fields["role"] = role
+                
+                updated = VerifiedUser.objects.filter(auth_user_id=auth_user_id).update(**update_fields)
                 if updated:
                     logger.info(f"🆙 Updated VerifiedUser {auth_user_id}")
                 
@@ -864,6 +893,13 @@ for message in consumer:
                     # Update all subscriptions for this plan
                     updated_count = ProviderSubscription.objects.filter(plan_id=plan_id).update(is_active=is_active)
                     logger.info(f"🔄 Plan {plan_id} status changed to {is_active}. Updated {updated_count} subscriptions.")
+
+        # ==========================
+        # BOOKING EVENTS
+        # ==========================
+        elif event_type == "BOOKING_CREATED":
+            from service_provider.notifications import handle_booking_created_notification
+            handle_booking_created_notification(data)
 
 
         else:

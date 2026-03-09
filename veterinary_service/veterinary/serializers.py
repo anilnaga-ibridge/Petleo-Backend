@@ -3,7 +3,7 @@ from .models import (
     StaffClinicAssignment, Clinic, PetOwner, Pet, Visit, 
     DynamicFieldDefinition, DynamicFieldValue, # Retain DynamicFieldValue
     FormDefinition, FormField, FieldValidation, FormSubmission, # Retain FieldValidation
-    PharmacyDispense, MedicationReminder, VisitInvoice, InvoiceLineItem, # Use InvoiceLineItem, remove VisitCharge
+    PharmacyDispense, MedicationReminder, VisitInvoice, InvoiceLineItem,
     LabTestTemplate, LabTestField, LabOrder, LabResult, MedicalAppointment,
     LabTest, Medicine, Prescription, PrescriptionItem, PharmacyTransaction
 )
@@ -18,6 +18,7 @@ class MedicineSerializer(serializers.ModelSerializer):
     class Meta:
         model = Medicine
         fields = '__all__'
+        read_only_fields = ['id', 'clinic', 'created_at', 'updated_at']
 
 class PrescriptionItemSerializer(serializers.ModelSerializer):
     medicine_name = serializers.CharField(source='medicine.name', read_only=True)
@@ -91,11 +92,21 @@ class PetOwnerSerializer(serializers.ModelSerializer):
 class PetSerializer(serializers.ModelSerializer):
     owner = serializers.PrimaryKeyRelatedField(queryset=PetOwner.objects.all(), required=False)
     dynamic_data = serializers.SerializerMethodField()
+    pet_photo = serializers.SerializerMethodField()
 
     class Meta:
         model = Pet
-        fields = ['id', 'owner', 'name', 'species', 'breed', 'sex', 'dob', 'color', 'weight', 'notes', 'tag', 'is_active', 'created_at', 'updated_at', 'dynamic_data']
-        read_only_fields = ['id', 'owner', 'created_at', 'updated_at', 'dynamic_data']
+        fields = ['id', 'owner', 'name', 'species', 'breed', 'sex', 'dob', 'color', 'weight', 'notes', 'tag', 'is_active', 'created_at', 'updated_at', 'dynamic_data', 'pet_photo']
+        read_only_fields = ['id', 'owner', 'created_at', 'updated_at', 'dynamic_data', 'pet_photo']
+
+    def get_pet_photo(self, obj):
+        # Return a high-quality placeholder if no photo is present in dynamic_data
+        data = DynamicEntityService.get_entity_data(obj.id, 'PET')
+        if data.get('photo_url'):
+            return data.get('photo_url')
+        
+        # Default placeholder matching the mockup's vibe
+        return "https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&q=80&w=150"
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -144,7 +155,7 @@ class VisitSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Visit
-        fields = ['id', 'clinic', 'provider_id', 'pet', 'pet_id', 'service_id', 'status', 'visit_type', 'reason', 'created_at', 'updated_at', 'vitals', 'latest_lab_order', 'checked_in_at', 'vitals_started_at', 'vitals_completed_at', 'doctor_started_at', 'closed_at', 'assigned_employee_id']
+        fields = ['id', 'clinic', 'provider_id', 'pet', 'pet_id', 'service_id', 'status', 'visit_type', 'reason', 'priority', 'triage_notes', 'created_at', 'updated_at', 'vitals', 'latest_lab_order', 'checked_in_at', 'vitals_started_at', 'vitals_completed_at', 'doctor_started_at', 'closed_at', 'assigned_employee_id']
         read_only_fields = ['id', 'clinic', 'provider_id', 'checked_in_at', 'vitals_started_at', 'vitals_completed_at', 'doctor_started_at', 'closed_at', 'vitals', 'latest_lab_order', 'assigned_employee_id']
 
     def validate(self, attrs):
@@ -396,7 +407,7 @@ class LabOrderSerializer(serializers.ModelSerializer):
                 self.fields['visit'].queryset = Visit.objects.none()
 
 class StaffClinicAssignmentSerializer(serializers.ModelSerializer):
-    staff_name = serializers.CharField(source='staff.auth_user_id', read_only=True)
+    staff_name = serializers.CharField(source='staff.full_name', read_only=True)
     clinic_name = serializers.CharField(source='clinic.name', read_only=True)
     staff_auth_id = serializers.CharField(required=False)
     
@@ -473,12 +484,59 @@ class StaffClinicAssignmentSerializer(serializers.ModelSerializer):
 
 class MedicalAppointmentSerializer(serializers.ModelSerializer):
     pet_name = serializers.CharField(source='pet.name', read_only=True)
-    doctor_name = serializers.CharField(source='doctor.staff.auth_user_id', read_only=True)
+    owner_name = serializers.CharField(source='pet.owner.name', read_only=True)
+    owner_phone = serializers.CharField(source='pet.owner.phone', read_only=True)
+    doctor_name = serializers.CharField(source='doctor.staff.full_name', read_only=True)
+    visit_id = serializers.UUIDField(source='visit.id', read_only=True)
+    visit_status = serializers.CharField(source='visit.status', read_only=True)
+    pet_details = PetSerializer(source='pet', read_only=True)
+    
+    start_datetime = serializers.SerializerMethodField()
+    end_datetime = serializers.SerializerMethodField()
+    vitals = serializers.SerializerMethodField()
     
     class Meta:
         model = MedicalAppointment
         fields = '__all__'
         read_only_fields = ['id', 'clinic', 'end_time']
+
+    def get_start_datetime(self, obj):
+        if not obj.appointment_date or not obj.start_time:
+            return None
+        from django.utils import timezone
+        import datetime
+        dt = datetime.datetime.combine(obj.appointment_date, obj.start_time)
+        return timezone.make_aware(dt)
+
+    def get_end_datetime(self, obj):
+        if not obj.appointment_date or not obj.end_time:
+            return None
+        from django.utils import timezone
+        import datetime
+        dt = datetime.datetime.combine(obj.appointment_date, obj.end_time)
+        return timezone.make_aware(dt)
+
+    def get_vitals(self, obj):
+        # 1. Check if visit exists
+        try:
+            visit = obj.visit
+        except:
+            return {}
+
+        if not visit:
+            return {}
+        
+        # 2. Try latest VITALS form submission
+        last_submission = FormSubmission.objects.filter(
+            visit=visit, 
+            form_definition__code='VITALS'
+        ).order_by('-created_at').first()
+        
+        if last_submission:
+            return last_submission.data
+            
+        # 3. Fallback: Legacy dynamic entity data (for vitals recorded on visit, not appt)
+        return DynamicEntityService.get_entity_data(visit.id, 'VITALS')
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -489,3 +547,103 @@ class MedicalAppointmentSerializer(serializers.ModelSerializer):
             if clinic_id:
                 self.fields['pet'].queryset = Pet.objects.filter(owner__clinic_id=clinic_id)
                 self.fields['doctor'].queryset = StaffClinicAssignment.objects.filter(clinic_id=clinic_id, role='DOCTOR')
+
+# ========================
+# PHASE 5: VACCINATION TRACKING SERIALIZERS
+# ========================
+
+class VaccineMasterSerializer(serializers.ModelSerializer):
+    class Meta:
+        from .models import VaccineMaster
+        model = VaccineMaster
+        fields = '__all__'
+        read_only_fields = ['id', 'clinic']
+
+    def validate(self, attrs):
+        request = self.context.get('request')
+        from .views import get_clinic_context
+        clinic_id = get_clinic_context(request)
+        attrs['clinic_id'] = clinic_id
+        return attrs
+
+class PetVaccinationRecordSerializer(serializers.ModelSerializer):
+    vaccine_name = serializers.CharField(source='vaccine.vaccine_name', read_only=True)
+    species = serializers.CharField(source='vaccine.species', read_only=True)
+    pet_name = serializers.CharField(source='pet.name', read_only=True)
+    
+    class Meta:
+        from .models import PetVaccinationRecord
+        model = PetVaccinationRecord
+        fields = '__all__'
+        read_only_fields = ['id', 'clinic', 'next_due_date']
+        
+    def validate(self, attrs):
+        request = self.context.get('request')
+        from .views import get_clinic_context
+        clinic_id = get_clinic_context(request)
+        attrs['clinic_id'] = clinic_id
+        
+        # Cross-check Pet and Vaccine belong to this clinic
+        if 'pet' in attrs and str(attrs['pet'].owner.clinic_id) != str(clinic_id):
+            raise serializers.ValidationError({"pet": "Pet does not belong to your clinic."})
+            
+        if 'vaccine' in attrs and str(attrs['vaccine'].clinic_id) != str(clinic_id):
+            raise serializers.ValidationError({"vaccine": "Vaccine is not registered in your clinic's master list."})
+            
+        return attrs
+
+class VaccinationReminderSerializer(serializers.ModelSerializer):
+    pet_name = serializers.CharField(source='vaccination_record.pet.name', read_only=True)
+    vaccine_name = serializers.CharField(source='vaccination_record.vaccine.vaccine_name', read_only=True)
+    
+    class Meta:
+        from .models import VaccinationReminder
+        model = VaccinationReminder
+        fields = '__all__'
+
+# ==========================================
+# PHASE 6: ESTIMATE SERIALIZERS
+# ==========================================
+
+class EstimateLineItemSerializer(serializers.ModelSerializer):
+    class Meta:
+        from .models import EstimateLineItem
+        model = EstimateLineItem
+        fields = '__all__'
+
+class TreatmentEstimateSerializer(serializers.ModelSerializer):
+    items = EstimateLineItemSerializer(many=True, read_only=True)
+    pet_name = serializers.CharField(source='visit.pet.name', read_only=True)
+    owner_name = serializers.CharField(source='visit.pet.owner.name', read_only=True)
+
+    class Meta:
+        from .models import TreatmentEstimate
+        model = TreatmentEstimate
+        fields = '__all__'
+        read_only_fields = ['id', 'total_amount', 'created_at', 'updated_at']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        request = self.context.get('request')
+        if request:
+            from .views import get_clinic_context
+            clinic_id = get_clinic_context(request)
+            if clinic_id:
+                self.fields['visit'].queryset = Visit.objects.filter(clinic_id=clinic_id)
+            else:
+                self.fields['visit'].queryset = Visit.objects.none()
+
+# ==========================================
+# PHASE 4: PRE-VISIT FORM SERIALIZERS
+# ==========================================
+
+class PreVisitFormSerializer(serializers.ModelSerializer):
+    pet_name = serializers.CharField(source='visit.pet.name', read_only=True)
+    owner_name = serializers.CharField(source='visit.pet.owner.name', read_only=True)
+    visit_date = serializers.DateTimeField(source='visit.created_at', read_only=True)
+
+    class Meta:
+        from .models import PreVisitForm
+        model = PreVisitForm
+        fields = '__all__'
+        read_only_fields = ['id', 'access_token', 'is_submitted', 'submitted_at', 'created_at']

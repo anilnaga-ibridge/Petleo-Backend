@@ -464,6 +464,10 @@ class ProviderCategoryViewSet(viewsets.ModelViewSet):
                 data = request.data.copy()
                 data["service_id"] = t_cat.service.super_admin_service_id # Ensure service link
                 
+                # 🚀 FIX: Preserve description from template if not provided in the payload
+                if not data.get("description") and t_cat.description:
+                    data["description"] = t_cat.description
+                
                 serializer = self.get_serializer(data=data)
                 serializer.is_valid(raise_exception=True)
                 self.perform_create(serializer)
@@ -635,6 +639,7 @@ class ProviderCategoryViewSet(viewsets.ModelViewSet):
 class ProviderFacilityViewSet(viewsets.ModelViewSet):
     serializer_class = ProviderFacilitySerializer
     permission_classes = [IsAuthenticated, HasProviderPermission]
+    parser_classes = [MultiPartParser, FormParser]
 
     def get_verified_user(self):
         return get_effective_provider_user(self.request.user)
@@ -686,6 +691,9 @@ class ProviderFacilityViewSet(viewsets.ModelViewSet):
         return category_id, None
 
     def create(self, request, *args, **kwargs):
+        with open("/tmp/petleo_api_debug.txt", "a") as f:
+            f.write(f"CREATE ENDPOINT HIT - FILES: {request.FILES} - DATA: {request.data}\n")
+            
         # Avoid request.data.copy() as it can trigger pickling errors with file uploads (BufferedRandom)
         if hasattr(request.data, 'dict'):
             data = request.data.dict()
@@ -696,6 +704,10 @@ class ProviderFacilityViewSet(viewsets.ModelViewSet):
                         data[key] = vals
         else:
             data = dict(request.data)
+            
+        # Manually attach single file fields for the serializer
+        if 'image' in request.FILES:
+            data['image'] = request.FILES['image']
 
         resolved_cat, error = self._resolve_template_category(data)
         if error:
@@ -723,10 +735,13 @@ class ProviderFacilityViewSet(viewsets.ModelViewSet):
         from .models import ProviderFacilityImage
         instance = serializer.save()
         
+        with open("/tmp/petleo_upload_debug.txt", "a") as f:
+            f.write(f"PERFORM UPDATE: FILES='{self.request.FILES}', DATA='{self.request.data}'\n")
+            
         # Handle additional gallery images (incremental addition)
         gallery_files = self.request.FILES.getlist('gallery')
-        for f in gallery_files:
-            ProviderFacilityImage.objects.create(facility=instance, image=f)
+        for file in gallery_files:
+            ProviderFacilityImage.objects.create(facility=instance, image=file)
 
     def destroy(self, request, *args, **kwargs):
         pk = kwargs.get("pk")
@@ -755,6 +770,9 @@ class ProviderFacilityViewSet(viewsets.ModelViewSet):
         return super().destroy(request, *args, **kwargs)
 
     def update(self, request, *args, **kwargs):
+        with open("/tmp/petleo_api_debug.txt", "a") as f:
+            f.write(f"UPDATE ENDPOINT HIT: {kwargs.get('pk')} - FILES: {request.FILES} - DATA: {request.data}\n")
+            
         pk = kwargs.get("pk")
         if pk and str(pk).startswith("TEMPLATE_"):
             # Handle Template Edit (Shadowing)
@@ -776,6 +794,10 @@ class ProviderFacilityViewSet(viewsets.ModelViewSet):
                                 data[key] = vals
                 else:
                     data = dict(request.data)
+                    
+                # Manually attach single file fields for the serializer
+                if 'image' in request.FILES:
+                    data['image'] = request.FILES['image']
 
                 # Resolve category (either provided template ID or default from template facility)
                 resolved_cat, error = self._resolve_template_category(data, t_fac=t_fac)

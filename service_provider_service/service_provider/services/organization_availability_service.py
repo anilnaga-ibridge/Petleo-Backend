@@ -1,3 +1,4 @@
+from concurrent.futures import ThreadPoolExecutor
 from .availability_service import AvailabilityService
 from ..models import OrganizationEmployee
 
@@ -7,6 +8,7 @@ class OrganizationAvailabilityService:
         """
         Aggregates available slots from all employees qualified for the given facility.
         Model 2: Service-First Booking.
+        Uses parallel computation for high performance.
         """
         # 1. Find qualified employees via EmployeeServiceMapping
         eligible_employees = OrganizationEmployee.objects.filter(
@@ -16,10 +18,7 @@ class OrganizationAvailabilityService:
             service_mappings__is_active=True
         )
         
-        # [NEW] Robustness Fallback:
-        # If no specific employees are mapped to this service, 
-        # assume all active employees of the organization can perform it.
-        # This prevents "No slots available" errors when the provider forgets to map services.
+        # [NEW] Robustness Fallback
         if not eligible_employees.exists():
             eligible_employees = OrganizationEmployee.objects.filter(
                 organization_id=org_id,
@@ -27,9 +26,22 @@ class OrganizationAvailabilityService:
             )
             
         all_slots = set()
-        for emp in eligible_employees:
-            # Re-use the existing AvailabilityService for individual calculation
-            emp_slots = AvailabilityService.get_available_slots(str(emp.auth_user_id), facility_id, date, consultation_type_id)
-            all_slots.update(emp_slots)
+
+        def fetch_slots(emp):
+            return AvailabilityService.get_available_slots(
+                str(emp.auth_user_id), 
+                facility_id, 
+                date, 
+                consultation_type_id
+            )
+
+        # 2. Parallelize computation across multiple employees
+        # max_workers can be adjusted based on server capabilities
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            # Map returns an iterator that yields results in order
+            results = executor.map(fetch_slots, eligible_employees)
+            
+            for emp_slots in results:
+                all_slots.update(emp_slots)
             
         return sorted(list(all_slots))

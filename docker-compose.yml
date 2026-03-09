@@ -185,6 +185,26 @@ services:
       timeout: 5s
       retries: 15
 
+  # 🗄 PostgreSQL for Booking Service
+  postgres_booking:
+    image: postgres:15
+    container_name: postgres_booking
+    environment:
+      POSTGRES_DB: booking_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5438:5432"
+    volumes:
+      - postgres_booking_data:/var/lib/postgresql/data
+    networks:
+      - micro_net
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+
   # 🔐 Django Auth Service
   auth_service:
     build:
@@ -299,6 +319,31 @@ services:
     networks:
       - micro_net
 
+  # 📅 Django Booking Service
+  booking_service:
+    build:
+      context: ./booking_service
+    container_name: booking_service
+    command: python manage.py runserver 0.0.0.0:8000 --noreload
+    ports:
+      - "8007:8000"
+    depends_on:
+      postgres_booking:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+      redis:
+        condition: service_started
+    environment:
+      POSTGRES_HOST: postgres_booking
+      POSTGRES_DB: booking_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      KAFKA_BROKER_URL: kafka:9092
+      REDIS_URL: redis://redis:6379/1
+    networks:
+      - micro_net
+
   # 🚪 API Gateway — KONG
   kong:
     image: kong:3.6
@@ -330,3 +375,4 @@ volumes:
   redis_data:
   postgres_veterinary_data:
   postgres_customer_data:
+  postgres_booking_data:

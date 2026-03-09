@@ -44,9 +44,14 @@ class VerifiedUser(models.Model):
         cat_ids = self.capabilities.filter(category_id__isnull=False).values_list('category_id', flat=True)
         
         # 2. Resolve to Linked Capabilities (e.g., 'Category: Pharmacy' -> 'VETERINARY_PHARMACY')
-        linked_caps = set(ProviderTemplateCategory.objects.filter(
-            super_admin_category_id__in=cat_ids
-        ).exclude(linked_capability__isnull=True).values_list('linked_capability', flat=True))
+        cat_qs = ProviderTemplateCategory.objects.filter(super_admin_category_id__in=cat_ids)
+        linked_caps = set(cat_qs.exclude(linked_capability__isnull=True).values_list('linked_capability', flat=True))
+        
+        # [FIX] Also include category names as capabilities if they look like capability keys
+        # This fixes the issue where linked_capability is null but the name itself is 'VETERINARY_VISITS'
+        for cat in cat_qs.filter(linked_capability__isnull=True):
+            if cat.name and cat.name.isupper() and '_' in cat.name:
+                linked_caps.add(cat.name)
 
         # 3. [FIX] Resolve Simple Services (Grooming, Daycare, etc.)
         # These services don't have categories, so we check for service-level access.
@@ -67,24 +72,44 @@ class VerifiedUser(models.Model):
             "Aquamation": "AQUAMATION",
             "Adoption": "ADOPTION",
             "Veterinary": "VETERINARY_CORE",
+            "Veterinary Management": "VETERINARY_CORE",
+            "VETERINARY": "VETERINARY_CORE",
         }
         
         if service_ids:
              # Look up service names
-             service_names = ProviderTemplateService.objects.filter(
+             service_meta = ProviderTemplateService.objects.filter(
                  super_admin_service_id__in=service_ids
-             ).values_list('display_name', flat=True)
+             ).values_list('name', 'display_name')
              
-             for name in service_names:
+             for name, display_name in service_meta:
                  if name in SERVICE_CAPABILITY_MAP:
                      linked_caps.add(SERVICE_CAPABILITY_MAP[name])
+                 elif display_name in SERVICE_CAPABILITY_MAP:
+                     linked_caps.add(SERVICE_CAPABILITY_MAP[display_name])
         
         # 4. [FIX] Add VETERINARY_CORE if any VETERINARY_* capabilities exist
         # VETERINARY_CORE is the service-level capability that grants dashboard access
         has_vet_capabilities = any(cap.startswith('VETERINARY_') for cap in linked_caps)
         if has_vet_capabilities:
             linked_caps.add('VETERINARY_CORE')
-        
+            
+        # 5. [FIX] Expand VETERINARY_CORE to all sub-capabilities
+        # If the org bought "Veterinary Management", they inherently have access to all modules,
+        # which permits the granular Role-Based Access Control to filter these out for employees.
+        if 'VETERINARY_CORE' in linked_caps:
+            linked_caps.update([
+                'VETERINARY_DOCTOR',
+                'VETERINARY_VISITS',
+                'VETERINARY_VITALS',
+                'VETERINARY_LABS',
+                'VETERINARY_PRESCRIPTIONS',
+                'VETERINARY_PHARMACY',
+                'VETERINARY_SCHEDULE',
+                'VETERINARY_ADMIN_SETTINGS',
+                'VETERINARY_MEDICINE_REMINDERS',
+            ])
+            
         return linked_caps.union(
             set(self.dynamic_capabilities.filter(is_active=True).values_list('capability__key', flat=True))
         )
@@ -319,7 +344,10 @@ class ProviderRole(models.Model):
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True, null=True)
     is_system_role = models.BooleanField(default=False)
+    version = models.IntegerField(default=1)
+    
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         unique_together = ("provider", "name")
@@ -329,6 +357,8 @@ class ProviderRole(models.Model):
     
     def save(self, *args, **kwargs):
         """Override save to invalidate cache for all employees with this role."""
+        if self.pk:
+            self.version += 1
         super().save(*args, **kwargs)
         self._invalidate_employee_caches()
     
@@ -348,9 +378,14 @@ class ProviderRole(models.Model):
         count = employees.count()
         
         if count > 0:
-            logger.info(f"🔄 Role '{self.name}' changed - invalidating cache for {count} employees")
+            logger.info(f"🔄 Role '{self.name}' changed - invalidating cache and sync for {count} employees")
+            from .kafka_producer import publish_employee_updated
             for emp in employees:
                 emp.invalidate_permission_cache()
+                try:
+                    publish_employee_updated(emp)
+                except Exception as e:
+                    logger.error(f"❌ Failed to broadcast permission sync for {emp.auth_user_id}: {e}")
 
 
 class ProviderRoleCapability(models.Model):
@@ -460,10 +495,13 @@ class OrganizationEmployee(models.Model):
         logger = logging.getLogger(__name__)
 
         # Check cache first
-        cache_key = f"employee_perms_{self.id}"
+        # 10/10 Enterprise Upgrade: Include role version in cache key for instant invalidation
+        role_version = self.provider_role.version if self.provider_role else 0
+        cache_key = f"employee_perms_{self.id}_v{role_version}"
+        
         cached_result = cache.get(cache_key)
         if cached_result is not None:
-            logger.debug(f"🔍 Cache HIT for employee {self.auth_user_id}")
+            logger.debug(f"🔍 Cache HIT for employee {self.auth_user_id} (Version {role_version})")
             return cached_result
 
         logger.info(f"\n{'='*100}")
@@ -678,6 +716,47 @@ class FeatureModule(models.Model):
         return f"{self.name} ({self.key})"
 
 
+class DashboardWidget(models.Model):
+    """
+    Registry of available dashboard components.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    key = models.CharField(max_length=100, unique=True) # e.g. 'doctor-queue'
+    label = models.CharField(max_length=255)
+    component_name = models.CharField(max_length=255) # e.g. 'DoctorQueueWidget'
+    
+    # 10/10 Enterprise Requirement: ManyToMany capabilities + Logic
+    required_capabilities = models.ManyToManyField(Capability, related_name="widgets")
+    logic_type = models.CharField(
+        max_length=10, 
+        choices=[('AND', 'AND'), ('OR', 'OR')], 
+        default='OR'
+    )
+    
+    default_config = models.JSONField(default=dict, blank=True) # w, h, x, y
+    order = models.IntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.label} ({self.key})"
+
+
+class UserDashboardLayout(models.Model):
+    """
+    Personalized dashboard layout for a user.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.OneToOneField(VerifiedUser, on_delete=models.CASCADE, related_name="dashboard_layout")
+    layout_json = models.JSONField(default=list) # [{widget_key, x, y, w, h}]
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Layout for {self.user.email}"
+
+
 class ProviderCapability(models.Model):
     """
     The source of truth for dynamic permissions.
@@ -694,6 +773,37 @@ class ProviderCapability(models.Model):
         
     def __str__(self):
         return f"{self.user} -> {self.capability.key}"
+
+class AuditLog(models.Model):
+    """
+    Logs critical system changes for auditability.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    action = models.CharField(max_length=100) # e.g. 'ROLE_UPDATED', 'PERMISSIONS_SYNCED'
+    actor_id = models.UUIDField(null=True, blank=True) # Auth ID of the person performing change
+    target_id = models.UUIDField() # ID of the object changed
+    details = models.JSONField(default=dict)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+# Signal to log role changes
+from django.db.models.signals import post_save, post_delete
+from django.dispatch import receiver
+
+@receiver(post_save, sender=ProviderRole)
+def log_role_change(sender, instance, created, **kwargs):
+    AuditLog.objects.create(
+        action='ROLE_CREATED' if created else 'ROLE_UPDATED',
+        target_id=instance.id,
+        details={
+            'name': instance.name,
+            'version': instance.version,
+            'capabilities': list(instance.capabilities.values_list('capability_key', flat=True))
+        }
+    )
 
 
 class BillingProfile(models.Model):
@@ -768,12 +878,21 @@ class PermissionAuditLog(models.Model):
             else:
                 ip = request.META.get('REMOTE_ADDR')
 
+        # 🛡️ Guard: Actor MUST be a VerifiedUser instance for the ForeignKey
+        # If it's a TransientUser (Pet Owner / external Super Admin), set actor=None and log in details
+        actual_actor = actor if (actor and hasattr(actor, '_state')) else None
+        
+        final_details = details or {}
+        if not actual_actor and actor:
+            final_details['actor_info'] = str(actor)
+            if hasattr(actor, 'email'): final_details['actor_email'] = actor.email
+
         return cls.objects.create(
-            actor=actor,
+            actor=actual_actor,
             target_employee=target_employee,
             target_role=target_role,
             action=action,
-            details=details or {},
+            details=final_details,
             ip_address=ip
         )
 

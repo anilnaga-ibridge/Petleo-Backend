@@ -39,7 +39,7 @@ def audit_form_submissions(sender, instance, created, **kwargs):
         if instance.form_definition.code == 'VITALS_FORM':
             action_type = 'VITALS_ENTERED'
             capability = 'VETERINARY_VITALS'
-        elif instance.form_definition.code == 'PRESCRIPTION_FORM':
+        elif instance.form_definition.code == 'PRESCRIPTION':
             action_type = 'PRESCRIPTION_CREATED'
             capability = 'VETERINARY_PRESCRIPTIONS'
         elif instance.form_definition.code == 'LAB_FORM':

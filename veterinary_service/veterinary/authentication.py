@@ -38,15 +38,22 @@ class ShadowUserAuthentication(JWTAuthentication):
                 perm_log(f"ShadowAuth: Clinic found: {clinic.name}")
                 user.clinic_id = clinic.id
                 
-                # [FIX] Pull from Clinic.capabilities instead of hardcoded list
-                raw_perms = clinic.capabilities or {}
-                if isinstance(raw_perms, list):
-                    user.permissions = raw_perms
-                else:
-                    user.permissions = raw_perms.get('permissions', [])
-
-                if "VETERINARY_CORE" not in user.permissions:
-                    user.permissions.append("VETERINARY_CORE")
+                # Owners/Admins get all granular clinical capabilities
+                user.permissions = [
+                    "VETERINARY_CORE", 
+                    "VETERINARY_ADMIN", 
+                    "VETERINARY_VISITS", 
+                    "VETERINARY_VITALS", 
+                    "VETERINARY_PRESCRIPTIONS", 
+                    "VETERINARY_LABS", 
+                    "VETERINARY_VACCINES",
+                    "VETERINARY_MEDICINE_REMINDERS",
+                    "VETERINARY_PHARMACY",
+                    "VETERINARY_DOCTOR",
+                    "VETERINARY_SCHEDULE",
+                    "VETERINARY_ONLINE_CONSULT",
+                    "analytics.*"
+                ]
             else:
                 perm_log("ShadowAuth: Clinic NOT found or NOT owned.")
                 user.clinic_id = None

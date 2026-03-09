@@ -34,6 +34,7 @@ class Clinic(TimeStampedModel):
 class VeterinaryStaff(TimeStampedModel):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     auth_user_id = models.CharField(max_length=255, unique=True, help_text="ID from Auth Service")
+    full_name = models.CharField(max_length=255, blank=True, null=True)
     clinic = models.ForeignKey(Clinic, on_delete=models.SET_NULL, related_name='staff', null=True, blank=True, help_text="DEPRECATED: Use StaffClinicAssignment for multi-clinic support")
     role = models.CharField(max_length=50, blank=True, null=True)
     permissions = models.JSONField(default=list, blank=True)
@@ -131,6 +132,15 @@ class Visit(TimeStampedModel):
     visit_type = models.CharField(max_length=20, choices=VISIT_TYPE_CHOICES, default='OFFLINE')
     reason = models.TextField(blank=True, null=True, help_text="Reason for the visit / Chief Complaint")
     
+    # [NEW] Triage Fields
+    PRIORITY_CHOICES = [
+        ('P1', 'Critical (P1)'),
+        ('P2', 'Urgent (P2)'),
+        ('P3', 'Routine (P3)'),
+    ]
+    priority = models.CharField(max_length=5, choices=PRIORITY_CHOICES, default='P3')
+    triage_notes = models.TextField(blank=True, null=True)
+    
     # SLA / Timeline Fields
     checked_in_at = models.DateTimeField(null=True, blank=True)
     vitals_started_at = models.DateTimeField(null=True, blank=True) # Added per spec
@@ -153,8 +163,12 @@ class MedicalAppointment(TimeStampedModel):
     Differs from generic bookings by requiring a specific Pet and Doctor role.
     """
     STATUS_CHOICES = [
+        ('PENDING', 'Pending'),
         ('CONFIRMED', 'Confirmed'),
+        ('IN_PROGRESS', 'In Progress'),
         ('CANCELLED', 'Cancelled'),
+        ('REJECTED', 'Rejected'),
+        ('NO_SHOW', 'No Show'),
         ('COMPLETED', 'Completed'),
     ]
 
@@ -172,7 +186,7 @@ class MedicalAppointment(TimeStampedModel):
         help_text="The specific doctor assigned to this appointment"
     )
     pet = models.ForeignKey(Pet, on_delete=models.CASCADE, related_name='appointments')
-    service_id = models.UUIDField(help_text="Reference to ProviderTemplateFacility in service_provider service")
+    service_id = models.CharField(max_length=255, null=True, blank=True, help_text="Reference to ProviderTemplateFacility in service_provider service")
     
     appointment_date = models.DateField()
     start_time = models.TimeField()
@@ -208,6 +222,10 @@ class MedicalAppointment(TimeStampedModel):
         ordering = ['appointment_date', 'start_time']
         verbose_name = "Medical Appointment"
         verbose_name_plural = "Medical Appointments"
+        indexes = [
+            models.Index(fields=['clinic', 'appointment_date', 'status']),
+            models.Index(fields=['doctor', 'appointment_date', 'status']),
+        ]
 
     def __str__(self):
         return f"Appt {self.appointment_date} with {self.doctor} for {self.pet.name}"
@@ -535,9 +553,11 @@ class InvoiceLineItem(TimeStampedModel):
 
     def save(self, *args, **kwargs):
         if not self.total_price:
-            self.total_price = self.unit_price * self.quantity
+            from decimal import Decimal
+            self.total_price = Decimal(str(self.unit_price)) * Decimal(str(self.quantity))
         super().save(*args, **kwargs)
-        self.invoice.recalculate_totals()
+        if self.invoice:
+            self.invoice.recalculate_totals()
 
 # ========================
 # PHASE 3.5: PROFESSIONAL LAB SYSTEM
@@ -601,3 +621,172 @@ class LabResult(TimeStampedModel):
 
     def __str__(self):
         return f"{self.test_field.field_name}: {self.value}"
+
+# ========================
+# PHASE 5: VACCINATION TRACKING
+# ========================
+
+class VaccineMaster(TimeStampedModel):
+    """
+    Master list of vaccines managed per clinic.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    clinic = models.ForeignKey(Clinic, on_delete=models.CASCADE, related_name='vaccines')
+    vaccine_name = models.CharField(max_length=255)
+    species = models.CharField(max_length=100, help_text="e.g. Dog, Cat, Bird")
+    default_interval_days = models.PositiveIntegerField(help_text="Days until next dose")
+    required_doses = models.PositiveIntegerField(default=1)
+    manufacturer = models.CharField(max_length=255, blank=True, null=True)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        unique_together = ('clinic', 'vaccine_name', 'species')
+        verbose_name = "Vaccine Master"
+        verbose_name_plural = "Vaccine Masters"
+
+    def __str__(self):
+        return f"{self.vaccine_name} ({self.species})"
+
+
+class PetVaccinationRecord(TimeStampedModel):
+    """
+    Individual pet vaccination log.
+    """
+    STATUS_CHOICES = [
+        ('SCHEDULED', 'Scheduled'),
+        ('COMPLETED', 'Completed'),
+        ('MISSED', 'Missed'),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    clinic = models.ForeignKey(Clinic, on_delete=models.CASCADE, related_name='vaccination_records')
+    pet = models.ForeignKey(Pet, on_delete=models.CASCADE, related_name='vaccination_records')
+    visit = models.ForeignKey(Visit, on_delete=models.SET_NULL, null=True, blank=True, related_name='administered_vaccines')
+    vaccine = models.ForeignKey(VaccineMaster, on_delete=models.PROTECT, related_name='records')
+    dose_number = models.PositiveIntegerField()
+    administered_date = models.DateField(null=True, blank=True)
+    next_due_date = models.DateField()
+    doctor = models.CharField(max_length=255, blank=True, null=True, help_text="Auth ID of administering doctor")
+    batch_number = models.CharField(max_length=100, blank=True, null=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='SCHEDULED')
+
+    class Meta:
+        unique_together = ('pet', 'vaccine', 'dose_number')
+        indexes = [
+            models.Index(fields=['pet', 'vaccine']),
+            models.Index(fields=['next_due_date', 'status']),
+        ]
+
+    def save(self, *args, **kwargs):
+        # Auto-calculate next due date if administered date is set
+        if self.administered_date and not self.next_due_date:
+            from datetime import timedelta
+            self.next_due_date = self.administered_date + timedelta(days=self.vaccine.default_interval_days)
+            
+        # If no dates are provided at all (e.g. pure scheduling), fallback to today + interval
+        elif not self.administered_date and not self.next_due_date:
+            from datetime import date, timedelta
+            self.next_due_date = date.today() + timedelta(days=self.vaccine.default_interval_days)
+
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.pet.name} - {self.vaccine.vaccine_name} Dose {self.dose_number}"
+
+
+class VaccinationReminder(TimeStampedModel):
+    """
+    Notification trigger for due vaccinations.
+    """
+    REMINDER_TYPE_CHOICES = [
+        ('SMS', 'SMS'),
+        ('EMAIL', 'Email'),
+        ('WHATSAPP', 'WhatsApp'),
+    ]
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    vaccination_record = models.ForeignKey(PetVaccinationRecord, on_delete=models.CASCADE, related_name='reminders')
+    reminder_date = models.DateField()
+    reminder_type = models.CharField(max_length=20, choices=REMINDER_TYPE_CHOICES, default='SMS')
+    sent_status = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"Reminder for {self.vaccination_record} on {self.reminder_date}"
+
+class PreVisitForm(models.Model):
+    """
+    Form filled by pet owners before the visit (History, symptoms, etc).
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    visit = models.OneToOneField(Visit, on_delete=models.CASCADE, related_name='pre_visit_form')
+    
+    # Secure token for public link access without authentication
+    access_token = models.CharField(max_length=64, unique=True, default=uuid.uuid4().hex)
+    
+    # Form data (History, reason for visit, current symptoms, etc.)
+    data = models.JSONField(default=dict)
+    
+    is_submitted = models.BooleanField(default=False)
+    submitted_at = models.DateTimeField(null=True, blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Pre-Visit Form for {self.visit}"
+
+# ==========================================
+# PHASE 6: ESTIMATES MODULE
+# ==========================================
+
+class TreatmentEstimate(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    visit = models.ForeignKey(Visit, on_delete=models.CASCADE, related_name='estimates')
+    
+    STATUS_CHOICES = [
+        ('DRAFT', 'Draft'),
+        ('SENT', 'Sent to Owner'),
+        ('APPROVED', 'Approved'),
+        ('REJECTED', 'Rejected'),
+        ('INVOICED', 'Converted to Invoice'),
+    ]
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='DRAFT')
+    
+    total_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    notes = models.TextField(blank=True, null=True)
+    
+    created_by = models.CharField(max_length=100, help_text="Doctor auth ID")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Estimate {self.id} for Visit {self.visit_id}"
+
+    def recalculate_totals(self):
+        total = self.items.aggregate(models.Sum('total_price'))['total_price__sum'] or 0.00
+        self.total_amount = total
+        self.save()
+
+class EstimateLineItem(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    estimate = models.ForeignKey(TreatmentEstimate, on_delete=models.CASCADE, related_name='items')
+    
+    CHARGE_TYPE_CHOICES = [
+        ('CONSULTATION', 'Consultation'),
+        ('LAB', 'Laboratory'),
+        ('MEDICINE', 'Pharmacy/Medicine'),
+        ('SURGERY', 'Surgery'),
+        ('OTHER', 'Other'),
+    ]
+    charge_type = models.CharField(max_length=20, choices=CHARGE_TYPE_CHOICES, default='OTHER')
+    
+    description = models.CharField(max_length=255)
+    quantity = models.DecimalField(max_digits=10, decimal_places=2, default=1.0)
+    unit_price = models.DecimalField(max_digits=12, decimal_places=2)
+    total_price = models.DecimalField(max_digits=12, decimal_places=2)
+    
+    notes = models.TextField(blank=True, null=True)
+
+    def save(self, *args, **kwargs):
+        self.total_price = self.quantity * self.unit_price
+        super().save(*args, **kwargs)
+        self.estimate.recalculate_totals()

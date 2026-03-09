@@ -29,9 +29,17 @@ class IsOrganizationAdmin(permissions.BasePermission):
         except Exception as e:
             print(f"❌ IsOrganizationAdmin: Error checking provider type: {e}")
         
-        # Fallback: Check user.role (for backwards compatibility)
+        # Fallback: Check user.role
         role = getattr(request.user, 'role', '').upper()
-        return role in ['ORGANIZATION', 'INDIVIDUAL']
+        if role in ['ORGANIZATION', 'INDIVIDUAL']:
+            return True
+            
+        # [FIX] Allow employees to GET the list (for coordination)
+        if role == 'EMPLOYEE' and request.method in permissions.SAFE_METHODS:
+            print(f"✅ IsOrganizationAdmin: Granted SAFE_METHOD for employee {request.user.email}")
+            return True
+            
+        return False
 
 
 class HasProviderPermission(permissions.BasePermission):
@@ -118,3 +126,35 @@ class HasProviderPermission(permissions.BasePermission):
         # This is a broad check, but necessary if we don't have a specific category context
         has_perm = perms.filter(**{f"can_{action}": True}).exists()
         return has_perm
+
+
+class HasCapability(permissions.BasePermission):
+    """
+    Checks if the user has the required capability attached to their request
+    by the RBACMiddleware.
+    """
+    def __init__(self, capability_key=None):
+        self.capability_key = capability_key
+
+    def has_permission(self, request, view):
+        if not request.user or not request.user.is_authenticated:
+            return False
+            
+        # Get capabilities from middleware
+        user_caps = getattr(request, 'capabilities', set())
+        
+        # If no specific key is required, just check if they have ANY capabilities
+        if not self.capability_key:
+            return len(user_caps) > 0
+            
+        return self.capability_key in user_caps
+
+def require_capability(capability_key):
+    """
+    Factory to create a dynamic HasCapability permission class.
+    Usage: permission_classes = [require_capability('VETERINARY_VITALS')]
+    """
+    class DynamicHasCapability(HasCapability):
+        def __init__(self):
+            super().__init__(capability_key)
+    return DynamicHasCapability

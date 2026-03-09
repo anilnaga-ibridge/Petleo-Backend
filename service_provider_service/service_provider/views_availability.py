@@ -11,6 +11,7 @@ from provider_dynamic_fields.models import ProviderTemplateFacility
 from .services.availability_service import AvailabilityService
 from .services.organization_availability_service import OrganizationAvailabilityService
 from .services.smart_assignment_service import SmartAssignmentService
+from .services.cached_slots import AvailabilityCacheService
 from .models_scheduling import EmployeeWeeklySchedule, EmployeeLeave, EmployeeBlockTime, EmployeeDailySchedule
 from .serializers_scheduling import (
     EmployeeWeeklyScheduleSerializer, 
@@ -68,22 +69,23 @@ class AvailabilityViewSet(viewsets.ViewSet):
                     
         elif provider.provider_type == 'ORGANIZATION':
             employee_id = request.query_params.get('employee_id')
-            
-            if employee_id and facility_id:
-                # Specific Employee Path (Model 1)
+
+            if employee_id:
+                # Specific Employee Path — facility_id is optional (duration falls back to 30 min default)
                 slots = AvailabilityService.get_available_slots(employee_id, facility_id, target_date, consultation_type_id)
             elif facility_id:
-                # Service-First Aggregated Path (Model 2)
+                # Service-First Aggregated Path (Model 2) — auto-assign best employee
                 slots = OrganizationAvailabilityService.get_org_available_slots(provider_id, facility_id, target_date, consultation_type_id)
             else:
-                # Fallback or generic view (legacy)
+                # Fallback: merge slots across all active employees (no facility filter)
                 employees = provider.employees.filter(status='ACTIVE')
                 temp_slots = set()
                 for emp in employees:
-                    emp_slots = AvailabilityService.get_available_slots(str(emp.auth_user_id), facility_id, target_date)
+                    emp_slots = AvailabilityService.get_available_slots(str(emp.auth_user_id), None, target_date)
                     temp_slots.update(emp_slots)
                 slots = sorted(list(temp_slots))
-            
+
+
         return Response({"slots": slots})
 
     @action(detail=False, methods=['get'], url_path='active-hours')
@@ -130,7 +132,8 @@ class AvailabilityViewSet(viewsets.ViewSet):
                         end_time=h['end_time'],
                         slot_duration_minutes=h.get('slot_duration_minutes', 30)
                     )
-                    
+        
+        return Response({"message": "Settings saved successfully"})
 
     @action(detail=False, methods=['get'], url_path='employee-hours')
     def employee_hours(self, request):
@@ -170,6 +173,12 @@ class AvailabilityViewSet(viewsets.ViewSet):
                     end_time=h['end_time'],
                     slot_duration_minutes=h.get('slot_duration_minutes', 30)
                 )
+            
+            # Since working hours changed, we should probably clear some cache
+            # For simplicity, we can clear the next 7 days for this employee
+            today = datetime.now().date()
+            for i in range(7):
+                AvailabilityCacheService.invalidate_employee_day(str(employee.auth_user_id), today + timedelta(days=i))
                     
         return Response({"message": "Employee hours saved successfully"})
 
@@ -262,12 +271,17 @@ class ScheduleViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
+        # 1. If user is a provider (owner), they see all employee schedules in their organization
+        if hasattr(user, 'provider_profile'):
+            return self.queryset.filter(employee__organization=user.provider_profile)
+            
+        # 2. Otherwise, check if they are an employee and show only their own
         try:
             emp = OrganizationEmployee.objects.get(auth_user_id=user.auth_user_id)
             return self.queryset.filter(employee=emp)
         except OrganizationEmployee.DoesNotExist:
-            if hasattr(user, 'provider_profile'):
-                return self.queryset.filter(employee__organization=user.provider_profile)
+            pass
+            
         return self.queryset.none()
 
     def perform_create(self, serializer):
@@ -299,7 +313,8 @@ class ScheduleViewSet(viewsets.ModelViewSet):
                 target_date = entry.get('date')
                 if not target_date: continue
 
-                # Remove existing schedules for this date to allow overwriting/editing
+                # Clear ANY existing daily schedules for this date to prevent duplications
+                # This includes APPROVED, PENDING, and REJECTED
                 EmployeeDailySchedule.objects.filter(
                     employee=emp,
                     date=target_date
@@ -308,7 +323,7 @@ class ScheduleViewSet(viewsets.ModelViewSet):
                 is_off = entry.get('off', False)
                 
                 if is_off:
-                    # Day Off requests still require manual approval
+                    # Day Off requests require manual approval
                     EmployeeDailySchedule.objects.create(
                         employee=emp,
                         date=target_date,
@@ -318,14 +333,14 @@ class ScheduleViewSet(viewsets.ModelViewSet):
                         status='PENDING' 
                     )
                 else:
-                    # Normal working days are auto-approved
+                    # Normal working days also require manual approval (Fixed auto-approval issue)
                     EmployeeDailySchedule.objects.create(
                         employee=emp,
                         date=target_date,
                         start_time=entry['start_time'],
                         end_time=entry['end_time'],
                         reason=entry.get('reason') or 'Regular Shift',
-                        status='APPROVED'
+                        status='PENDING'
                     )
 
         result = EmployeeDailySchedule.objects.filter(employee=emp).order_by('-date')
@@ -357,6 +372,13 @@ class ScheduleViewSet(viewsets.ModelViewSet):
         schedule.status = 'APPROVED'
         schedule.approved_by_auth_id = request.user.auth_user_id
         schedule.save()
+
+        # Invalidate Cache (Atomic on Commit)
+        transaction.on_commit(lambda: AvailabilityCacheService.invalidate_employee_day(
+            str(schedule.employee.auth_user_id), 
+            schedule.date
+        ))
+
         return Response(EmployeeDailyScheduleSerializer(schedule).data)
 
     @action(detail=True, methods=['patch'])
@@ -375,16 +397,66 @@ class ScheduleViewSet(viewsets.ModelViewSet):
 
 
 class LeaveViewSet(viewsets.ModelViewSet):
+    """
+    Manage employee leaves.
+    Employees can create PENDING leaves.
+    Admins can APPROVE/REJECT them.
+    """
     queryset = EmployeeLeave.objects.all()
     serializer_class = EmployeeLeaveSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+    def get_queryset(self):
+        user = self.request.user
+        # Admins see all org leaves, employees see their own
+        try:
+            emp = OrganizationEmployee.objects.get(auth_user_id=user.auth_user_id)
+            if hasattr(user, 'provider_profile'): # Is Org Owner
+                 return self.queryset.filter(employee__organization=user.provider_profile)
+            return self.queryset.filter(employee=emp)
+        except OrganizationEmployee.DoesNotExist:
+            if hasattr(user, 'provider_profile'):
+                 return self.queryset.filter(employee__organization=user.provider_profile)
+        return self.queryset.none()
+
     def perform_create(self, serializer):
         try:
             emp = OrganizationEmployee.objects.get(auth_user_id=self.request.user.auth_user_id)
-            serializer.save(employee=emp)
+            # Default to PENDING
+            serializer.save(employee=emp, status='PENDING')
         except OrganizationEmployee.DoesNotExist:
-            raise serializers.ValidationError("Only employees can mark leaves.")
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError("Only employees can mark leaves.")
+
+    @action(detail=True, methods=['patch'])
+    def approve(self, request, pk=None):
+        leave = self.get_object()
+        # Permission check: must be org owner
+        if not hasattr(request.user, 'provider_profile') or leave.employee.organization != request.user.provider_profile:
+             return Response({"error": "Permission denied"}, status=403)
+        
+        leave.status = 'APPROVED'
+        leave.approved_by_auth_id = request.user.auth_user_id
+        leave.save()
+
+        # Invalidate Cache (Atomic on Commit)
+        transaction.on_commit(lambda: AvailabilityCacheService.invalidate_employee_day(
+            str(leave.employee.auth_user_id), 
+            leave.date
+        ))
+
+        return Response(EmployeeLeaveSerializer(leave).data)
+
+    @action(detail=True, methods=['patch'])
+    def reject(self, request, pk=None):
+        leave = self.get_object()
+        if not hasattr(request.user, 'provider_profile') or leave.employee.organization != request.user.provider_profile:
+             return Response({"error": "Permission denied"}, status=403)
+        
+        leave.status = 'REJECTED'
+        leave.approved_by_auth_id = request.user.auth_user_id
+        leave.save()
+        return Response(EmployeeLeaveSerializer(leave).data)
 
 class BlockTimeViewSet(viewsets.ModelViewSet):
     queryset = EmployeeBlockTime.objects.all()

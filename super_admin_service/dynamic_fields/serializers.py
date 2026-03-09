@@ -24,12 +24,20 @@ class ProviderDocumentVerificationSerializer(serializers.ModelSerializer):
     provider_role = serializers.SerializerMethodField()
     provider_email = serializers.SerializerMethodField()
     provider_phone = serializers.SerializerMethodField()
+    provider_avatar = serializers.SerializerMethodField()
     document_type = serializers.SerializerMethodField()
 
     class Meta:
         model = ProviderDocumentVerification
         fields = "__all__"
         read_only_fields = ("id", "created_at", "updated_at", "auth_user_id", "document_id", "file_url", "filename")
+
+    def get_provider_avatar(self, obj):
+        try:
+            user = VerifiedUser.objects.get(auth_user_id=obj.auth_user_id)
+            return user.avatar_url
+        except VerifiedUser.DoesNotExist:
+            return None
 
     def get_provider_name(self, obj):
         try:

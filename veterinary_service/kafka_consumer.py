@@ -47,10 +47,18 @@ for message in consumer:
         event = message.value
         event_type = (event.get("event_type") or "").upper()
         data = event.get("data") or {}
+        role = (data.get("role") or "").lower()
+        
+        logger.info(f"🔥 RECV EVENT: {event_type} | ROLE: {role} | USER: {data.get('auth_user_id')}")
 
-        if event_type in ["USER_CREATED", "USER_UPDATED", "USER_VERIFIED"]:
+        if event_type in ["USER_CREATED", "USER_UPDATED", "USER_VERIFIED", "EMPLOYEE_UPDATED"]:
             auth_user_id = data.get("auth_user_id") or data.get("id")
             role = (data.get("role") or "").lower()
+            
+            # [FIX] Map 'provider' to 'organization' for consistent onboarding logic
+            if role in ["provider", "serviceprovider"]:
+                role = "organization"
+
             org_id = data.get("organization_id")
 
             # 1. Explicit Clinic Onboarding for Providers (Org or Individual)
@@ -107,6 +115,7 @@ for message in consumer:
                 staff, staff_created = VeterinaryStaff.objects.update_or_create(
                     auth_user_id=auth_user_id,
                     defaults={
+                        "full_name": data.get("full_name"),
                         "role": role,
                         "clinic": clinic,
                         "permissions": permissions
@@ -117,22 +126,17 @@ for message in consumer:
                 # Auto-create assignment to the primary clinic
                 if clinic:
                     logger.info(f"🔗 Creating/Updating StaffClinicAssignment to {clinic.name}")
-                    assignment, a_created = StaffClinicAssignment.objects.get_or_create(
+                    assignment, a_created = StaffClinicAssignment.objects.update_or_create(
                         staff=staff,
                         clinic=clinic,
                         defaults={
                             "role": role,
                             "permissions": permissions,
+                            "consultation_fee": data.get("consultation_fee", 0.00),
                             "is_primary": True,
                             "is_active": True
                         }
                     )
-                    
-                    # Ensure is_active is set
-                    if not a_created and not assignment.is_active:
-                         assignment.is_active = True
-                         assignment.save()
-                         logger.info(f"🔓 Activated existing assignment")
 
                     if a_created:
                         logger.info(f"✅ Created StaffClinicAssignment for {auth_user_id} @ {clinic.name} with {len(permissions)} perms")
