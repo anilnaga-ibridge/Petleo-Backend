@@ -15,6 +15,7 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "veterinary_service.settings")
 django.setup()
 
 from veterinary.models import PetOwner, VeterinaryStaff, Clinic, StaffClinicAssignment
+from django.db.models import Q
 
 # Logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
@@ -76,15 +77,21 @@ for message in consumer:
                     clinic.is_primary = True
                     clinic.save()
             
-            # 2. Sync PetOwner (existing logic)
-            if auth_user_id and event_type == "USER_UPDATED" and role == "customer":
-                owners = PetOwner.objects.filter(auth_user_id=auth_user_id)
+            # 2. Sync PetOwner (existing logic refined)
+            if auth_user_id and role == "customer" and event_type in ["USER_CREATED", "USER_UPDATED", "USER_VERIFIED"]:
+                phone = data.get("phone_number") or data.get("phone")
+                
+                # Find owners by auth_user_id OR phone
+                owners = PetOwner.objects.filter(Q(auth_user_id=auth_user_id) | Q(phone=phone))
+                
                 for owner in owners:
-                    owner.name = data.get("full_name", owner.name)
-                    owner.email = data.get("email", owner.email)
-                    owner.phone = data.get("phone_number", owner.phone)
+                    owner.name = data.get("full_name") or owner.name
+                    owner.email = data.get("email") or owner.email
+                    owner.phone = phone or owner.phone
+                    if auth_user_id:
+                        owner.auth_user_id = auth_user_id
                     owner.save()
-                    logger.info(f"✅ Updated PetOwner {owner.id} from Auth User {auth_user_id}")
+                    logger.info(f"✅ Sync PetOwner {owner.id} from Auth Event {event_type} (User: {auth_user_id})")
 
             # 3. Sync VeterinaryStaff & Assignments
             if auth_user_id and role not in ["customer", "organization"]:

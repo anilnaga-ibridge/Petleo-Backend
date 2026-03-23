@@ -112,10 +112,21 @@ class HasVeterinaryAccess(permissions.BasePermission):
         log(f"Permission denied for Role: {user_role}, Clinic ID: {clinic.id}")
         return False
 
+class VeterinaryCheckoutPermission(permissions.BasePermission):
+    """
+    Strict permission for processing billing and visit closure.
+    """
+    def has_permission(self, request, view):
+        if not request.user or not request.user.is_authenticated:
+            return False
+        
+        user_perms = getattr(request.user, 'permissions', [])
+        return "VETERINARY_CHECKOUT" in user_perms
+
 class HasGranularCapability(permissions.BasePermission):
     """
     10/10 Enterprise Permission.
-    Checks if the user possesses the specific granular capability.
+    Checks if the user possesses the specific granular capability and the required action flag.
     """
     def __init__(self, capability_key=None):
         self.capability_key = capability_key
@@ -124,20 +135,29 @@ class HasGranularCapability(permissions.BasePermission):
         if not request.user or not request.user.is_authenticated:
             return False
             
-        # Standardize: capabilities are stored in request.user.permissions
         user_perms = getattr(request.user, 'permissions', [])
-        
+        if not user_perms:
+            return False
+
         if not self.capability_key:
             return len(user_perms) > 0
 
-        # Check for direct match or wildcard (module.*)
-        if self.capability_key in user_perms:
-            return True
-            
-        if '.' in self.capability_key:
-            module = self.capability_key.split('.')[0]
-            if f"{module}.*" in user_perms:
-                return True
+        # Determine required flag based on HTTP Method
+        required_flag = 'can_view'
+        if request.method == 'POST': required_flag = 'can_create'
+        elif request.method in ['PUT', 'PATCH']: required_flag = 'can_edit'
+        elif request.method == 'DELETE': required_flag = 'can_delete'
+
+        # Check for match in list of objects
+        for p in user_perms:
+            # Handle both flat strings (Legacy/Owner) and Objects (Staff)
+            if isinstance(p, str):
+                if p == self.capability_key or ('.' in self.capability_key and p == f"{self.capability_key.split('.')[0]}.*"):
+                    return True
+            elif isinstance(p, dict):
+                p_key = p.get('capability_key')
+                if p_key == self.capability_key or ('.' in self.capability_key and p_key == f"{self.capability_key.split('.')[0]}.*"):
+                    return p.get(required_flag, False)
                 
         return False
 
@@ -209,21 +229,30 @@ def require_capability(capability):
             
             req_caps = [capability] if isinstance(capability, str) else capability
             
+            # Determine required flag based on HTTP Method
+            required_flag = 'can_view'
+            if request.method == 'POST': required_flag = 'can_create'
+            elif request.method in ['PUT', 'PATCH']: required_flag = 'can_edit'
+            elif request.method == 'DELETE': required_flag = 'can_delete'
+
             for req_cap in req_caps:
-                # Direct match
-                if req_cap in current_perms:
-                    allowed = True
-                    break
-                
-                # Wildcard match (e.g. 'vitals.create' matches 'vitals.*')
-                if '.' in req_cap:
-                    module = req_cap.split('.')[0]
-                    if f"{module}.*" in current_perms:
-                        allowed = True
-                        break
+                for p in current_perms:
+                    # Handle flat strings (Legacy/Owner)
+                    if isinstance(p, str):
+                        if p == req_cap or ('.' in req_cap and p == f"{req_cap.split('.')[0]}.*"):
+                            allowed = True
+                            break
+                    # Handle dictionaries (Staff with granular flags)
+                    elif isinstance(p, dict):
+                        p_key = p.get('capability_key')
+                        if p_key == req_cap or ('.' in req_cap and p_key == f"{req_cap.split('.')[0]}.*"):
+                            if p.get(required_flag, False):
+                                allowed = True
+                                break
+                if allowed: break
                         
             if not allowed:
-                raise PermissionDenied(f"Permission denied. Missing granular capability: {capability}")
+                raise PermissionDenied(f"Permission denied. Missing or insufficient capability for: {capability}")
             
             return func(view, request, *args, **kwargs)
         return wrapper

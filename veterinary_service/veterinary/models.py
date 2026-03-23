@@ -26,6 +26,9 @@ class Clinic(TimeStampedModel):
         help_text="ID from Auth Service (Organization Owner ID)"
     )
     is_primary = models.BooleanField(default=True)
+    email = models.EmailField(max_length=254, blank=True, null=True)
+    is_active = models.BooleanField(default=True)
+    subscription_plan = models.CharField(max_length=100, default='BASIC', help_text="Current plan (BASIC, PRO, ENTERPRISE)")
     capabilities = models.JSONField(default=dict, blank=True, help_text="Synced from Provider Service")
     
     def __str__(self):
@@ -50,6 +53,7 @@ class StaffClinicAssignment(TimeStampedModel):
     permissions = models.JSONField(default=list, blank=True)
     is_active = models.BooleanField(default=True)
     is_primary = models.BooleanField(default=False)
+    is_online_available = models.BooleanField(default=False)
     
     # Pro Doctor Features (Synced from Service Provider)
     specialization = models.CharField(max_length=255, blank=True, null=True)
@@ -80,6 +84,7 @@ class PetOwner(TimeStampedModel):
 class Pet(TimeStampedModel):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     owner = models.ForeignKey(PetOwner, on_delete=models.CASCADE, related_name='pets')
+    partition_clinic_id = models.UUIDField(null=True, blank=True, db_index=True)
     external_id = models.CharField(
         max_length=255, null=True, blank=True, db_index=True,
         help_text="ID from customer_service for cross-service lookup"
@@ -93,6 +98,7 @@ class Pet(TimeStampedModel):
     weight = models.FloatField(blank=True, null=True, help_text="Weight in kg")
     notes = models.TextField(blank=True, null=True)
     tag = models.CharField(max_length=100, blank=True, null=True)
+    profile_image = models.TextField(blank=True, null=True, help_text="Base64 encoded image or URL")
     is_active = models.BooleanField(default=True)
     created_by = models.CharField(max_length=255, null=True, blank=True, help_text="Auth User ID of staff who registered this pet")
     
@@ -128,9 +134,22 @@ class Visit(TimeStampedModel):
         related_name='visit'
     )
     service_id = models.CharField(max_length=255, null=True, blank=True, help_text="ID of the service (Grooming, Veterinary, etc.)")
-    status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='CREATED')
+    status = models.CharField(max_length=30, choices=[
+        ('CREATED', 'Created'),
+        ('CHECKED_IN', 'Checked In'),
+        ('VITALS_RECORDED', 'Vitals Recorded'),
+        ('CONSULTATION_IN_PROGRESS', 'Consultation In Progress'),
+        ('COMPLETED', 'Completed'),
+        ('CLOSED', 'Closed'),
+        # Legacy/Detailed statuses (keeping for transition safety)
+        ('DOCTOR_ASSIGNED', 'Doctor Assigned'),
+        ('LAB_REQUESTED', 'Lab Requested'),
+        ('LAB_COMPLETED', 'Lab Completed'),
+        ('PRESCRIPTION_FINALIZED', 'Prescription Finalized'),
+    ], default='CREATED')
     visit_type = models.CharField(max_length=20, choices=VISIT_TYPE_CHOICES, default='OFFLINE')
     reason = models.TextField(blank=True, null=True, help_text="Reason for the visit / Chief Complaint")
+    consultation_notes = models.TextField(blank=True, null=True, help_text="SOAP notes / Clinical findings")
     
     # [NEW] Triage Fields
     PRIORITY_CHOICES = [
@@ -140,6 +159,11 @@ class Visit(TimeStampedModel):
     ]
     priority = models.CharField(max_length=5, choices=PRIORITY_CHOICES, default='P3')
     triage_notes = models.TextField(blank=True, null=True)
+    
+    # Audit & Assignment
+    assigned_doctor_auth_id = models.CharField(max_length=255, null=True, blank=True, help_text="Auth ID of the assigned doctor")
+    queue_entered_at = models.DateTimeField(auto_now_add=True, null=True)
+    partition_clinic_id = models.UUIDField(null=True, blank=True, db_index=True)
     
     # SLA / Timeline Fields
     checked_in_at = models.DateTimeField(null=True, blank=True)
@@ -213,10 +237,48 @@ class MedicalAppointment(TimeStampedModel):
         null=True, blank=True,
         help_text="Original ConsultationType UUID from service_provider_service"
     )
+    consultation_mode = models.CharField(max_length=50, null=True, blank=True)
+    meeting_room = models.CharField(max_length=255, null=True, blank=True)
+    meeting_link = models.URLField(max_length=500, null=True, blank=True, help_text="Full URL for the video meeting room")
     consultation_fee = models.DecimalField(
         max_digits=12, decimal_places=2, default=0.00,
         help_text="Fee for this consultation (snapshotted at time of appointment)"
     )
+
+    def save(self, *args, **kwargs):
+        is_new = self._state.adding
+        if not self.meeting_room and self.consultation_mode == 'ONLINE':
+            # Create a unique room ID based on the appointment ID or a random slug
+            import uuid
+            self.meeting_room = f"meet-{str(uuid.uuid4())[:8]}"
+        
+        super().save(*args, **kwargs)
+
+        # Send notification for NEW online appointments
+        if is_new and self.consultation_mode == 'ONLINE' and self.pet and self.pet.owner:
+            try:
+                # 1. Create a Visit record so it shows in Pet Owner's Care History
+                from veterinary.models import Visit
+                if not hasattr(self, 'visit'):
+                    Visit.objects.create(
+                        clinic=self.clinic,
+                        pet=self.pet,
+                        appointment=self,
+                        status='CREATED',
+                        visit_type='ONLINE'
+                    )
+
+                # 2. Trigger notification
+                from notifications.service import NotificationService
+                NotificationService.handle_event('ONLINE_CONSULTATION_CREATED', {
+                    'owner_id': self.pet.owner.id,
+                    'pet_name': self.pet.name,
+                    'meeting_room': self.meeting_room,
+                    'appointment_id': str(self.id)
+                })
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).error(f"Failed to process online consult post-save: {e}")
 
     class Meta:
         ordering = ['appointment_date', 'start_time']
@@ -423,13 +485,56 @@ class Medicine(TimeStampedModel):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     clinic = models.ForeignKey(Clinic, on_delete=models.CASCADE, related_name='medicines')
     name = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+    manufacturer = models.CharField(max_length=255, blank=True)
     stock_quantity = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
     unit_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
     expiry_date = models.DateField(null=True, blank=True)
+    low_stock_threshold = models.DecimalField(max_digits=12, decimal_places=2, default=10.00)
     is_active = models.BooleanField(default=True)
 
     def __str__(self):
         return f"{self.name} (Stock: {self.stock_quantity})"
+
+class MedicineBatch(TimeStampedModel):
+    """
+    Individual lots/shipments of a medicine.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    medicine = models.ForeignKey(Medicine, on_delete=models.CASCADE, related_name='batches')
+    batch_number = models.CharField(max_length=100)
+    initial_quantity = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    current_quantity = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    expiry_date = models.DateField()
+    cost_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"{self.medicine.name} - Batch {self.batch_number} (Exp: {self.expiry_date})"
+
+    @property
+    def is_expired(self):
+        from django.utils import timezone
+        return self.expiry_date < timezone.now().date()
+
+    def save(self, *args, **kwargs):
+        is_new = self._state.adding
+        super().save(*args, **kwargs)
+        
+        # Sync master medicine total stock
+        from django.db.models import Sum
+        total = MedicineBatch.objects.filter(
+            medicine=self.medicine, 
+            is_active=True,
+            expiry_date__gte=self.expiry_date # Only count non-expired in master total? 
+            # Actually, standard practice is to count all active current_quantity, but let's be strict
+        ).aggregate(Sum('current_quantity'))['current_quantity__sum'] or 0
+        
+        self.medicine.stock_quantity = total
+        self.medicine.save()
+
+    class Meta:
+        ordering = ['expiry_date'] # FIFO base
 
 class Prescription(TimeStampedModel):
     """
@@ -437,8 +542,13 @@ class Prescription(TimeStampedModel):
     """
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     visit = models.ForeignKey(Visit, on_delete=models.CASCADE, related_name='prescriptions')
+    partition_clinic_id = models.UUIDField(null=True, blank=True, db_index=True)
     doctor_auth_id = models.CharField(max_length=255)
+    medicine_name = models.CharField(max_length=200, null=True, blank=True)
+    dosage = models.CharField(max_length=200, null=True, blank=True)
+    duration_days = models.IntegerField(default=1)
     notes = models.TextField(blank=True, null=True)
+    prescription_file = models.FileField(upload_to='prescriptions/', null=True, blank=True)
 
     def __str__(self):
         return f"Prescription for Visit {self.visit.id}"
@@ -457,6 +567,7 @@ class PharmacyTransaction(TimeStampedModel):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     visit = models.ForeignKey(Visit, on_delete=models.CASCADE, related_name='pharmacy_transactions')
     medicine = models.ForeignKey(Medicine, on_delete=models.PROTECT)
+    partition_clinic_id = models.UUIDField(null=True, blank=True, db_index=True)
     quantity = models.DecimalField(max_digits=12, decimal_places=2)
     unit_price_snapshot = models.DecimalField(max_digits=12, decimal_places=2)
     total_price = models.DecimalField(max_digits=12, decimal_places=2)
@@ -504,10 +615,24 @@ class VisitInvoice(TimeStampedModel):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     visit = models.OneToOneField(Visit, on_delete=models.CASCADE, related_name='invoice')
+    partition_clinic_id = models.UUIDField(null=True, blank=True, db_index=True)
     subtotal = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
     tax = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
     total = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='DRAFT')
+    
+    consultation_fee = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    lab_fee = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    medicine_fee = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    other_fee = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    
+    payment_method = models.CharField(max_length=50, null=True, blank=True)
+    status = models.CharField(max_length=20, choices=[
+        ('DRAFT', 'Draft'),
+        ('FINALIZED', 'Finalized'),
+        ('PAYMENT_PENDING', 'Payment Pending'),
+        ('PAID', 'Paid'),
+        ('CANCELLED', 'Cancelled'),
+    ], default='DRAFT')
 
     def __str__(self):
         return f"Invoice {self.id} for Visit {self.visit.id}"
@@ -790,3 +915,190 @@ class EstimateLineItem(models.Model):
         self.total_price = self.quantity * self.unit_price
         super().save(*args, **kwargs)
         self.estimate.recalculate_totals()
+
+
+# ==========================================
+# PHASE 7: PREVENTIVE & REMINDERS (RESTORED)
+# ==========================================
+
+class MedicineReminder(TimeStampedModel):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    partition_clinic_id = models.UUIDField(null=True, blank=True, db_index=True)
+    pet = models.ForeignKey(Pet, on_delete=models.CASCADE, related_name='medicine_reminders')
+    medicine = models.ForeignKey(Medicine, on_delete=models.CASCADE, related_name='reminders')
+    pet_owner_auth_id = models.CharField(max_length=255, help_text="Auth User ID of the pet owner")
+    doctor_auth_id = models.CharField(max_length=255, null=True, blank=True, help_text="Auth User ID of the doctor")
+    created_by_auth_id = models.CharField(max_length=255, null=True, blank=True, help_text="Auth User ID of the creator")
+    
+    dosage = models.CharField(max_length=100)
+    food_instruction = models.CharField(max_length=20, choices=[
+        ('BEFORE_FOOD', 'Before Food'),
+        ('AFTER_FOOD', 'After Food'),
+        ('WITH_FOOD', 'With Food')
+    ])
+    reminder_times = models.JSONField(help_text="List of reminder times in HH:MM format")
+    start_date = models.DateField()
+    end_date = models.DateField()
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"Reminder for {self.pet.name} - {self.medicine.name}"
+
+class MedicineReminderSchedule(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    reminder = models.ForeignKey(MedicineReminder, on_delete=models.CASCADE, related_name='schedules')
+    scheduled_datetime = models.DateTimeField()
+    status = models.CharField(max_length=20, choices=[
+        ('PENDING', 'Pending'),
+        ('TAKEN', 'Taken'),
+        ('MISSED', 'Missed')
+    ], default='PENDING')
+    taken_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['scheduled_datetime']
+
+class Vaccination(TimeStampedModel):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    partition_clinic_id = models.UUIDField(null=True, blank=True, db_index=True)
+    pet = models.ForeignKey(Pet, on_delete=models.CASCADE, related_name='system_vaccinations')
+    visit = models.ForeignKey(Visit, on_delete=models.SET_NULL, null=True, blank=True, related_name='system_vaccinations_given')
+    vaccine_name = models.CharField(max_length=255)
+    date_given = models.DateField()
+    next_due_date = models.DateField()
+    doctor_id = models.CharField(max_length=255, null=True, blank=True, help_text="Auth ID of administering doctor")
+    notes = models.TextField(null=True, blank=True)
+
+    class Meta:
+        db_table = 'vaccinations'
+        ordering = ['-date_given']
+
+class Deworming(TimeStampedModel):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    partition_clinic_id = models.UUIDField(null=True, blank=True, db_index=True)
+    pet = models.ForeignKey(Pet, on_delete=models.CASCADE, related_name='system_deworming_records')
+    visit = models.ForeignKey(Visit, on_delete=models.SET_NULL, null=True, blank=True, related_name='system_deworming_given')
+    medicine_name = models.CharField(max_length=255)
+    date_given = models.DateField()
+    next_due_date = models.DateField()
+    doctor_id = models.CharField(max_length=255, null=True, blank=True, help_text="Auth ID of administering doctor")
+
+    class Meta:
+        db_table = 'deworming_records'
+        ordering = ['-date_given']
+
+class SystemVaccinationReminder(TimeStampedModel):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    partition_clinic_id = models.UUIDField(null=True, blank=True, db_index=True)
+    pet = models.ForeignKey(Pet, on_delete=models.CASCADE, related_name='system_vaccination_reminders')
+    pet_owner_id = models.CharField(max_length=255, help_text="Auth ID of pet owner")
+    vaccine_name = models.CharField(max_length=255)
+    next_due_date = models.DateField()
+    reminder_date = models.DateField()
+    status = models.CharField(max_length=20, choices=[('PENDING', 'Pending'), ('SENT', 'Sent')], default='PENDING')
+
+    class Meta:
+        db_table = 'vaccination_reminders'
+        ordering = ['reminder_date']
+
+class SystemDewormingReminder(TimeStampedModel):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    partition_clinic_id = models.UUIDField(null=True, blank=True, db_index=True)
+    pet = models.ForeignKey(Pet, on_delete=models.CASCADE, related_name='system_deworming_reminders')
+    pet_owner_id = models.CharField(max_length=255, help_text="Auth ID of pet owner")
+    medicine_name = models.CharField(max_length=255)
+    next_due_date = models.DateField()
+    reminder_date = models.DateField()
+    status = models.CharField(max_length=20, choices=[('PENDING', 'Pending'), ('SENT', 'Sent')], default='PENDING')
+
+    class Meta:
+        db_table = 'deworming_reminders'
+        ordering = ['reminder_date']
+
+class VisitStatusHistory(TimeStampedModel):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    visit = models.ForeignKey(Visit, on_delete=models.CASCADE, related_name='status_history')
+    old_status = models.CharField(max_length=30)
+    new_status = models.CharField(max_length=30)
+    changed_by_user_id = models.CharField(max_length=255, help_text="Auth User ID of who changed it")
+    changed_by_role = models.CharField(max_length=50, null=True, blank=True)
+    changed_at = models.DateTimeField(auto_now_add=True)
+    notes = models.TextField(null=True, blank=True)
+
+class ClinicSettings(TimeStampedModel):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    clinic = models.OneToOneField(Clinic, on_delete=models.CASCADE, related_name='settings')
+    clinic_name = models.CharField(max_length=200)
+    consultation_fee = models.DecimalField(max_digits=10, decimal_places=2)
+    working_hours = models.JSONField(default=dict)
+
+class ClinicSubscription(TimeStampedModel):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    clinic = models.OneToOneField(Clinic, on_delete=models.CASCADE, related_name='subscription_record')
+    plan_id = models.UUIDField(db_index=True)
+    plan_name = models.CharField(max_length=100, blank=True)
+    status = models.CharField(max_length=20, choices=[('ACTIVE', 'Active'), ('EXPIRED', 'Expired'), ('TRIAL', 'Trial')], default='TRIAL')
+    start_date = models.DateTimeField(auto_now_add=True)
+    end_date = models.DateTimeField(null=True, blank=True)
+
+class Vitals(TimeStampedModel):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    visit = models.OneToOneField(Visit, on_delete=models.CASCADE, related_name='vitals_record')
+    weight = models.FloatField(null=True, blank=True)
+    temperature = models.FloatField(null=True, blank=True)
+    pulse = models.IntegerField(null=True, blank=True)
+    respiration = models.IntegerField(null=True, blank=True)
+    symptoms = models.TextField(null=True, blank=True)
+    recorded_at = models.DateTimeField(auto_now_add=True)
+
+# ========================
+# SAAS PHARMACY FULFILLMENT
+# ========================
+
+class PharmacyOrder(TimeStampedModel):
+    STATUS_CHOICES = [
+        ('PENDING', 'Pending'),
+        ('STOCK_CHECKED', 'Stock Checked'),
+        ('PARTIAL_APPROVED', 'Partial Approved'),
+        ('OTP_SENT', 'OTP Sent'),
+        ('CONFIRMED', 'Confirmed'),
+        ('COMPLETED', 'Completed'),
+        ('CANCELLED', 'Cancelled'),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    clinic = models.ForeignKey(Clinic, on_delete=models.CASCADE, related_name='pharmacy_orders')
+    visit = models.OneToOneField(Visit, on_delete=models.SET_NULL, null=True, blank=True, related_name='pharmacy_order')
+    pet_name = models.CharField(max_length=255, blank=True)
+    owner_name = models.CharField(max_length=255, blank=True)
+    owner_phone = models.CharField(max_length=50, blank=True)
+    owner_email = models.EmailField(blank=True, null=True)
+    status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='PENDING')
+    total_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    pharmacist_auth_id = models.CharField(max_length=255, null=True, blank=True)
+
+    def __str__(self):
+        return f"Order {self.id} ({self.status})"
+
+class PharmacyOrderItem(TimeStampedModel):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    order = models.ForeignKey(PharmacyOrder, on_delete=models.CASCADE, related_name='items')
+    medicine = models.ForeignKey(Medicine, on_delete=models.CASCADE, related_name='order_items')
+    quantity_prescribed = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    quantity_dispensed = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    unit_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    is_available = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"{self.medicine.name} x {self.quantity_prescribed}"
+
+class OtpVerification(TimeStampedModel):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    order = models.OneToOneField(PharmacyOrder, on_delete=models.CASCADE, related_name='otp_verification')
+    otp_code = models.CharField(max_length=10)
+    expires_at = models.DateTimeField()
+    is_used = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"OTP for Order {self.order.id}"

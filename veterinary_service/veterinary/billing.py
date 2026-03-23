@@ -1,6 +1,6 @@
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from .models import Visit, VisitInvoice, InvoiceLineItem, FormSubmission, DynamicFieldDefinition
+from .models import Visit, VisitInvoice, InvoiceLineItem, FormSubmission, LabOrder, PharmacyDispense
 import logging
 
 logger = logging.getLogger(__name__)
@@ -9,10 +9,9 @@ logger = logging.getLogger(__name__)
 def create_visit_invoice(sender, instance, created, **kwargs):
     if created:
         # Create Invoice
-        invoice = VisitInvoice.objects.create(visit=instance)
+        invoice = VisitInvoice.objects.get_or_create(visit=instance)[0]
         
         # Add Base Consultation Fee
-        # Logic: Pull from linked appointment snapshot, fallback to default
         fee = 500.00
         description = 'Base Consultation Fee'
         
@@ -28,49 +27,50 @@ def create_visit_invoice(sender, instance, created, **kwargs):
         except:
             fee_decimal = Decimal('0.00')
 
-        InvoiceLineItem.objects.create(
-            invoice=invoice,
-            charge_type='CONSULTATION',
-            unit_price=fee_decimal,
-            description=description
-        )
-        logger.info(f"✅ Created invoice and base charge for Visit {instance.id}")
+        if not invoice.items.filter(charge_type='CONSULTATION').exists():
+            InvoiceLineItem.objects.create(
+                invoice=invoice,
+                charge_type='CONSULTATION',
+                unit_price=fee_decimal,
+                description=description
+            )
+            logger.info(f"✅ Created invoice and base charge for Visit {instance.id}")
 
-@receiver(post_save, sender=Visit)
-def handle_visit_status_change(sender, instance, **kwargs):
-    # We can use status changes to trigger charges if not already handled
-    # For example, if status changes to LAB_ORDERED
-    if instance.status == 'LAB_ORDERED':
-        # Check if lab charge already exists for this visit
-        invoice = getattr(instance, 'invoice', None)
-        if invoice:
-            if not invoice.items.filter(charge_type='LAB').exists():
-                # Add a placeholder lab charge or fetch from pricing
-                InvoiceLineItem.objects.create(
-                    invoice=invoice,
-                    charge_type='LAB',
-                    unit_price=200.00, # Placeholder
-                    description='Lab Test Fee'
-                )
-                logger.info(f"✅ Added lab charge for Visit {instance.id}")
+@receiver(post_save, sender=LabOrder)
+def handle_lab_order_billing(sender, instance, created, **kwargs):
+    if created or instance.status == 'LAB_REQUESTED':
+        visit = instance.visit
+        invoice = getattr(visit, 'invoice', None)
+        if not invoice:
+            return
+            
+        # Check if this specific lab order is already billed
+        if not invoice.items.filter(charge_type='LAB', reference_id=instance.id).exists():
+            InvoiceLineItem.objects.create(
+                invoice=invoice,
+                charge_type='LAB',
+                reference_id=instance.id,
+                unit_price=instance.price_snapshot or 200.00,
+                description=f"Lab Test: {instance.template.name}"
+            )
+            logger.info(f"✅ Added lab charge for Visit {visit.id}")
 
-@receiver(post_save, sender=FormSubmission)
-def handle_form_submission_billing(sender, instance, created, **kwargs):
+@receiver(post_save, sender=PharmacyDispense)
+def handle_pharmacy_dispense_billing(sender, instance, created, **kwargs):
     if created:
         visit = instance.visit
         invoice = getattr(visit, 'invoice', None)
         if not invoice:
             return
-
-        # If it's a prescription form
-        if instance.form_definition.code == 'PRESCRIPTION':
-            # Add medicine charges based on data
-            # This is a simplified example
-            InvoiceLineItem.objects.create(
-                invoice=invoice,
-                charge_type='MEDICINE',
-                reference_id=instance.id,
-                unit_price=300.00, # Placeholder
-                description='Prescription Medicines'
-            )
-            logger.info(f"✅ Added medicine charge for Visit {visit.id}")
+            
+        # Add medication charge
+        # Logic: We can fetch price from linked prescription or medicine
+        # For simplicity per spec, we'll use a snapshot or default
+        InvoiceLineItem.objects.create(
+            invoice=invoice,
+            charge_type='MEDICINE',
+            reference_id=instance.id,
+            unit_price=300.00, # Placeholder or from Medicine
+            description='Medication Dispensed'
+        )
+        logger.info(f"✅ Added pharmacy charge for Visit {visit.id}")

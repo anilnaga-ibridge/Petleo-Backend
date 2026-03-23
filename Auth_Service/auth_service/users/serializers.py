@@ -2,7 +2,7 @@
 # users/serializers.py
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from .models import Role, Permission, OTP, StoredRefreshToken,EmailTemplate
+from .models import Role, Permission, RolePermission, OTP, StoredRefreshToken, EmailTemplate
 from uuid import uuid4
 from django.utils import timezone
 from datetime import timedelta
@@ -16,33 +16,34 @@ User = get_user_model()
 class PermissionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Permission
-        fields = ['id', 'codename', 'description']
+        fields = ['id', 'service_name', 'capability_key', 'description']
+
+
+class RolePermissionSerializer(serializers.ModelSerializer):
+    permission = PermissionSerializer(read_only=True)
+
+    class Meta:
+        model = RolePermission
+        fields = ['id', 'permission', 'can_view', 'can_create', 'can_edit', 'can_delete']
 
 
 class RoleSerializer(serializers.ModelSerializer):
-    permissions = serializers.PrimaryKeyRelatedField(
-        queryset=Permission.objects.all(), many=True, required=False
-    )
-    permission_details = PermissionSerializer(source="permissions", many=True, read_only=True)
+    role_permissions = RolePermissionSerializer(many=True, read_only=True)
 
     class Meta:
         model = Role
-        fields = ["id", "name", "description", "permissions", "permission_details"]
+        fields = ["id", "name", "description", "role_permissions"]
 
     def create(self, validated_data):
-        permissions = validated_data.pop("permissions", [])
         role = Role.objects.create(**validated_data)
-        role.permissions.set(permissions)
         return role
 
     def update(self, instance, validated_data):
-        permissions = validated_data.pop("permissions", None)
         instance.name = validated_data.get("name", instance.name)
         instance.description = validated_data.get("description", instance.description)
         instance.save()
-        if permissions is not None:
-            instance.permissions.set(permissions)
         return instance
+
 
 # ============================
 # User Registration Serializer
@@ -151,8 +152,8 @@ class RegisterSerializer(serializers.ModelSerializer):
         if errors:
             what_exists = " and ".join(errors)
             msg = (
-                f"thank for registration to your site ,your using {what_exists} is alredy in use "
-                f"please register using aothere mail or phone numebr ,what is alredy exist"
+                f"This {what_exists} is already registered. "
+                f"Please use a different {what_exists} to create a new account."
             )
             raise serializers.ValidationError({"detail": msg})
 

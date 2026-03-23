@@ -17,6 +17,13 @@ class NotificationService:
         elif event_type == 'PRESCRIPTION_FINALIZED':
              NotificationService.send_push(payload.get('owner_id'), "New prescription available.")
              
+        elif event_type == 'ONLINE_CONSULTATION_CREATED':
+            room = payload.get('meeting_room')
+            pet_name = payload.get('pet_name', 'your pet')
+            msg = f"Video consultation scheduled for {pet_name}. Join here: meet.jit.si/{room}"
+            NotificationService.send_push(payload.get('owner_id'), msg)
+            NotificationService.send_sms(payload.get('owner_id'), msg)
+            
         elif event_type == 'VISIT_COMPLETED':
             NotificationService.send_email(payload.get('owner_id'), "Visit Summary", "Thank you for visiting.")
 

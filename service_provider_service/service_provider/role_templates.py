@@ -7,11 +7,9 @@ def get_role_templates():
     """
     
     # 1. Define Veterinary Features (Granular Controls)
-    # These map to the "Veterinary Management" section in the wizard.
-    # The IDs here (e.g., 'vet_core') are used by the frontend to toggle groups of capabilities.
     veterinary_features = [
         {
-            "id": "vet_core",
+            "id": "core_access",
             "title": "Core Access",
             "description": "Dashboard access and basic pet search",
             "icon": "tabler-stethoscope",
@@ -25,15 +23,22 @@ def get_role_templates():
             "capabilities": ["VETERINARY_VISITS"]
         },
         {
-            "id": "vet_doctor",
+            "id": "vet_doctor_station",
             "title": "Doctor Station",
             "description": "Access doctor consultation station",
             "icon": "tabler-stethoscope",
             "capabilities": ["VETERINARY_DOCTOR"]
         },
         {
+            "id": "vet_patients",
+            "title": "Patients",
+            "description": "View and manage patient clinical records",
+            "icon": "tabler-paw",
+            "capabilities": ["VETERINARY_PATIENTS"]
+        },
+        {
             "id": "vet_vitals",
-            "title": "Vitals Recording",
+            "title": "Veterinary Assistant",
             "description": "Record patient weight, temp, and vitals",
             "icon": "tabler-activity-heartbeat",
             "capabilities": ["VETERINARY_VITALS"]
@@ -60,52 +65,72 @@ def get_role_templates():
             "capabilities": ["VETERINARY_PHARMACY"]
         },
         {
-            "id": "vet_medicine",
+            "id": "vet_reminders",
             "title": "Medicine Reminders",
             "description": "Set and track medicine schedules",
             "icon": "tabler-alarm",
             "capabilities": ["VETERINARY_MEDICINE_REMINDERS"]
+        },
+        {
+            "id": "vet_scheduling",
+            "title": "Scheduling",
+            "description": "Manage schedules, online and offline visits",
+            "icon": "tabler-calendar-event",
+            "capabilities": ["VETERINARY_SCHEDULE", "VETERINARY_ONLINE_CONSULT", "VETERINARY_OFFLINE_VISIT"]
+        },
+        {
+            "id": "vet_system",
+            "title": "System Management",
+            "description": "Configure clinic settings and metadata",
+            "icon": "tabler-settings",
+            "capabilities": ["VETERINARY_ADMIN_SETTINGS", "VETERINARY_METADATA"]
+        },
+        {
+            "id": "vet_checkout",
+            "title": "Checkout & Billing",
+            "description": "Finalize visits, process payments and billing",
+            "icon": "tabler-cash-banknote",
+            "capabilities": ["VETERINARY_CHECKOUT"]
         }
     ]
 
     # 2. Define Role Templates (Presets)
-    # These allow one-click configuration of the above features.
     templates = [
         {
+            "name": "Practice Manager",
+            "description": "Complete control over clinic operations and settings",
+            "services": ["VETERINARY_SERVICE"],
+            "features": ["core_access", "vet_visits", "vet_patients", "vet_vitals", "vet_doctor_station", "vet_prescriptions", "vet_labs", "vet_pharmacy", "vet_scheduling", "vet_system", "vet_checkout"]
+        },
+        {
             "name": "Veterinary Doctor",
-            "description": "Full medical access: Consultations, Rx, Labs",
+            "description": "Full medical access: Consultations, Rx, Labs, and Scheduling",
             "services": ["VETERINARY_SERVICE"], 
-            "features": ["vet_core", "vet_visits", "vet_doctor", "vet_vitals", "vet_prescriptions", "vet_labs"]
+            "features": ["core_access", "vet_visits", "vet_patients", "vet_vitals", "vet_doctor_station", "vet_prescriptions", "vet_labs", "vet_scheduling"]
         },
         {
             "name": "Receptionist",
-            "description": "Front desk: Manage queue and appointments",
+            "description": "Front desk: Manage queue, visits and appointments",
             "services": ["VETERINARY_SERVICE"],
-            "features": ["vet_core", "vet_visits"]
+            "features": ["core_access", "vet_visits", "vet_patients", "vet_scheduling"]
         },
         {
             "name": "Nurse",
-            "description": "Medical support: Record vitals, manage visits, and medicine reminders",
+            "description": "Medical support: Record vitals, manage visits, and reminders",
             "services": ["VETERINARY_SERVICE"],
-            "features": ["vet_core", "vet_visits", "vet_vitals", "vet_medicine"]
+            "features": ["core_access", "vet_visits", "vet_patients", "vet_vitals", "vet_reminders"]
         },
         {
-            "name": "Vitals Staff",
-            "description": "Staff focused on recording patient vitals",
+            "name": "Pharmacist",
+            "description": "Manage prescriptions and pharmacy inventory",
             "services": ["VETERINARY_SERVICE"],
-            "features": ["vet_core", "vet_vitals"]
+            "features": ["core_access", "vet_pharmacy"]
         },
         {
             "name": "Lab Technician",
             "description": "Lab staff: Manage test orders and results",
             "services": ["VETERINARY_SERVICE"],
-            "features": ["vet_core", "vet_labs"]
-        },
-        {
-            "name": "Pharmacy Staff",
-            "description": "Manage prescriptions and reminders",
-            "services": ["VETERINARY_SERVICE"],
-            "features": ["vet_core", "vet_pharmacy", "vet_medicine"]
+            "features": ["core_access", "vet_labs"]
         }
     ]
 

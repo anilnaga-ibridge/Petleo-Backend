@@ -1,0 +1,3 @@
+--- Debugging Employee: jhony@gmail.com ---
+Assigned Role: None (ID: None)
+Error: 'ServiceProvider' object has no attribute 'full_name'

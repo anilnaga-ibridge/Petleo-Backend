@@ -28,6 +28,7 @@ CORS_ALLOW_HEADERS = list(default_headers) + [
 ]
 
 INSTALLED_APPS = [
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -36,7 +37,10 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'rest_framework_simplejwt',
+    'django_filters',
+    'django_celery_beat',
     'corsheaders',
+    'channels',
     'veterinary',
 ]
 
@@ -70,6 +74,17 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'veterinary_service.wsgi.application'
+ASGI_APPLICATION = 'veterinary_service.asgi.application'
+
+# Redis Channel Layer for WebSockets
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            "hosts": [(env('REDIS_HOST', default='127.0.0.1'), env.int('REDIS_PORT', default=6379))],
+        },
+    },
+}
 
 DATABASES = {
     'default': {
@@ -139,5 +154,20 @@ LOGGING = {
             'level': 'INFO',
             'propagate': True,
         },
+    },
+}
+
+# Celery Configuration
+CELERY_BROKER_URL = env('CELERY_BROKER_URL', default='redis://localhost:6379/0')
+CELERY_RESULT_BACKEND = env('CELERY_RESULT_BACKEND', default='redis://localhost:6379/0')
+
+CELERY_BEAT_SCHEDULE = {
+    'process-vaccination-deworming-reminders-every-5-minutes': {
+        'task': 'veterinary.tasks.process_vaccination_deworming_reminders',
+        'schedule': 300.0, # 5 minutes
+    },
+    'check-due-medicine-reminders-every-15-minutes': {
+        'task': 'veterinary.tasks.check_due_medicine_reminders',
+        'schedule': 900.0, # 15 minutes
     },
 }

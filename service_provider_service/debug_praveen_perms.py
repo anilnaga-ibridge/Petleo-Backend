@@ -1,53 +1,53 @@
-
-import os, sys, django, json
-sys.path.insert(0, '/Users/PraveenWorks/Anil Works/Petleo-Backend/service_provider_service')
+import os, django, json
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'service_provider_service.settings')
 django.setup()
+
 from service_provider.models import OrganizationEmployee, VerifiedUser
+from provider_dynamic_fields.models import ProviderTemplateCategory
 from service_provider.utils import _build_permission_tree
+from django.core.cache import cache
 
-# 1. Get employee and their organization owner
-emp = OrganizationEmployee.objects.get(auth_user_id='66e9b147-e9bc-432c-b78b-b513a9b22901')
-org_owner = emp.organization.verified_user
-
-# 2. Build the BASE tree (from Org Plan)
-permissions_list = _build_permission_tree(org_owner)
-
-# 3. Apply Employee Filtering (Mirroring get_my_permissions in views.py)
-user_caps = set(emp.get_final_permissions())
-SERVICE_KEY_ALIASES = {"VETERINARY": "VETERINARY_CORE"}
-
-filtered_permissions = []
-for service in permissions_list:
-    service_key = service.get('service_key')
-    resolved_key = SERVICE_KEY_ALIASES.get(service_key, service_key)
-    has_service_access = (service_key in user_caps) or (resolved_key in user_caps)
+def verify_employees():
+    employee_names = ['Praveen', 'Veterinary Nurse', 'Rahul', 'Kamal']
     
-    filtered_categories = []
-    
-    cats = service.get('categories', [])
-    if isinstance(cats, dict):
-        cats = list(cats.values())
-        
-    for category in cats:
-        cat_key = category.get('linked_capability') or category.get('category_key')
-        if cat_key and cat_key in user_caps:
-            rebuilt_category = category.copy()
-            rebuilt_category['can_view'] = True
-            filtered_categories.append(rebuilt_category)
-    
-    if has_service_access or filtered_categories:
-        filtered_service = service.copy()
-        filtered_service['categories'] = filtered_categories
-        if service_key != resolved_key:
-            filtered_service['service_key'] = resolved_key
-        filtered_permissions.append(filtered_service)
+    for name in employee_names:
+        try:
+            print(f"\n{'='*50}")
+            print(f"🕵️  DEBUGGING PERMISSIONS FOR: {name}")
+            print(f"{'='*50}")
+            
+            # Get Employee Record
+            emp = OrganizationEmployee.objects.filter(full_name__icontains=name).first()
+            if not emp:
+                print(f"❌ OrganizationEmployee {name} not found!")
+                continue
+            
+            # 1. Clear cache
+            emp.invalidate_permission_cache()
+            
+            # 2. Get Effective Permission Map
+            user_perms_map = emp.get_final_permissions()
+            print(f"Employee Effective Capabilities: {sorted(list(user_perms_map.keys()))}")
+            
+            # 3. Build Full Org Tree
+            subscription_owner = emp.organization.verified_user
+            full_tree = _build_permission_tree(subscription_owner, request=None)
+            
+            print("\nResolved Sidebar Modules:")
+            found_any = False
+            for service in full_tree:
+                for cat in service.get('categories', []):
+                    cat_key = cat.get('linked_capability') or cat.get('category_key')
+                    if cat_key in user_perms_map:
+                        found_any = True
+                        perms = user_perms_map.get(cat_key, {})
+                        print(f" - {cat.get('name')} ({cat_key}) | View={perms.get('can_view')} | Create={perms.get('can_create')} | Edit={perms.get('can_edit')}")
+            
+            if not found_any:
+                print(" 📭 NO ACCESSIBLE MODULES.")
 
-# 4. Result
-vet_service = next((p for p in filtered_permissions if p['service_key'] == 'VETERINARY_CORE'), None)
-if vet_service:
-    print('VETERINARY_CORE CATEGORIES:')
-    for cat in vet_service['categories']:
-        print(f" - Name: {cat.get('name')} | Key: {cat.get('category_key')} | Linked: {cat.get('linked_capability')}")
-else:
-    print('ERROR: VETERINARY_CORE not found in final perms')
+        except Exception as e:
+            print(f"Error for {name}: {e}")
+
+if __name__ == "__main__":
+    verify_employees()

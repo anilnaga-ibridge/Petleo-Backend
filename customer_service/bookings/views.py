@@ -3,7 +3,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError
 from django.utils import timezone
-from django.db.models import Count
+from django.db.models import Count, Q, Sum
 from django.db.models.functions import TruncDate
 from .models import Booking, BookingStatusHistory, BookingItem
 from .serializers import BookingSerializer, BookingStatusHistorySerializer
@@ -27,7 +27,6 @@ class BookingViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         provider_id_param = self.request.query_params.get('provider_id')
-        from django.db.models import Q
 
         queryset = Booking.objects.all()
         filters = Q()
@@ -679,10 +678,6 @@ class BookingViewSet(viewsets.ModelViewSet):
         if not provider_id:
             return Response({"error": "provider_id is required"}, status=400)
             
-        from django.db.models import Count, Sum
-        from django.db.models.functions import TruncDate
-        from datetime import timedelta
-        from .models import BookingItem
         
         # 0. Initial Filters
         base_filters = Q(provider_id=provider_id)

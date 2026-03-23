@@ -1,11 +1,34 @@
 from rest_framework.permissions import BasePermission
 
-class HasPermission(BasePermission):
-    required_permission = None
+class HasGranularPermission(BasePermission):
+    """
+    Checks if user has a specific capability and action.
+    Usage: permission_classes = [HasGranularPermission('veterinary.vitals', 'create')]
+    """
+    def __init__(self, capability, action='v'):
+        self.capability = capability
+        self.action = action # 'v', 'c', 'e', 'd'
 
     def has_permission(self, request, view):
-        user_perms = request.auth.get('permissions', [])
-        return self.required_permission in user_perms
+        if not request.user or not request.user.is_authenticated:
+            return False
+            
+        # In simplejwt, extra claims are in request.auth (the decoded token)
+        summary = request.auth.get('permissions_summary', {})
+        cap_perms = summary.get(self.capability, {})
+        
+        return cap_perms.get(self.action, False)
+
+class IsClinicAdmin(BasePermission):
+    def has_permission(self, request, view):
+        if not request.user or not request.user.is_authenticated:
+            return False
+        if request.user.is_superuser:
+            return True
+            
+        summary = request.auth.get('permissions_summary', {})
+        admin_perms = summary.get('admin.roles', {})
+        return admin_perms.get('v', False) or admin_perms.get('c', False)
 
 
 class IsOwnerOrOrgAdmin(BasePermission):

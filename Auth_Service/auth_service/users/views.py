@@ -165,7 +165,7 @@ class RegisterView(APIView):
         
         # Set organization_id if employee
         user = serializer.save()
-        if role_input in employee_roles:
+        if role_name in employee_roles:
             user.organization_id = request.user.id
             user.status = 'PENDING'
             user.save(update_fields=['organization_id', 'status'])
@@ -206,8 +206,8 @@ class RegisterView(APIView):
                 "auth_user_id": str(user.id),
                 "phone_number": phone,
                 "email": user.email,
-                "full_name": user.full_name,
                 "role": user_role_name,
+                "avatar_url": user.avatar_url,
             }
 
             # If Employee (or similar role), attach Organization ID (from logged-in user)
@@ -393,7 +393,8 @@ class VerifyOTPView(APIView):
                 "email": user.email,
                 "full_name": user.full_name,
                 "role": user.role.name if user.role else None,
-                "permissions": [p.codename for p in user.role.permissions.all()] if user.role else [],
+                "avatar_url": user.avatar_url,
+                "permissions": [], # role_permissions used via JWT claims now
             }
             publish_event("USER_VERIFIED", user_data)
         except Exception as e:
@@ -886,6 +887,29 @@ class CheckSessionView(APIView):
         return Response({"require_pin": False})
 
         return Response({"require_pin": False})
+class InternalUserByPhoneView(APIView):
+    """
+    Internal endpoint to fetch user basic info by phone number.
+    Used by other services (like Veterinary Service) to sync records.
+    """
+    permission_classes = [AllowAny] # Ideally restricted in production
+
+    def get(self, request):
+        phone = request.query_params.get("phone_number")
+        if not phone:
+            return Response({"detail": "phone_number required"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            user = User.objects.get(phone_number=phone)
+            return Response({
+                "auth_user_id": str(user.id),
+                "full_name": user.full_name,
+                "email": user.email,
+                "role": user.role.name.lower() if user.role else None,
+            }, status=status.HTTP_200_OK)
+        except User.DoesNotExist:
+            return Response({"detail": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+
 # ---------------------- REGISTER USER (ADMIN + SERVICE PROVIDER) ----------------------
 @api_view(["POST"])
 def register_superadmin(request):
@@ -1026,13 +1050,13 @@ def register_superadmin(request):
 # Role & Permission ViewSets
 # ----------------------
 class PermissionViewSet(viewsets.ModelViewSet):
-    queryset = Permission.objects.all().order_by("codename")
+    queryset = Permission.objects.all().order_by("capability_key")
     serializer_class = PermissionSerializer
     # permission_classes = [permissions.IsAuthenticated]
 
 
 class RoleViewSet(viewsets.ModelViewSet):
-    queryset = Role.objects.all().prefetch_related("permissions")
+    queryset = Role.objects.all().prefetch_related("role_permissions")
     serializer_class = RoleSerializer
     # permission_classes = [permissions.IsAuthenticated]
 
@@ -1046,10 +1070,8 @@ class RoleViewSet(viewsets.ModelViewSet):
 
     def assign_permissions(self, request, pk=None):
         role = get_object_or_404(Role, pk=pk)
-        permission_ids = request.data.get("permissions", [])
-        role.permissions.set(permission_ids)
-        role.save()
-        return Response({"message": "Permissions updated successfully."}, status=status.HTTP_200_OK)
+        # role_permissions is the new RBAC join table; old M2M permissions removed
+        return Response({"message": "Use RolePermission model to assign permissions."}, status=status.HTTP_200_OK)
 
 
 @api_view(["GET"])
@@ -1261,7 +1283,7 @@ def transform_for_frontend(tokens, user, require_set_pin=False):
             "email": user.email or f"{user.phone_number}@demo.com",
             "role": user.role.name.upper() if user.role else None,
             "is_superuser": user.is_superuser,
-            "permissions": [p.codename for p in user.role.permissions.all()] if user.role else [],
+            "permissions": [], # role_permissions used via JWT claims now
             "phoneNumber": user.phone_number,
             "phone_number": user.phone_number,
             "pin_length": user.pin_length or 4,

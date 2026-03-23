@@ -18,12 +18,10 @@ class OrganizationAvailabilityService:
             service_mappings__is_active=True
         )
         
-        # [NEW] Robustness Fallback
+        # [REMOVED] Robustness Fallback - Mapping requirement should be enforced
+        # to prevent slots from mixed services (e.g. Spa vs Training) from surfacing together.
         if not eligible_employees.exists():
-            eligible_employees = OrganizationEmployee.objects.filter(
-                organization_id=org_id,
-                status='ACTIVE'
-            )
+            return []
             
         all_slots = set()
 

@@ -9,20 +9,39 @@ from django.utils import timezone
 from django.conf import settings
 
 class Permission(models.Model):
-    codename = models.CharField(max_length=100, unique=True)
+    service_name = models.CharField(max_length=100, default='system')
+    capability_key = models.CharField(max_length=100, unique=True, default='system.default')
     description = models.TextField(blank=True)
 
     def __str__(self):
-        return self.codename
-
+        return f"{self.service_name} - {self.capability_key}"
 
 class Role(models.Model):
-    name = models.CharField(max_length=50, unique=True)
+    clinic_id = models.UUIDField(null=True, blank=True, db_index=True)
+    name = models.CharField(max_length=50, default='New Role')
     description = models.TextField(blank=True)
-    permissions = models.ManyToManyField(Permission, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, null=True)
+    
+    class Meta:
+        # A clinic can't have two roles with the same exact name
+        unique_together = ('clinic_id', 'name')
 
     def __str__(self):
-        return self.name
+        return f"{self.name} (Clinic: {self.clinic_id})"
+
+class RolePermission(models.Model):
+    role = models.ForeignKey(Role, on_delete=models.CASCADE, related_name='role_permissions')
+    permission = models.ForeignKey(Permission, on_delete=models.CASCADE, related_name='role_permissions')
+    can_view = models.BooleanField(default=False)
+    can_create = models.BooleanField(default=False)
+    can_edit = models.BooleanField(default=False)
+    can_delete = models.BooleanField(default=False)
+
+    class Meta:
+        unique_together = ('role', 'permission')
+
+    def __str__(self):
+        return f"{self.role.name} -> {self.permission.capability_key}"
 
 
 # class User(AbstractUser):
@@ -73,7 +92,8 @@ class User(AbstractUser):
     last_otp_login = models.DateTimeField(null=True, blank=True)
 
     # Staff Management
-    organization_id = models.UUIDField(null=True, blank=True) # For employees
+    clinic_id = models.UUIDField(null=True, blank=True, db_index=True) # Primary Clinic/Tenant
+    organization_id = models.UUIDField(null=True, blank=True) # Legacy/Alternative
     status = models.CharField(
         max_length=20, 
         choices=[('PENDING', 'Pending'), ('ACTIVE', 'Active'), ('DISABLED', 'Disabled')],
@@ -92,13 +112,38 @@ class User(AbstractUser):
     USERNAME_FIELD = 'username'
     REQUIRED_FIELDS = []
 
-    def has_permission(self, codename):
-        if not self.role:
+    def has_permission(self, capability_key, action='view'):
+        # In the new RBAC architecture, we should check UserRole -> Role -> RolePermission
+        # However, to preserve performance, this will usually be checked via decorators grabbing JWT cache.
+        # This is a fallback database query method.
+        if not hasattr(self, 'clinic_id') or not self.clinic_id:
             return False
-        return self.role.permissions.filter(codename=codename).exists()
+            
+        try:
+            user_role = UserRole.objects.get(user=self, clinic_id=self.clinic_id)
+            rp = RolePermission.objects.get(role=user_role.role, permission__capability_key=capability_key)
+            if action == 'view': return rp.can_view
+            elif action == 'create': return rp.can_create
+            elif action == 'edit': return rp.can_edit
+            elif action == 'delete': return rp.can_delete
+        except (UserRole.DoesNotExist, RolePermission.DoesNotExist):
+            return False
+        return False
 
     def __str__(self):
         return self.username or str(self.id)
+
+class UserRole(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_roles')
+    role = models.ForeignKey(Role, on_delete=models.CASCADE, related_name='role_assignments')
+    clinic_id = models.UUIDField(db_index=True)
+    assigned_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'clinic_id') # A user has ONE role per clinic
+
+    def __str__(self):
+        return f"{self.user.username} - {self.role.name} (Clinic: {self.clinic_id})"
 
 class OTP(models.Model):
     PURPOSE_CHOICES = [

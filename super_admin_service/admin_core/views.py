@@ -10,7 +10,12 @@ from .serializers import (
     AdminProfileSerializer, AdminProfileUpdateSerializer,
     VerifiedUserSerializer, PermissionSerializer, SuperAdminSerializer
 )
-from .permissions import IsSuperAdmin  # you should implement this permission
+from .permissions import IsSuperAdmin 
+
+from plans_coupens.models import PurchasedPlan, Plan
+from django.db.models import Sum, Count
+from datetime import timedelta
+from django.utils import timezone
 
 class VerifiedUserViewSet(viewsets.ReadOnlyModelViewSet):
     """
@@ -106,3 +111,49 @@ class SuperAdminViewSet(viewsets.ModelViewSet):
 
         serializer = self.get_serializer(superadmin)
         return Response(serializer.data)
+
+
+class SuperAdminDashboardViewSet(viewsets.ViewSet):
+    """
+    Aggregate System Analytics for Super Admin Dashboard.
+    """
+    permission_classes = [IsSuperAdmin]
+
+    @action(detail=False, methods=['get'])
+    def metrics(self, request):
+        now = timezone.now()
+        thirty_days_ago = now - timedelta(days=30)
+        
+        # 1. Clinic / Subscription Metrics
+        total_subscriptions = PurchasedPlan.objects.filter(is_active=True).count()
+        new_subscriptions_30d = PurchasedPlan.objects.filter(start_date__gte=thirty_days_ago).count()
+        
+        # 2. Revenue (Assuming Plan.price is monthly)
+        # Note: Summing prices of all active purchased plans
+        total_mrr = PurchasedPlan.objects.filter(is_active=True).aggregate(
+            total=Sum('plan__price')
+        )['total'] or 0.00
+        
+        # 3. User Growth
+        total_users = VerifiedUser.objects.count()
+        new_users_30d = VerifiedUser.objects.filter(created_at__gte=thirty_days_ago).count()
+        
+        # 4. Plan Distribution
+        plan_distribution = PurchasedPlan.objects.filter(is_active=True).values(
+            'plan__title'
+        ).annotate(count=Count('id')).order_by('-count')
+        
+        return Response({
+            "overview": {
+                "active_subscriptions": total_subscriptions,
+                "new_subscriptions_30d": new_subscriptions_30d,
+                "monthly_recurring_revenue": float(total_mrr),
+                "total_verified_users": total_users,
+                "new_users_30d": new_users_30d
+            },
+            "plans": [
+                {"name": p['plan__title'], "count": p['count']} 
+                for p in plan_distribution
+            ],
+            "timestamp": now.isoformat()
+        })

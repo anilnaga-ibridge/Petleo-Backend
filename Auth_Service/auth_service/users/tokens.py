@@ -416,17 +416,41 @@ def get_tokens_for_user(user, request=None, remember_me=False):
     refresh["is_superuser"] = user.is_superuser
     refresh["iss"] = "django_issuer"
 
-    if user.role:
-        permissions = list(user.role.permissions.values_list("codename", flat=True))
-    else:
-        permissions = []
+    # 🔥 RBAC Multi-Tenant Claims
+    from .models import UserRole, RolePermission
+    
+    clinic_id = getattr(user, 'clinic_id', None)
+    refresh["clinic_id"] = str(clinic_id) if clinic_id else None
+    
+    permissions_summary = {}
+    role_id = None
+    
+    if clinic_id:
+        try:
+            user_role = UserRole.objects.select_related('role').get(user=user, clinic_id=clinic_id)
+            role_id = str(user_role.role.id)
+            
+            # Fetch all permissions for this role
+            role_perms = RolePermission.objects.filter(role=user_role.role).select_related('permission')
+            for rp in role_perms:
+                permissions_summary[rp.permission.capability_key] = {
+                    "v": rp.can_view,
+                    "c": rp.can_create,
+                    "e": rp.can_edit,
+                    "d": rp.can_delete
+                }
+        except UserRole.DoesNotExist:
+            pass
 
-    refresh["permissions"] = permissions
+    refresh["role_id"] = role_id
+    refresh["permissions_summary"] = permissions_summary
 
     # Mirror custom claims into access token
     access_token = refresh.access_token
     access_token["role"] = refresh["role"]
-    access_token["permissions"] = permissions
+    access_token["clinic_id"] = refresh["clinic_id"]
+    access_token["role_id"] = role_id
+    access_token["permissions_summary"] = permissions_summary
     access_token["iss"] = "django_issuer"
 
     # Generate opaque refresh token stored in DB

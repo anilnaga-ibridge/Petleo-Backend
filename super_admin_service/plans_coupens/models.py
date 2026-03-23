@@ -73,6 +73,46 @@ class Plan(models.Model):
         return f"{self.title} ({self.target_type} - {self.billing_cycle})"
 
 
+class SubscriptionPlan(models.Model):
+    """
+    Modern Subscription Plan model for multi-service licensing.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField(max_length=100)
+    slug = models.SlugField(unique=True)
+    description = models.TextField(blank=True)
+    
+    # Tiering
+    tier = models.CharField(
+        max_length=20, 
+        choices=[('BASIC', 'Basic'), ('PRO', 'Pro'), ('ENTERPRISE', 'Enterprise')],
+        default='BASIC'
+    )
+    
+    # Pricing
+    monthly_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    yearly_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    currency = models.CharField(max_length=3, default='INR')
+    
+    # Limits & Caps (JSON for flexibility)
+    capabilities = models.JSONField(
+        default=dict, 
+        help_text="Feature flags: {'veterinary_vitals': true, 'max_doctors': 5...}"
+    )
+    
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.name} ({self.tier})"
+
+
 class PlanCapability(models.Model):
     """
     Defines what a Plan allows a user to do.

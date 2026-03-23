@@ -31,7 +31,7 @@ class IsOrganizationAdmin(permissions.BasePermission):
         
         # Fallback: Check user.role
         role = getattr(request.user, 'role', '').upper()
-        if role in ['ORGANIZATION', 'INDIVIDUAL']:
+        if role in ['ORGANIZATION', 'INDIVIDUAL', 'SUPER_ADMIN']:
             return True
             
         # [FIX] Allow employees to GET the list (for coordination)

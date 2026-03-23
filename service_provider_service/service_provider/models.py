@@ -106,8 +106,13 @@ class VerifiedUser(models.Model):
                 'VETERINARY_PRESCRIPTIONS',
                 'VETERINARY_PHARMACY',
                 'VETERINARY_SCHEDULE',
+                'VETERINARY_ONLINE_CONSULT',
+                'VETERINARY_OFFLINE_VISIT',
                 'VETERINARY_ADMIN_SETTINGS',
+                'VETERINARY_METADATA',
                 'VETERINARY_MEDICINE_REMINDERS',
+                'VETERINARY_CHECKOUT',
+                'VETERINARY_PATIENTS',
             ])
             
         return linked_caps.union(
@@ -398,6 +403,10 @@ class ProviderRoleCapability(models.Model):
         related_name="capabilities"
     )
     capability_key = models.CharField(max_length=100) # e.g. VETERINARY_VITALS
+    can_view = models.BooleanField(default=False)
+    can_create = models.BooleanField(default=False)
+    can_edit = models.BooleanField(default=False)
+    can_delete = models.BooleanField(default=False)
 
     class Meta:
         unique_together = ("provider_role", "capability_key")
@@ -495,13 +504,14 @@ class OrganizationEmployee(models.Model):
         logger = logging.getLogger(__name__)
 
         # Check cache first
-        # 10/10 Enterprise Upgrade: Include role version in cache key for instant invalidation
+        # 10/10 Enterprise Upgrade: Include role ID and version in cache key for instant invalidation
+        role_id = self.provider_role_id or "legacy"
         role_version = self.provider_role.version if self.provider_role else 0
-        cache_key = f"employee_perms_{self.id}_v{role_version}"
+        cache_key = f"employee_perms_{self.id}_{role_id}_v{role_version}"
         
         cached_result = cache.get(cache_key)
         if cached_result is not None:
-            logger.debug(f"🔍 Cache HIT for employee {self.auth_user_id} (Version {role_version})")
+            logger.debug(f"🔍 Cache HIT for employee {self.auth_user_id} (Role: {role_id}, Version: {role_version})")
             return cached_result
 
         logger.info(f"\n{'='*100}")
@@ -519,55 +529,85 @@ class OrganizationEmployee(models.Model):
         logger.info(f"      List: {sorted(list(org_caps))}")
         
         # 2. The Selection: Employee's Assigned Role
-        role_capabilities = set()
+        role_perms = {}
         
-        if self.provider_role:
+        provider_role = self.provider_role
+        
+        # [ENTERPRISE FALLBACK] If provider_role link is missing, attempt to resolve by role string
+        if not provider_role and self.role:
+            try:
+                # Search for a custom role in this organization matching the string name
+                from .models import ProviderRole
+                provider_role = ProviderRole.objects.filter(
+                    provider=self.organization,
+                    name__iexact=self.role
+                ).first()
+                if provider_role:
+                    logger.info(f"   ✨ AUTO-RESOLVED string role '{self.role}' to ProviderRole {provider_role.id}")
+            except Exception as e:
+                logger.error(f"   ❌ Error auto-resolving role: {e}")
+
+        if provider_role:
             # Modern Path: Custom DB Role
-            logger.info(f"\n   🎭 ROLE CAPABILITIES (Custom Role: {self.provider_role.name}):")
-            role_capabilities = set(
-                self.provider_role.capabilities.values_list("capability_key", flat=True)
-            )
-            logger.info(f"      Count: {len(role_capabilities)}")
-            logger.info(f"      List: {sorted(list(role_capabilities))}")
+            logger.info(f"\n   🎭 ROLE CAPABILITIES (Custom Role: {provider_role.name}):")
+            for cap in provider_role.capabilities.all():
+                if cap.can_view: # Respect the 'View' checkbox in Role Manager
+                    role_perms[cap.capability_key] = {
+                        "can_view": cap.can_view,
+                        "can_create": cap.can_create,
+                        "can_edit": cap.can_edit,
+                        "can_delete": cap.can_delete
+                    }
+            logger.info(f"      Count: {len(role_perms)}")
+            logger.info(f"      List: {sorted(list(role_perms.keys()))}")
         else:
             # Deprecated Path: Legacy Map
-            # TODO: Migration script to create ProviderRoles for all employees
             legacy_key = (self.role or "employee").lower()
-            role_capabilities = set(self.LEGACY_ROLE_MAP.get(legacy_key, []))
+            legacy_keys = self.LEGACY_ROLE_MAP.get(legacy_key, [])
+            for k in legacy_keys:
+                role_perms[k] = {
+                    "can_view": True, "can_create": True, "can_edit": True, "can_delete": True
+                }
             
             logger.info(f"\n   🎭 ROLE CAPABILITIES (Legacy Role: '{legacy_key}'):")
-            logger.info(f"      Count: {len(role_capabilities)}")
-            logger.info(f"      List: {sorted(list(role_capabilities))}")
-            
-            # Log warning only if they are actually using capabilities beyond CORE
-            if len(role_capabilities) > 1: 
-                logger.warning(f"[DEPRECATION] Employee {self.auth_user_id} using LEGACY_ROLE_MAP for role '{legacy_key}'")
+            logger.info(f"      Count: {len(role_perms)}")
+            logger.info(f"      List: {sorted(list(role_perms.keys()))}")
 
         # 3. The Intersection: Only allow what the Plan allows
-        final_permissions = org_caps.intersection(role_capabilities)
+        # We also handle aliasing here (e.g., Role says 'SCHEDULING', Plan says 'SCHEDULE')
+        ALIAS_MAP = {
+            "VETERINARY_SCHEDULING": "VETERINARY_SCHEDULE"
+        }
+        
+        final_perms_map = {}
+        for key, flags in role_perms.items():
+            target_key = ALIAS_MAP.get(key, key)
+            if target_key in org_caps:
+                # Store it under the target_key (what the Category table expects)
+                final_perms_map[target_key] = flags
         
         logger.info(f"\n   ✂️ INTERSECTION (Plan ∩ Role):")
-        logger.info(f"      Count: {len(final_permissions)}")
-        logger.info(f"      List: {sorted(list(final_permissions))}")
+        logger.info(f"      Count: {len(final_perms_map)}")
+        logger.info(f"      List: {sorted(list(final_perms_map.keys()))}")
         
         # 4. Core Access (Conditional)
-        # Only grant VETERINARY_CORE if the user has other VETERINARY_* permissions
-        # OR if it was explicitly captured in the intersection.
-        has_vet_capabilities = any(cap.startswith("VETERINARY_") for cap in final_permissions)
+        has_vet_capabilities = any(cap.startswith("VETERINARY_") for cap in final_perms_map)
         
         logger.info(f"\n   🔍 VETERINARY CHECK:")
         logger.info(f"      Has Vet Capabilities: {has_vet_capabilities}")
         
-        if has_vet_capabilities:
-            final_permissions.add("VETERINARY_CORE")
+        if has_vet_capabilities and "VETERINARY_CORE" not in final_perms_map:
+            final_perms_map["VETERINARY_CORE"] = {
+                "can_view": True, "can_create": True, "can_edit": True, "can_delete": False
+            }
             logger.info(f"      ✅ Added VETERINARY_CORE")
             
         # Ensure basic provider access if needed, but do NOT force VETERINARY_CORE for Groomers.
 
-        # 5. Apply Overrides (permissions_json) - RARE case
+        # 5. Apply Overrides (permissions_json)
         overrides = self.permissions_json or {}
-        add_overrides = set(overrides.get("ADD", []))
-        remove_overrides = set(overrides.get("REMOVE", []))
+        add_overrides = overrides.get("ADD", [])
+        remove_overrides = overrides.get("REMOVE", [])
 
         logger.info(f"\n   🎚️ OVERRIDES:")
         logger.info(f"      ADD: {sorted(list(add_overrides))}")
@@ -575,22 +615,28 @@ class OrganizationEmployee(models.Model):
 
         # IMPORTANT: Even 'ADD' overrides should technically be checked against Plan,
         # but for now we trust specific manual overrides.
-        final_permissions.update(add_overrides)
-        final_permissions.difference_update(remove_overrides)
-
-        result = list(final_permissions)
+        for cap_key in add_overrides:
+            final_perms_map[cap_key] = {
+                "can_view": True, "can_create": True, "can_edit": True, "can_delete": True
+            }
         
+        for cap_key in remove_overrides:
+            final_perms_map.pop(cap_key, None)
+
         logger.info(f"\n   🎯 FINAL RESULT:")
-        logger.info(f"      Count: {len(result)}")
-        logger.info(f"      List: {sorted(result)}")
+        logger.info(f"      Count: {len(final_perms_map)}")
+        logger.info(f"      List: {sorted(list(final_perms_map.keys()))}")
         logger.info(f"{'='*100}\n")
         
         # Cache for 1 hour
-        cache.set(cache_key, result, 3600)
-        return result
+        cache.set(cache_key, final_perms_map, 3600)
+        return final_perms_map
     
     def save(self, *args, **kwargs):
         """Override save to invalidate cache when role changes."""
+        # Force standardized system role to "employee"
+        self.role = "employee"
+
         # Check if provider_role changed
         if self.pk:
             try:
@@ -598,7 +644,7 @@ class OrganizationEmployee(models.Model):
                 if old_instance.provider_role != self.provider_role:
                     import logging
                     logging.getLogger(__name__).info(
-                        f"🔄 Employee {self.auth_user_id} role changed: "
+                        f"🔄 Employee {self.auth_user_id} provider_role changed: "
                         f"{old_instance.provider_role} → {self.provider_role}"
                     )
             except OrganizationEmployee.DoesNotExist:
@@ -610,11 +656,24 @@ class OrganizationEmployee(models.Model):
         self.invalidate_permission_cache()
 
     def invalidate_permission_cache(self):
-        """Invalidates the permission cache for this employee."""
+        """
+        Force clear the permission cache for this employee.
+        Since we use a versioned key, we should ideally clear all potential variations
+        or use a pattern if the cache backend supports it. For now, we clear the current one.
+        """
         from django.core.cache import cache
-        cache_key = f"employee_perms_{self.id}"
+        import logging
+        logger = logging.getLogger(__name__)
+
+        role_id = self.provider_role_id or "legacy"
+        role_version = self.provider_role.version if self.provider_role else 0
+        cache_key = f"employee_perms_{self.id}_{role_id}_v{role_version}"
         cache.delete(cache_key)
-        logger.info(f"🗑️ Invalidated permission cache for employee {self.auth_user_id}")
+        
+        # Also clear the generic one if it exists from previous versions
+        cache.delete(f"employee_perms_{self.id}_v{role_version}")
+        
+        logger.info(f"♻️  Invalidated permission cache for employee {self.id} (Key: {cache_key})")
 
 
 class EmployeeServiceMapping(models.Model):

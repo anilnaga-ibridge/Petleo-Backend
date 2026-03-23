@@ -87,24 +87,37 @@ class AvailabilityService:
         ).exists():
             return []
 
-        # 4. Get Approved Daily Schedule
-        # Strict Requirement: Slots only exist if explicitly APPROVED for this date
+        # 4. Get Approved Daily Schedule or Recurring Weekly Schedule
+        schedule_start = None
+        schedule_end = None
+        
+        # 4a. Check specific date override (Approved Daily Schedule)
         daily_schedule = EmployeeDailySchedule.objects.filter(
             employee=employee,
             date=target_date,
             status='APPROVED'
         ).first()
 
-        if not daily_schedule:
+        if daily_schedule:
+            schedule_start = daily_schedule.start_time
+            schedule_end = daily_schedule.end_time
+        else:
+            # 4b. Fallback to general recurring weekly schedule (EmployeeAvailability)
+            from ..models import EmployeeAvailability
+            weekly_schedule = EmployeeAvailability.objects.filter(
+                employee=employee,
+                day_of_week=target_date.weekday(),
+                is_active=True
+            ).first()
+            if weekly_schedule:
+                schedule_start = weekly_schedule.start_time
+                schedule_end = weekly_schedule.end_time
+
+        if not schedule_start or not schedule_end or schedule_start == schedule_end:
             return []
 
-        schedule_start = daily_schedule.start_time
-        schedule_end = daily_schedule.end_time
         break_start = None
         break_end = None
-
-        if schedule_start == schedule_end:
-            return []
 
         # 5. Get confirmed bookings and blocked times
         bookings = AvailabilityService._get_confirmed_bookings(employee_id, target_date)

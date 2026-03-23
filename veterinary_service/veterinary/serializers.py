@@ -3,9 +3,9 @@ from .models import (
     StaffClinicAssignment, Clinic, PetOwner, Pet, Visit, 
     DynamicFieldDefinition, DynamicFieldValue, # Retain DynamicFieldValue
     FormDefinition, FormField, FieldValidation, FormSubmission, # Retain FieldValidation
-    PharmacyDispense, MedicationReminder, VisitInvoice, InvoiceLineItem,
+    PharmacyDispense, MedicineReminder, MedicineReminderSchedule, VisitInvoice, InvoiceLineItem,
     LabTestTemplate, LabTestField, LabOrder, LabResult, MedicalAppointment,
-    LabTest, Medicine, Prescription, PrescriptionItem, PharmacyTransaction
+    LabTest, Medicine, MedicineBatch, Prescription, PrescriptionItem, PharmacyTransaction
 )
 from .services import DynamicEntityService
 
@@ -14,7 +14,46 @@ class LabTestSerializer(serializers.ModelSerializer):
         model = LabTest
         fields = '__all__'
 
+class LabTestFieldSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LabTestField
+        fields = ['id', 'field_name', 'unit', 'min_value', 'max_value', 'order']
+
+class LabTestTemplateSerializer(serializers.ModelSerializer):
+    fields = LabTestFieldSerializer(many=True, required=False)
+
+    class Meta:
+        model = LabTestTemplate
+        fields = ['id', 'name', 'is_active', 'fields']
+
+    def update(self, instance, validated_data):
+        fields_data = validated_data.pop('fields', None)
+        instance.name = validated_data.get('name', instance.name)
+        instance.is_active = validated_data.get('is_active', instance.is_active)
+        instance.save()
+
+        if fields_data is not None:
+            instance.fields.all().delete()
+            for field_data in fields_data:
+                LabTestField.objects.create(template=instance, **field_data)
+        return instance
+
+    def create(self, validated_data):
+        fields_data = validated_data.pop('fields', [])
+        template = LabTestTemplate.objects.create(**validated_data)
+        for field_data in fields_data:
+            LabTestField.objects.create(template=template, **field_data)
+        return template
+
+class MedicineBatchSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MedicineBatch
+        fields = '__all__'
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
 class MedicineSerializer(serializers.ModelSerializer):
+    batches = MedicineBatchSerializer(many=True, read_only=True)
+    
     class Meta:
         model = Medicine
         fields = '__all__'
@@ -96,7 +135,7 @@ class PetSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Pet
-        fields = ['id', 'owner', 'name', 'species', 'breed', 'sex', 'dob', 'color', 'weight', 'notes', 'tag', 'is_active', 'created_at', 'updated_at', 'dynamic_data', 'pet_photo']
+        fields = ['id', 'owner', 'name', 'species', 'breed', 'sex', 'dob', 'color', 'weight', 'notes', 'tag', 'profile_image', 'is_active', 'created_at', 'updated_at', 'dynamic_data', 'pet_photo']
         read_only_fields = ['id', 'owner', 'created_at', 'updated_at', 'dynamic_data', 'pet_photo']
 
     def get_pet_photo(self, obj):
@@ -150,13 +189,37 @@ class VisitSerializer(serializers.ModelSerializer):
     pet_id = serializers.UUIDField(write_only=True)
     vitals = serializers.SerializerMethodField()
     latest_lab_order = serializers.SerializerMethodField()
+    latest_prescription = serializers.SerializerMethodField()
     provider_id = serializers.CharField(source='clinic.organization_id', read_only=True)
     assigned_employee_id = serializers.CharField(source='created_by', read_only=True)
+    consultation_mode = serializers.SerializerMethodField()
+    meeting_room = serializers.SerializerMethodField()
     
     class Meta:
         model = Visit
-        fields = ['id', 'clinic', 'provider_id', 'pet', 'pet_id', 'service_id', 'status', 'visit_type', 'reason', 'priority', 'triage_notes', 'created_at', 'updated_at', 'vitals', 'latest_lab_order', 'checked_in_at', 'vitals_started_at', 'vitals_completed_at', 'doctor_started_at', 'closed_at', 'assigned_employee_id']
-        read_only_fields = ['id', 'clinic', 'provider_id', 'checked_in_at', 'vitals_started_at', 'vitals_completed_at', 'doctor_started_at', 'closed_at', 'vitals', 'latest_lab_order', 'assigned_employee_id']
+        fields = [
+            'id', 'clinic', 'provider_id', 'pet', 'pet_id', 'service_id', 
+            'status', 'visit_type', 'reason', 'priority', 'triage_notes', 
+            'queue_entered_at', 'assigned_doctor_auth_id', 'created_at', 'updated_at', 
+            'vitals', 'latest_lab_order', 'latest_prescription', 'checked_in_at', 'vitals_started_at', 
+            'vitals_completed_at', 'doctor_started_at', 'closed_at', 'assigned_employee_id',
+            'consultation_mode', 'meeting_room'
+        ]
+        read_only_fields = [
+            'id', 'clinic', 'provider_id', 'checked_in_at', 'vitals_started_at', 
+            'vitals_completed_at', 'doctor_started_at', 'closed_at', 'vitals', 
+            'latest_lab_order', 'latest_prescription', 'assigned_employee_id', 'consultation_mode', 'meeting_room',
+            'queue_entered_at'
+        ]
+
+    def get_consultation_mode(self, obj):
+        # Link back to MedicalAppointment if possible
+        appt = MedicalAppointment.objects.filter(visit=obj).first()
+        return appt.consultation_mode if appt else 'CLINIC'
+
+    def get_meeting_room(self, obj):
+        appt = MedicalAppointment.objects.filter(visit=obj).first()
+        return appt.meeting_room if appt else None
 
     def validate(self, attrs):
         request = self.context.get('request')
@@ -192,6 +255,16 @@ class VisitSerializer(serializers.ModelSerializer):
         last_submission = FormSubmission.objects.filter(
             visit=obj, 
             form_definition__code='LAB_ORDER'
+        ).order_by('-created_at').first()
+        
+        if last_submission:
+            return last_submission.data
+        return {}
+
+    def get_latest_prescription(self, obj):
+        last_submission = FormSubmission.objects.filter(
+            visit=obj, 
+            form_definition__code='PRESCRIPTION'
         ).order_by('-created_at').first()
         
         if last_submission:
@@ -311,23 +384,21 @@ class PharmacyDispenseSerializer(serializers.ModelSerializer):
                 self.fields['visit'].queryset = Visit.objects.none()
                 self.fields['prescription_submission'].queryset = FormSubmission.objects.none()
 
-class MedicationReminderSerializer(serializers.ModelSerializer):
+class MedicineReminderScheduleSerializer(serializers.ModelSerializer):
     class Meta:
-        model = MedicationReminder
+        model = MedicineReminderSchedule
         fields = '__all__'
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        request = self.context.get('request')
-        if request:
-            from .views import get_clinic_context
-            clinic_id = get_clinic_context(request)
-            if clinic_id:
-                self.fields['visit'].queryset = Visit.objects.filter(clinic_id=clinic_id)
-                self.fields['pet'].queryset = Pet.objects.filter(owner__clinic_id=clinic_id)
-            else:
-                self.fields['visit'].queryset = Visit.objects.none()
-                self.fields['pet'].queryset = Pet.objects.none()
+class MedicineReminderSerializer(serializers.ModelSerializer):
+    medicine_name = serializers.CharField(source='medicine.name', read_only=True)
+    pet_name = serializers.CharField(source='pet.name', read_only=True)
+    schedules = MedicineReminderScheduleSerializer(many=True, read_only=True)
+    
+    class Meta:
+        model = MedicineReminder
+        fields = '__all__'
+
+
 
 class VisitDetailSerializer(VisitSerializer):
     """
@@ -335,7 +406,7 @@ class VisitDetailSerializer(VisitSerializer):
     """
     submissions = FormSubmissionSerializer(source='form_submissions', many=True, read_only=True)
     dispenses = PharmacyDispenseSerializer(many=True, read_only=True)
-    reminders = MedicationReminderSerializer(many=True, read_only=True)
+    reminders = MedicineReminderSerializer(source='pet.medicine_reminders', many=True, read_only=True)
     
     class Meta(VisitSerializer.Meta):
         fields = VisitSerializer.Meta.fields + ['submissions', 'dispenses', 'reminders']
@@ -472,6 +543,15 @@ class StaffClinicAssignmentSerializer(serializers.ModelSerializer):
         # Remove write-only fields
         if 'staff_auth_id' in validated_data:
             validated_data.pop('staff_auth_id')
+            
+        # [FIX] Flatten permissions array if it contains dicts
+        perms = validated_data.get('permissions', [])
+        if perms and isinstance(perms, list) and len(perms) > 0 and isinstance(perms[0], dict):
+            flat = []
+            for p in perms:
+                if 'capability_key' in p:
+                    flat.append(p['capability_key'])
+            validated_data['permissions'] = list(set(flat))
             
         # Upsert Logic
         assignment, created = StaffClinicAssignment.objects.update_or_create(
@@ -647,3 +727,36 @@ class PreVisitFormSerializer(serializers.ModelSerializer):
         model = PreVisitForm
         fields = '__all__'
         read_only_fields = ['id', 'access_token', 'is_submitted', 'submitted_at', 'created_at']
+
+# ==========================================
+# PHASE 7: VACCINATION & DEWORMING REMINDER SYSTEM
+# ==========================================
+from .models import Vaccination, SystemVaccinationReminder, Deworming, SystemDewormingReminder
+
+class SystemVaccinationReminderSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SystemVaccinationReminder
+        fields = '__all__'
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+class VaccinationSerializer(serializers.ModelSerializer):
+    doctor_name = serializers.CharField(source='visit.assigned_doctor_auth_id', read_only=True)
+    
+    class Meta:
+        model = Vaccination
+        fields = '__all__'
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+class SystemDewormingReminderSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SystemDewormingReminder
+        fields = '__all__'
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+class DewormingSerializer(serializers.ModelSerializer):
+    doctor_name = serializers.CharField(source='visit.assigned_doctor_auth_id', read_only=True)
+    
+    class Meta:
+        model = Deworming
+        fields = '__all__'
+        read_only_fields = ['id', 'created_at', 'updated_at']

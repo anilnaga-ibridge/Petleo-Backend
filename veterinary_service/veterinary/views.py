@@ -24,6 +24,15 @@ def get_clinic_context(request):
             request.user.clinic_id = str(clinic_id)
             return str(clinic_id)
 
+    # 2.5 Try from request body (for POST/PUT requests)
+    if request.method in ['POST', 'PUT', 'PATCH']:
+        # Handle both DRF Request and standard Django HttpRequest
+        data = getattr(request, 'data', {})
+        clinic_id = data.get('clinic_id')
+        if clinic_id:
+            request.user.clinic_id = str(clinic_id)
+            return str(clinic_id)
+
     # 3. Try from header
     clinic_id = request.META.get('HTTP_X_CLINIC_ID')
     if clinic_id:
@@ -53,7 +62,13 @@ def get_auth_user_id(request):
         return username
         
     return str(request.user.id) if getattr(request.user, 'id', None) else None
-from rest_framework import viewsets, permissions, status
+import logging
+from django.utils import timezone, dateparse
+from django.db import transaction
+logger = logging.getLogger('veterinary')
+from datetime import timedelta, date
+from rest_framework import viewsets, permissions, status, filters
+import django_filters.rest_framework
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from .models import (
@@ -62,18 +77,21 @@ from .models import (
     FormDefinition, FormField, FormSubmission,
     LabTestTemplate, LabTestField, LabOrder, LabResult,
     MedicalAppointment, StaffClinicAssignment,
-    LabTest, Medicine, Prescription, PrescriptionItem, PharmacyTransaction,
-    VisitInvoice, InvoiceLineItem
+    LabTest, Medicine, MedicineReminder, MedicineReminderSchedule,
+    Prescription, PrescriptionItem, PharmacyTransaction,
+    VisitInvoice, InvoiceLineItem,
+    Vaccination, Deworming, SystemVaccinationReminder, SystemDewormingReminder
 )
 from .serializers import (
     ClinicSerializer, PetOwnerSerializer, PetSerializer, VisitSerializer,
     DynamicFieldDefinitionSerializer, DynamicFieldValueSerializer,
     DynamicEntitySerializer,
     FormDefinitionSerializer, FormSubmissionSerializer, VisitDetailSerializer,
-    LabTestTemplateSerializer, LabOrderSerializer, LabResultSerializer, PharmacyDispenseSerializer,
+    LabTestTemplateSerializer, LabTestFieldSerializer, LabOrderSerializer, LabResultSerializer, PharmacyDispenseSerializer,
     MedicalAppointmentSerializer, StaffClinicAssignmentSerializer,
-    LabTestSerializer, MedicineSerializer, PrescriptionSerializer,
-    PharmacyTransactionSerializer, VisitInvoiceSerializer, InvoiceLineItemSerializer
+    LabTestSerializer, MedicineSerializer, MedicineBatchSerializer, PrescriptionSerializer,
+    PharmacyTransactionSerializer, VisitInvoiceSerializer, InvoiceLineItemSerializer,
+    MedicineReminderSerializer, MedicineReminderScheduleSerializer
 )
 from .services import (
     DynamicEntityService, WorkflowService, MetadataService, 
@@ -82,7 +100,8 @@ from .services import (
     VeterinaryAvailabilityService, VeterinaryAppointmentService
 )
 from .kafka.producer import producer
-from .permissions import HasVeterinaryAccess, IsClinicStaffOfPet, require_capability, require_granular_capability
+from .permissions import HasVeterinaryAccess, IsClinicStaffOfPet, VeterinaryCheckoutPermission, require_capability, require_granular_capability
+from .utils.permissions import permission_required
 from .monetization import feature_tier, PRO, ENTERPRISE
 
 class ClinicViewSet(viewsets.ModelViewSet):
@@ -155,14 +174,20 @@ class ClinicViewSet(viewsets.ModelViewSet):
         # If no clinics exist for this org, this one is primary
         has_clinics = Clinic.objects.filter(organization_id=org_id).exists()
         
-        serializer.save(
+        instance = serializer.save(
             organization_id=org_id,
             is_primary=not has_clinics
         )
+        
+        # 3. Post-Creation Setup (Subscription, Roles etc)
+        ClinicRegistrationService.initialize_new_clinic(instance)
 
 class PetOwnerViewSet(viewsets.ModelViewSet):
     serializer_class = PetOwnerSerializer
     permission_classes = [permissions.IsAuthenticated, HasVeterinaryAccess]
+    filter_backends = [django_filters.rest_framework.DjangoFilterBackend, filters.SearchFilter]
+    search_fields = ['name', 'phone']
+    filterset_fields = ['phone']
 
     def get_queryset(self):
         clinic_id = get_clinic_context(self.request)
@@ -170,26 +195,99 @@ class PetOwnerViewSet(viewsets.ModelViewSet):
             return PetOwner.objects.filter(clinic_id=clinic_id)
         return PetOwner.objects.none()
 
+    def list(self, request, *args, **kwargs):
+        """
+        Override list to auto-delete orphaned PetOwner records.
+        Any record with auth_user_id=None whose phone doesn't exist in Auth Service is deleted before returning.
+        """
+        queryset = self.get_queryset()
+        
+        # Identify candidate orphaned records (no auth link, no email, placeholder name)
+        unsynced = queryset.filter(auth_user_id__isnull=True)
+        
+        if unsynced.exists():
+            from .auth_integration import AuthIntegrationService
+            deleted_ids = []
+
+            for owner_rec in unsynced:
+                if not owner_rec.phone:
+                    continue  # skip if no phone at all
+                
+                # Check if user exists in Auth Service
+                auth_user = AuthIntegrationService.verify_user_exists(phone_number=owner_rec.phone)
+                
+                if auth_user is None:
+                    # Confirmed: user does NOT exist in Auth Service — safe to delete
+                    try:
+                        from django.db import ProgrammingError
+                        owner_rec.delete()
+                        logger.info(
+                            f"Auto-deleted orphaned PetOwner {owner_rec.id} "
+                            f"(phone={owner_rec.phone}) — no matching Auth user found."
+                        )
+                    except Exception as del_err:
+                        logger.warning(
+                            f"Could not auto-delete orphaned PetOwner {owner_rec.id}: {del_err}. "
+                            "Consider running migrations: python manage.py migrate"
+                        )
+                elif isinstance(auth_user, dict) and auth_user.get('auth_user_id'):
+                    # User found in Auth Service — sync back their ID and name
+                    owner_rec.auth_user_id = auth_user.get('auth_user_id')
+                    if auth_user.get('full_name'):
+                        owner_rec.name = auth_user.get('full_name')
+                    if auth_user.get('email'):
+                        owner_rec.email = auth_user.get('email')
+                    owner_rec.save()
+                    logger.info(
+                        f"Re-linked PetOwner {owner_rec.id} to Auth user {owner_rec.auth_user_id}"
+                    )
+                # else: Auth Service returned True (unreachable / error) — skip deletion for safety
+
+        return super().list(request, *args, **kwargs)
+
     def perform_create(self, serializer):
         clinic_id = get_clinic_context(self.request)
         if not clinic_id:
             from rest_framework.exceptions import ValidationError
             raise ValidationError("No active clinic context found. Please select a clinic.")
         
+        # NEW: Register in Auth Service
+        from .auth_integration import AuthIntegrationService
+        auth_user_id = AuthIntegrationService.register_customer(
+            full_name=self.request.data.get('name'),
+            phone_number=self.request.data.get('phone'),
+            email=self.request.data.get('email')
+        )
+        
         serializer.save(
             clinic_id=clinic_id,
+            auth_user_id=auth_user_id,
             created_by=get_auth_user_id(self.request)
         )
+
+    def perform_update(self, serializer):
+        instance = serializer.save()
+        
+        # NEW: Sync Update to Auth Service
+        if instance.auth_user_id:
+            from .auth_integration import AuthIntegrationService
+            AuthIntegrationService.update_customer(
+                instance.auth_user_id,
+                {
+                    'name': instance.name,
+                    'phone': instance.phone,
+                    'email': instance.email
+                }
+            )
 
 class PetViewSet(viewsets.ModelViewSet):
     serializer_class = PetSerializer
     permission_classes = [permissions.IsAuthenticated, HasVeterinaryAccess]
+    filter_backends = [django_filters.rest_framework.DjangoFilterBackend, filters.SearchFilter]
+    filterset_fields = ['owner']
+    search_fields = ['name']
 
-    def perform_update(self, serializer):
-        from .permissions import log
-        log(f"PetViewSet.perform_update: Validating save for {self.get_object().id}")
-        serializer.save()
-        log("PetViewSet.perform_update: Save complete")
+    search_fields = ['name']
 
     def get_queryset(self):
         clinic_id = get_clinic_context(self.request)
@@ -197,20 +295,21 @@ class PetViewSet(viewsets.ModelViewSet):
             return Pet.objects.filter(owner__clinic_id=clinic_id)
         return Pet.objects.none()
 
-    def perform_create(self, serializer):
+    def _log_trace(self, msg):
         log_file = "/Users/PraveenWorks/Anil Works/Petleo-Backend/veterinary_service/middleware_trace.log"
-        def log_trace(msg):
-            try:
-                from django.utils import timezone
-                with open(log_file, "a") as f:
-                    f.write(f"{timezone.now()} - [PET_TRACE] {msg}\n")
-            except:
-                pass
-
         try:
-            log_trace(f"--- PET CREATE ATTEMPT ---")
-            log_trace(f"RAW DATA: {self.request.data}")
-            log_trace(f"VALIDATED DATA: {serializer.validated_data}")
+            from django.utils import timezone
+            from django.conf import settings
+            with open(log_file, "a") as f:
+                f.write(f"{timezone.now()} - [PET_TRACE] {msg}\n")
+        except:
+            pass
+
+    def perform_create(self, serializer):
+        try:
+            self._log_trace(f"--- PET CREATE ATTEMPT ---")
+            self._log_trace(f"RAW DATA: {self.request.data}")
+            self._log_trace(f"VALIDATED DATA: {serializer.validated_data}")
 
             from rest_framework.exceptions import ValidationError
             
@@ -222,39 +321,67 @@ class PetViewSet(viewsets.ModelViewSet):
                 owner_phone = self.request.data.get('owner_phone')
                 owner_email = self.request.data.get('owner_email')
                 owner_address = self.request.data.get('owner_address') or self.request.data.get('address')
+                owner_auth_id = self.request.data.get('owner_auth_id') or self.request.data.get('auth_user_id')
                 clinic_id = get_clinic_context(self.request)
                 
-                log_trace(f"Owner ID missing. owner_name: {owner_name}, owner_phone: {owner_phone}, clinic_id: {clinic_id}")
+                self._log_trace(f"Owner ID missing. name: {owner_name}, phone: {owner_phone}, auth_id: {owner_auth_id}")
 
                 if not clinic_id:
-                    log_trace("ERROR: No active clinic context found.")
+                    self._log_trace("ERROR: No active clinic context found.")
                     raise ValidationError({"error": "No active clinic context found."})
                     
                 if owner_phone:
-                    from .models import PetOwner
+                    auth_user_id = owner_auth_id
+                    
+                    # Only register if we don't have an auth_user_id yet
+                    if not auth_user_id:
+                        self._log_trace(f"No auth_user_id provided. Attempting registration for {owner_phone}")
+                        from .auth_integration import AuthIntegrationService
+                        auth_user_id = AuthIntegrationService.register_customer(
+                            full_name=owner_name or "New Owner",
+                            phone_number=owner_phone,
+                            email=owner_email
+                        )
+
                     owner, created = PetOwner.objects.get_or_create(
                         clinic_id=clinic_id,
                         phone=owner_phone,
                         defaults={
                             'name': owner_name or "New Owner",
                             'email': owner_email,
-                            'address': owner_address
+                            'address': owner_address,
+                            'auth_user_id': auth_user_id
                         }
                     )
-                    log_trace(f"SAVING WITH NEW/FOUND OWNER: {owner.id} (Created: {created})")
+                    
+                    if not created:
+                        updated = False
+                        if auth_user_id and not owner.auth_user_id:
+                            owner.auth_user_id = auth_user_id
+                            updated = True
+                        if owner_name and owner.name == "New Owner":
+                            owner.name = owner_name
+                            updated = True
+                        if owner_email and not owner.email:
+                            owner.email = owner_email
+                            updated = True
+                        if updated:
+                            owner.save()
+
+                    self._log_trace(f"SAVING WITH OWNER: {owner.id} (Created: {created}, AuthID: {auth_user_id})")
                     serializer.save(owner=owner, created_by=get_auth_user_id(self.request))
                     return
                 else:
-                    log_trace("ERROR: owner_phone missing in payload.")
+                    self._log_trace("ERROR: owner_phone missing in payload.")
                     raise ValidationError({"owner_phone": "Owner phone is required for registration."})
 
-            log_trace(f"SAVING WITH PROVIDED OWNER_ID: {owner_id}")
+            self._log_trace(f"SAVING WITH PROVIDED OWNER_ID: {owner_id}")
             serializer.save(created_by=get_auth_user_id(self.request))
-            log_trace("SAVE SUCCESSFUL")
+            self._log_trace("SAVE SUCCESSFUL")
         except Exception as e:
-            log_trace(f"CRITICAL ERROR IN PET CREATE: {str(e)}")
+            self._log_trace(f"CRITICAL ERROR IN PET CREATE: {str(e)}")
             import traceback
-            log_trace(traceback.format_exc())
+            self._log_trace(traceback.format_exc())
             raise e
 
     def perform_update(self, serializer):
@@ -264,7 +391,7 @@ class PetViewSet(viewsets.ModelViewSet):
         through the Pet registration/edit flow.
         """
         try:
-            log_trace(f"PET UPDATE START: Request data: {self.request.data}")
+            self._log_trace(f"PET UPDATE START: Request data: {self.request.data}")
             owner_name = self.request.data.get('owner_name')
             owner_phone = self.request.data.get('owner_phone')
             owner_email = self.request.data.get('owner_email')
@@ -290,12 +417,12 @@ class PetViewSet(viewsets.ModelViewSet):
                 
                 if needs_save:
                     owner.save()
-                    log_trace(f"Updated Owner Info: {owner.id}")
+                    self._log_trace(f"Updated Owner Info: {owner.id}")
             
             serializer.save()
-            log_trace("UPDATE SUCCESSFUL")
+            self._log_trace("UPDATE SUCCESSFUL")
         except Exception as e:
-            log_trace(f"ERROR IN PET UPDATE: {str(e)}")
+            self._log_trace(f"ERROR IN PET UPDATE: {str(e)}")
             raise e
 
     @action(detail=True, methods=["patch"], url_path="clinic-update", permission_classes=[permissions.IsAuthenticated, IsClinicStaffOfPet])
@@ -459,6 +586,21 @@ class VisitViewSet(viewsets.ModelViewSet):
             from rest_framework.exceptions import ValidationError
             raise ValidationError("No active clinic context found. Please select a clinic.")
             
+        # Duplicate Protection: Block creating a new visit today if an active one exists
+        pet_id = serializer.validated_data.get('pet')
+        if pet_id:
+            from django.utils import timezone
+            today = timezone.now().date()
+            active_exists = Visit.objects.filter(
+                clinic_id=clinic_id,
+                pet=pet_id,
+                created_at__date=today
+            ).exclude(status='CLOSED').exists()
+            
+            if active_exists:
+                from rest_framework.exceptions import ValidationError
+                raise ValidationError({"non_field_errors": ["An active visit already exists for this patient today."]})
+
         instance = serializer.save(
             clinic_id=clinic_id, 
             created_by=get_auth_user_id(self.request)
@@ -497,81 +639,225 @@ class VisitViewSet(viewsets.ModelViewSet):
         serializer.save()
 
     @action(detail=True, methods=['post'], url_path='check-in')
+    @permission_required('veterinary.visits', 'edit')
     def check_in(self, request, pk=None):
-        from rest_framework.exceptions import PermissionDenied
         visit = self.get_object()
-        
-        # [PERMISSION CHECK]
-        # If it's a Core Veterinary Visit (no service_id), enforce VETERINARY_VISITS
-        if not visit.service_id:
-            user_perms = getattr(request.user, 'permissions', [])
-            if 'VETERINARY_VISITS' not in user_perms:
-                raise PermissionDenied("You do not have permission to check-in veterinary visits.")
-        
         try:
             WorkflowService.transition_visit(visit, 'CHECKED_IN', user_role=get_auth_user_id(request))
             return Response({'status': 'success', 'new_status': visit.status})
         except ValueError as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-    @action(detail=True, methods=['post'])
-    def ai_format_notes(self, request, pk=None):
-        """
-        AI-assisted SOAP note formatting.
-        """
-        raw_notes = request.data.get('notes', '')
-        if not raw_notes:
-            return Response({"error": "No notes provided"}, status=status.HTTP_400_BAD_REQUEST)
-        
-        from .services import AIService
-        formatted = AIService.format_soap_notes(raw_notes)
-        return Response({"formatted_notes": formatted})
-
-    @action(detail=False, methods=['get'])
-    def ai_suggest_medicine(self, request):
-        """
-        GET /api/veterinary/visits/ai_suggest_medicine/?q=Amoxi
-        AI-assisted medicine suggestions.
-        """
-        query = request.query_params.get('q', '')
-        if len(query) < 3:
-            return Response([], status=status.HTTP_200_OK)
-        
-        from .services import AIService
-        suggestions = AIService.suggest_prescription_details(query)
-        return Response(suggestions)
-
-    @action(detail=True, methods=['post'], permission_classes=[require_granular_capability('VETERINARY_VISITS')])
+    @action(detail=True, methods=['post'], url_path='transition')
     def transition(self, request, pk=None):
         """
-        Transition visit status.
-        Body: {"status": "NEW_STATUS"}
+        Generic status transition endpoint.
+        Body: { "status": "NEW_STATUS" }
         """
-        from rest_framework.exceptions import PermissionDenied
         visit = self.get_object()
-        
         new_status = request.data.get('status')
+        if not new_status:
+            return Response({'error': 'status is required'}, status=status.HTTP_400_BAD_REQUEST)
+            
         try:
             WorkflowService.transition_visit(visit, new_status, user_role=get_auth_user_id(request))
             return Response({'status': 'success', 'new_status': visit.status})
         except ValueError as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-    @action(detail=True, methods=['post'], permission_classes=[require_granular_capability('VETERINARY_VITALS')])
-    def vitals(self, request, pk=None):
-        """
-        Save vitals for a Visit.
-        """
+    @action(detail=True, methods=['post'], url_path='record-vitals')
+    @permission_required('veterinary.vitals', 'create')
+    def record_vitals(self, request, pk=None):
         visit = self.get_object()
         try:
+            # 1. Save data
             DynamicEntityService.save_entity_data(
                 visit.clinic.id, 
                 visit.id, 
                 'VITALS', 
                 request.data
             )
-            producer.send_event('VITALS_UPDATED', {'visit_id': str(visit.id)})
-            return Response({'status': 'success'})
+            # 2. Transition
+            WorkflowService.transition_visit(visit, 'VITALS_RECORDED', user_role=get_auth_user_id(request))
+            return Response({'status': 'success', 'new_status': visit.status})
+        except ValueError as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'], url_path='assign-doctor')
+    @permission_required('veterinary.visits', 'edit')
+    def assign_doctor(self, request, pk=None):
+        visit = self.get_object()
+        doctor_id = request.data.get('doctor_id')
+        if not doctor_id:
+             return Response({'error': 'doctor_id is required'}, status=status.HTTP_400_BAD_REQUEST)
+             
+        try:
+            visit.assigned_doctor_auth_id = doctor_id
+            visit.save(update_fields=['assigned_doctor_auth_id'])
+            WorkflowService.transition_visit(visit, 'DOCTOR_ASSIGNED', user_role=get_auth_user_id(request))
+            return Response({'status': 'success', 'new_status': visit.status, 'assigned_doctor_auth_id': doctor_id})
+        except ValueError as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'], url_path='complete-consultation')
+    def complete_consultation(self, request, pk=None):
+        visit = self.get_object()
+        try:
+            WorkflowService.transition_visit(visit, 'CONSULTATION_DONE', user_role=get_auth_user_id(request))
+            return Response({'status': 'success', 'new_status': visit.status})
+        except ValueError as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'], url_path='finalize-prescription')
+    def finalize_prescription(self, request, pk=None):
+        visit = self.get_object()
+        try:
+            WorkflowService.transition_visit(visit, 'PRESCRIPTION_FINALIZED', user_role=get_auth_user_id(request))
+            return Response({'status': 'success', 'new_status': visit.status})
+        except ValueError as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'], url_path='finalize')
+    def finalize(self, request, pk=None):
+        """
+        Consolidated finalize endpoint for consultation.
+        Handles prescriptions, lab orders, vaccinations, deworming, and transition.
+        """
+        visit = self.get_object()
+        data = request.data
+        user_auth_id = get_auth_user_id(request)
+        
+        try:
+            with transaction.atomic():
+                # 1. Update Consultation Notes
+                notes = data.get('consultation_notes')
+                if notes:
+                    visit.consultation_notes = notes
+                    visit.save(update_fields=['consultation_notes'])
+
+                # 2. Handle Prescription
+                prescription_data = data.get('prescription')
+                if prescription_data and prescription_data.get('medicines'):
+                    MetadataService.submit_form(
+                        visit.id,
+                        'PRESCRIPTION',
+                        prescription_data,
+                        user_auth_id
+                    )
+
+                # 3. Handle Lab Order
+                lab_data = data.get('lab_order')
+                if lab_data and lab_data.get('tests'):
+                    MetadataService.submit_form(
+                        visit.id,
+                        'LAB_ORDER',
+                        lab_data,
+                        user_auth_id
+                    )
+
+                # 4. Handle Vaccinations
+                vaccinations_data = data.get('vaccinations', [])
+                for v in vaccinations_data:
+                    vaccine_name = v.get('vaccine_name')
+                    if vaccine_name:
+                        date_given = v.get('date_given')
+                        if isinstance(date_given, str):
+                            date_given = dateparse.parse_date(date_given)
+                        if not date_given:
+                            date_given = timezone.now().date()
+
+                        next_due = v.get('next_due_date')
+                        if isinstance(next_due, str):
+                            next_due = dateparse.parse_date(next_due)
+                        if not next_due:
+                            next_due = (timezone.now() + timedelta(days=365)).date()
+                            
+                        vaccination = Vaccination.objects.create(
+                            pet=visit.pet,
+                            vaccine_name=vaccine_name,
+                            date_given=date_given,
+                            next_due_date=next_due,
+                            notes=v.get('notes'),
+                            doctor_id=user_auth_id
+                        )
+                        # Auto-generate reminders
+                        if vaccination.next_due_date:
+                            next_due_date = vaccination.next_due_date
+                            SystemVaccinationReminder.objects.create(
+                                pet=vaccination.pet,
+                                pet_owner_id=vaccination.pet.owner.auth_user_id or "UNKNOWN",
+                                vaccine_name=vaccination.vaccine_name,
+                                next_due_date=next_due_date,
+                                reminder_date=next_due_date - timedelta(days=7),
+                                status='PENDING'
+                            )
+                            SystemVaccinationReminder.objects.create(
+                                pet=vaccination.pet,
+                                pet_owner_id=vaccination.pet.owner.auth_user_id or "UNKNOWN",
+                                vaccine_name=vaccination.vaccine_name,
+                                next_due_date=next_due_date,
+                                reminder_date=next_due_date - timedelta(days=1),
+                                status='PENDING'
+                            )
+
+                # 5. Handle Deworming
+                deworming_data = data.get('deworming')
+                if deworming_data and deworming_data.get('medicine_name'):
+                    date_given = deworming_data.get('date_given')
+                    if isinstance(date_given, str):
+                        date_given = dateparse.parse_date(date_given)
+                    if not date_given:
+                        date_given = timezone.now().date()
+
+                    next_due = deworming_data.get('next_due_date')
+                    if isinstance(next_due, str):
+                        next_due = dateparse.parse_date(next_due)
+                    if not next_due:
+                        next_due = (timezone.now() + timedelta(days=90)).date() # Default 90 days for deworming
+
+                    deworming = Deworming.objects.create(
+                        pet=visit.pet,
+                        medicine_name=deworming_data.get('medicine_name'),
+                        date_given=date_given,
+                        next_due_date=next_due,
+                        doctor_id=user_auth_id
+                    )
+                    # Auto-generate reminders
+                    if deworming.next_due_date:
+                        next_due_date = deworming.next_due_date
+                        SystemDewormingReminder.objects.create(
+                            pet=deworming.pet,
+                            pet_owner_id=deworming.pet.owner.auth_user_id or "UNKNOWN",
+                            medicine_name=deworming.medicine_name,
+                            next_due_date=next_due_date,
+                            reminder_date=next_due_date - timedelta(days=7),
+                            status='PENDING'
+                        )
+                        SystemDewormingReminder.objects.create(
+                            pet=deworming.pet,
+                            pet_owner_id=deworming.pet.owner.auth_user_id or "UNKNOWN",
+                            medicine_name=deworming.medicine_name,
+                            next_due_date=next_due_date,
+                            reminder_date=next_due_date - timedelta(days=1),
+                            status='PENDING'
+                        )
+
+                # 6. Final Status Transition
+                next_status = data.get('next_status')
+                if next_status:
+                    WorkflowService.transition_visit(visit, next_status, user_role=user_auth_id)
+
+            return Response({'status': 'success', 'new_status': visit.status})
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'], url_path='close-visit')
+    @permission_required('VETERINARY_CHECKOUT', 'edit')
+    def close_visit(self, request, pk=None):
+        visit = self.get_object()
+        try:
+            WorkflowService.transition_visit(visit, 'CLOSED', user_role=get_auth_user_id(request))
+            return Response({'status': 'success', 'new_status': visit.status})
         except ValueError as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -698,6 +984,46 @@ class PetOwnerClientViewSet(viewsets.ReadOnlyModelViewSet):
         )
         return Response(FormSubmissionSerializer(submissions, many=True).data)
 
+    @action(detail=False, methods=['get'])
+    def appointments(self, request):
+        """
+        GET /veterinary/pet-owner/appointments
+        """
+        user_id = get_auth_user_id(request)
+        appointments = MedicalAppointment.objects.filter(
+            pet__owner__auth_user_id=user_id
+        ).order_by('-appointment_date', '-start_time')
+        
+        from .serializers import MedicalAppointmentSerializer
+        return Response(MedicalAppointmentSerializer(appointments, many=True).data)
+
+    @action(detail=False, methods=['get'])
+    def reminders(self, request):
+        """
+        GET /veterinary/pet-owner/reminders
+        Returns all medicine reminders for this owner.
+        """
+        user_id = get_auth_user_id(request)
+        reminders = MedicineReminder.objects.filter(pet_owner_auth_id=user_id)
+        return Response(MedicineReminderSerializer(reminders, many=True).data)
+
+    @action(detail=False, methods=['get'])
+    def schedules(self, request):
+        """
+        GET /veterinary/pet-owner/schedules
+        Returns all schedule entries for this owner. 
+        Supports ?date=YYYY-MM-DD
+        """
+        user_id = get_auth_user_id(request)
+        date_param = request.query_params.get('date')
+        
+        queryset = MedicineReminderSchedule.objects.filter(reminder__pet_owner_auth_id=user_id)
+        
+        if date_param:
+            queryset = queryset.filter(scheduled_datetime__date=date_param)
+            
+        return Response(MedicineReminderScheduleSerializer(queryset, many=True).data)
+
 class FormDefinitionViewSet(viewsets.ModelViewSet):
     serializer_class = FormDefinitionSerializer
     permission_classes = [permissions.IsAuthenticated, HasVeterinaryAccess]
@@ -778,26 +1104,83 @@ class PharmacyViewSet(viewsets.ViewSet):
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-class ReminderViewSet(viewsets.ViewSet):
+class MedicineReminderViewSet(viewsets.ModelViewSet):
+    serializer_class = MedicineReminderSerializer
     permission_classes = [permissions.IsAuthenticated, HasVeterinaryAccess]
 
-    @action(detail=True, methods=['post'], permission_classes=[require_granular_capability('VETERINARY_MEDICINE_REMINDERS')])
-    def confirm(self, request, pk=None):
-        """
-        Confirm a reminder (mark as COMPLETED).
-        """
-        clinic_id = get_clinic_context(request)
+    def get_queryset(self):
+        clinic_id = get_clinic_context(self.request)
         if not clinic_id:
-             return Response({'error': 'No clinic context found'}, status=status.HTTP_400_BAD_REQUEST)
+            return MedicineReminder.objects.none()
+        
+        # Determine if we are on pet owner side or clinic staff side
+        user_role = getattr(self.request.user, 'role', '').upper()
+        if user_role == 'PET_OWNER':
+            return MedicineReminder.objects.filter(pet__owner__auth_user_id=self.request.user.id)
+        
+        return MedicineReminder.objects.filter(pet__owner__clinic_id=clinic_id)
 
-        try:
-            # Secure by ensuring reminder belongs to clinic
-            reminder = MedicationReminder.objects.get(id=pk, visit__clinic_id=clinic_id)
-            reminder.status = 'COMPLETED'
-            reminder.save()
-            return Response({'status': 'success'})
-        except MedicationReminder.DoesNotExist:
-            return Response({'error': 'Reminder not found in this clinic'}, status=status.HTTP_404_NOT_FOUND)
+    def perform_create(self, serializer):
+        serializer.save(created_by_auth_id=get_auth_user_id(self.request))
+
+    @action(detail=False, methods=['get'])
+    def today(self, request):
+        """
+        GET /api/veterinary/medicine-reminders/today
+        Returns today's pending/actual doses for current user.
+        """
+        from django.utils import timezone
+        today = timezone.now().date()
+        user_id = get_auth_user_id(request)
+        
+        # Filter schedules for today belonging to this user's pets
+        schedules = MedicineReminderSchedule.objects.filter(
+            scheduled_datetime__date=today,
+            reminder__pet_owner_auth_id=user_id
+        ).select_related('reminder', 'reminder__medicine', 'reminder__pet')
+        
+        return Response(MedicineReminderScheduleSerializer(schedules, many=True).data)
+
+class MedicineReminderScheduleViewSet(viewsets.ModelViewSet):
+    serializer_class = MedicineReminderScheduleSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user_id = get_auth_user_id(self.request)
+        return MedicineReminderSchedule.objects.filter(reminder__pet_owner_auth_id=user_id)
+
+    @action(detail=True, methods=['post'])
+    def taken(self, request, pk=None):
+        """
+        POST /api/veterinary/medicine-reminders/{id}/taken
+        """
+        from django.utils import timezone
+        schedule = self.get_object()
+        schedule.status = 'TAKEN'
+        schedule.taken_at = timezone.now()
+        schedule.save()
+        return Response({'status': 'success'})
+
+# Alias for backward compatibility if needed in URLs
+ReminderViewSet = MedicineReminderViewSet
+
+class LabTestTemplateViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing clinical lab templates (e.g. CBC, KFT).
+    """
+    serializer_class = LabTestTemplateSerializer
+    permission_classes = [permissions.IsAuthenticated, HasVeterinaryAccess]
+
+    def get_queryset(self):
+        # In a real SaaS, we'd filter by clinic_id or show globals
+        return LabTestTemplate.objects.filter(is_active=True)
+
+class LabTestFieldViewSet(viewsets.ModelViewSet):
+    serializer_class = LabTestFieldSerializer
+    permission_classes = [permissions.IsAuthenticated, HasVeterinaryAccess]
+
+    def get_queryset(self):
+        return LabTestField.objects.all()
 
 class DynamicFieldDefinitionViewSet(viewsets.ModelViewSet):
     serializer_class = DynamicFieldDefinitionSerializer
@@ -1152,6 +1535,48 @@ class MedicalAppointmentViewSet(viewsets.ModelViewSet):
 
         return Response(slots)
 
+    @action(detail=False, methods=['get'])
+    def today_online(self, request):
+        """
+        Fetch today's ONLINE appointments for the logged-in doctor.
+        """
+        clinic_id = get_clinic_context(request)
+        doctor_auth_id = get_auth_user_id(request)
+        
+        from django.utils import timezone
+        today = timezone.now().date()
+        
+        appointments = MedicalAppointment.objects.filter(
+            clinic_id=clinic_id,
+            doctor__staff__auth_user_id=doctor_auth_id,
+            appointment_date=today,
+            consultation_mode='ONLINE'
+        ).order_by('start_time')
+        
+        return Response(MedicalAppointmentSerializer(appointments, many=True).data)
+
+    @action(detail=False, methods=['post'])
+    def doctor_status(self, request):
+        """
+        Toggle doctor's online availability status.
+        Body: { "available": true }
+        """
+        clinic_id = get_clinic_context(request)
+        doctor_auth_id = get_auth_user_id(request)
+        
+        is_available = request.data.get('available', False)
+        
+        # In a real system, you might have multiple assignments, this updates the active one for the clinic
+        updated = StaffClinicAssignment.objects.filter(
+            clinic_id=clinic_id,
+            staff__auth_user_id=doctor_auth_id,
+            is_active=True
+        ).update(is_online_available=is_available)
+        
+        if updated:
+            return Response({"status": "success", "available": is_available})
+        return Response({"error": "Staff assignment not found"}, status=404)
+
     @action(detail=True, methods=['post'], url_path='check-in')
     def check_in(self, request, pk=None):
         """
@@ -1434,6 +1859,23 @@ class PrescriptionViewSet(viewsets.ModelViewSet):
             return Prescription.objects.filter(visit__clinic_id=clinic_id).order_by('-created_at')
         return Prescription.objects.none()
 
+    @action(detail=True, methods=['post'], url_path='upload_prescription')
+    def upload_prescription(self, request, pk=None):
+        """
+        Uploads a PDF prescription file.
+        Body: FormData with 'prescription_file'
+        """
+        prescription = self.get_object()
+        file = request.FILES.get('prescription_file')
+        
+        if not file:
+            return Response({"error": "No file provided"}, status=400)
+            
+        prescription.prescription_file = file
+        prescription.save()
+        
+        return Response({"status": "success", "file_url": prescription.prescription_file.url})
+
 class PharmacyTransactionViewSet(viewsets.ModelViewSet):
     """Audit log of medicines dispensed."""
     queryset = PharmacyTransaction.objects.all()
@@ -1470,7 +1912,7 @@ class VisitInvoiceViewSet(viewsets.ModelViewSet):
     """Consolidated billing invoices."""
     queryset = VisitInvoice.objects.all()
     serializer_class = VisitInvoiceSerializer
-    permission_classes = [permissions.IsAuthenticated, HasVeterinaryAccess]
+    permission_classes = [permissions.IsAuthenticated, HasVeterinaryAccess, VeterinaryCheckoutPermission]
 
     def get_queryset(self):
         clinic_id = get_clinic_context(self.request)
@@ -1718,3 +2160,372 @@ class PreVisitFormViewSet(viewsets.ModelViewSet):
             form.submitted_at = timezone.now()
             form.save()
             return Response({"message": "Check-in successful. Thank you!"})
+
+# ==========================================
+# PHASE 7: VACCINATION & DEWORMING REMINDER SYSTEM VIEWSETS
+# ==========================================
+
+from .models import Vaccination, SystemVaccinationReminder, Deworming, SystemDewormingReminder
+from .serializers import (
+    VaccinationSerializer, SystemVaccinationReminderSerializer, 
+    DewormingSerializer, SystemDewormingReminderSerializer
+)
+from datetime import timedelta
+
+class SystemVaccinationReminderViewSet(viewsets.ModelViewSet):
+    queryset = SystemVaccinationReminder.objects.all()
+    serializer_class = SystemVaccinationReminderSerializer
+    permission_classes = [permissions.IsAuthenticated, HasVeterinaryAccess]
+
+    def get_queryset(self):
+        clinic_id = get_clinic_context(self.request)
+        if clinic_id:
+            return SystemVaccinationReminder.objects.filter(pet__owner__clinic_id=clinic_id).order_by('reminder_date')
+        return SystemVaccinationReminder.objects.none()
+
+class VaccinationViewSet(viewsets.ModelViewSet):
+    queryset = Vaccination.objects.all()
+    serializer_class = VaccinationSerializer
+    permission_classes = [permissions.IsAuthenticated, HasVeterinaryAccess]
+
+    def get_queryset(self):
+        clinic_id = get_clinic_context(self.request)
+        if clinic_id:
+            qs = Vaccination.objects.filter(pet__owner__clinic_id=clinic_id).order_by('-date_given')
+            pet_id = self.request.query_params.get('pet_id')
+            if pet_id:
+                qs = qs.filter(pet_id=pet_id)
+            return qs
+        return Vaccination.objects.none()
+
+    def perform_create(self, serializer):
+        user_auth_id = str(self.request.user.id)
+        if hasattr(self.request.auth, 'get'):
+             user_auth_id = self.request.auth.get('user_id') or user_auth_id
+             
+        vaccination = serializer.save(doctor_id=user_auth_id)
+        
+        # Automatically generate reminders (7 days and 1 day before)
+        if vaccination.next_due_date:
+            SystemVaccinationReminder.objects.create(
+                pet=vaccination.pet,
+                pet_owner_id=vaccination.pet.owner.auth_user_id or "UNKNOWN",
+                vaccine_name=vaccination.vaccine_name,
+                next_due_date=vaccination.next_due_date,
+                reminder_date=vaccination.next_due_date - timedelta(days=7),
+                status='PENDING'
+            )
+            SystemVaccinationReminder.objects.create(
+                pet=vaccination.pet,
+                pet_owner_id=vaccination.pet.owner.auth_user_id or "UNKNOWN",
+                vaccine_name=vaccination.vaccine_name,
+                next_due_date=vaccination.next_due_date,
+                reminder_date=vaccination.next_due_date - timedelta(days=1),
+                status='PENDING'
+            )
+
+class SystemDewormingReminderViewSet(viewsets.ModelViewSet):
+    queryset = SystemDewormingReminder.objects.all()
+    serializer_class = SystemDewormingReminderSerializer
+    permission_classes = [permissions.IsAuthenticated, HasVeterinaryAccess]
+
+    def get_queryset(self):
+        clinic_id = get_clinic_context(self.request)
+        if clinic_id:
+            return SystemDewormingReminder.objects.filter(pet__owner__clinic_id=clinic_id).order_by('reminder_date')
+        return SystemDewormingReminder.objects.none()
+
+class DewormingViewSet(viewsets.ModelViewSet):
+    queryset = Deworming.objects.all()
+    serializer_class = DewormingSerializer
+    permission_classes = [permissions.IsAuthenticated, HasVeterinaryAccess]
+
+    def get_queryset(self):
+        clinic_id = get_clinic_context(self.request)
+        if clinic_id:
+            qs = Deworming.objects.filter(pet__owner__clinic_id=clinic_id).order_by('-date_given')
+            pet_id = self.request.query_params.get('pet_id')
+            if pet_id:
+                qs = qs.filter(pet_id=pet_id)
+            return qs
+        return Deworming.objects.none()
+
+    def perform_create(self, serializer):
+        user_auth_id = str(self.request.user.id)
+        if hasattr(self.request.auth, 'get'):
+             user_auth_id = self.request.auth.get('user_id') or user_auth_id
+             
+        deworming = serializer.save(doctor_id=user_auth_id)
+        
+        # Automatically generate reminders (7 days and 1 day before)
+        if deworming.next_due_date:
+            SystemDewormingReminder.objects.create(
+                pet=deworming.pet,
+                pet_owner_id=deworming.pet.owner.auth_user_id or "UNKNOWN",
+                medicine_name=deworming.medicine_name,
+                next_due_date=deworming.next_due_date,
+                reminder_date=deworming.next_due_date - timedelta(days=7),
+                status='PENDING'
+            )
+            SystemDewormingReminder.objects.create(
+                pet=deworming.pet,
+                pet_owner_id=deworming.pet.owner.auth_user_id or "UNKNOWN",
+                medicine_name=deworming.medicine_name,
+                next_due_date=deworming.next_due_date,
+                reminder_date=deworming.next_due_date - timedelta(days=1),
+                status='PENDING'
+            )
+
+
+# ========================
+# PHASE 7: DASHBOARD APIs
+# ========================
+
+class DashboardViewSet(viewsets.ViewSet):
+    """
+    Aggregate Clinic Analytics for Real-time Dashboard.
+    """
+    permission_classes = [permissions.IsAuthenticated, HasVeterinaryAccess]
+
+    @action(detail=False, methods=['get'])
+    def metrics(self, request):
+        clinic_id = get_clinic_context(request)
+        if not clinic_id:
+            return Response({"detail": "Clinic context missing."}, status=400)
+            
+        date_param = request.query_params.get('date')
+        service_id = request.query_params.get('service_id')
+        
+        metrics = ClinicAnalyticsService.get_dashboard_metrics(
+            clinic_id=clinic_id,
+            date_param=date_param,
+            service_id=service_id
+        )
+        
+        return Response(metrics)
+
+    @action(detail=False, methods=['get'])
+    def live_summary(self, request):
+        clinic_id = get_clinic_context(request)
+        if not clinic_id:
+            return Response({"detail": "Clinic context missing."}, status=400)
+            
+        date_param = request.query_params.get('date')
+        summary = ClinicAnalyticsService.get_live_summary(
+            clinic_id=clinic_id,
+            date_param=date_param
+        )
+        return Response(summary)
+
+# ========================
+# SAAS PHARMACY ORDER FULFILLMENT VIEWSET
+# ========================
+
+class PharmacyOrderViewSet(viewsets.ViewSet):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def _get_order_data(self, order):
+        items = []
+        for item in order.items.select_related('medicine').all():
+            items.append({
+                'id': str(item.id),
+                'medicine_id': str(item.medicine.id),
+                'medicine_name': item.medicine.name,
+                'quantity_prescribed': float(item.quantity_prescribed),
+                'quantity_dispensed': float(item.quantity_dispensed),
+                'unit_price': float(item.unit_price),
+                'available_stock': float(item.medicine.stock_quantity),
+                'is_available': item.is_available,
+            })
+        return {
+            'id': str(order.id),
+            'pet_name': order.pet_name,
+            'owner_name': order.owner_name,
+            'owner_phone': order.owner_phone,
+            'owner_email': order.owner_email,
+            'status': order.status,
+            'total_amount': float(order.total_amount),
+            'created_at': order.created_at.isoformat(),
+            'completed_at': order.completed_at.isoformat() if order.completed_at else None,
+            'items': items,
+        }
+
+    def list(self, request):
+        from .models import PharmacyOrder
+        clinic_id = get_clinic_context(request)
+        qs = PharmacyOrder.objects.filter(
+            clinic_id=clinic_id
+        ).exclude(status='COMPLETED').order_by('-created_at').prefetch_related('items__medicine')
+        return Response([self._get_order_data(o) for o in qs])
+
+    def retrieve(self, request, pk=None):
+        from .models import PharmacyOrder
+        try:
+            order = PharmacyOrder.objects.prefetch_related('items__medicine').get(id=pk)
+            return Response(self._get_order_data(order))
+        except PharmacyOrder.DoesNotExist:
+            return Response({'error': 'Order not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    @action(detail=True, methods=['post'], url_path='check-stock')
+    def check_stock(self, request, pk=None):
+        from .services import PharmacyFulfillmentService
+        try:
+            order = PharmacyFulfillmentService.check_stock(pk, get_auth_user_id(request))
+            return Response(self._get_order_data(order))
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'], url_path='partial-approve')
+    def partial_approve(self, request, pk=None):
+        from .services import PharmacyFulfillmentService
+        try:
+            quantities = request.data.get('quantities', {})
+            order = PharmacyFulfillmentService.approve_partial(pk, quantities, get_auth_user_id(request))
+            return Response(self._get_order_data(order))
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'], url_path='send-otp')
+    def send_otp(self, request, pk=None):
+        from .services import PharmacyFulfillmentService
+        try:
+            otp = PharmacyFulfillmentService.send_otp(pk, get_auth_user_id(request))
+            # In dev/testing, we expose the OTP in the response. Remove in prod.
+            return Response({'message': 'OTP sent', 'dev_otp': otp.otp_code})
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=['post'], url_path='verify-otp')
+    def verify_otp(self, request):
+        from .services import PharmacyFulfillmentService
+        try:
+            order_id = request.data.get('order_id')
+            otp_code = request.data.get('otp_code')
+            order = PharmacyFulfillmentService.verify_otp(order_id, otp_code, get_auth_user_id(request))
+            return Response(self._get_order_data(order))
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'], url_path='complete')
+    def complete(self, request, pk=None):
+        from .services import PharmacyFulfillmentService
+        try:
+            order = PharmacyFulfillmentService.complete_order(pk, get_auth_user_id(request))
+            return Response(self._get_order_data(order))
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'], url_path='add-medicine')
+    def add_medicine(self, request, pk=None):
+        """Add a medicine item to a PENDING pharmacy order."""
+        from .models import PharmacyOrder, PharmacyOrderItem, Medicine
+        try:
+            order = PharmacyOrder.objects.get(id=pk)
+            if order.status not in ['PENDING', 'STOCK_CHECKED']:
+                return Response({'error': 'Can only add medicines to PENDING or STOCK_CHECKED orders.'}, status=400)
+
+            medicine_name = request.data.get('medicine_name', '').strip()
+            quantity = float(request.data.get('quantity', 1))
+            unit_price = float(request.data.get('unit_price', 0))
+
+            med = Medicine.objects.filter(
+                clinic=order.clinic, name__iexact=medicine_name, is_active=True
+            ).first()
+            if not med:
+                # Create a placeholder medicine in the clinic catalog
+                med = Medicine.objects.create(
+                    clinic=order.clinic,
+                    name=medicine_name,
+                    stock_quantity=0,
+                    unit_price=unit_price or 0,
+                )
+
+            item, created = PharmacyOrderItem.objects.get_or_create(
+                order=order, medicine=med,
+                defaults={'quantity_prescribed': quantity, 'unit_price': unit_price}
+            )
+            if not created:
+                item.quantity_prescribed = quantity
+                item.unit_price = unit_price
+                item.save()
+
+            # Reset order to PENDING so stock check runs again
+            if order.status == 'STOCK_CHECKED':
+                order.status = 'PENDING'
+                order.save()
+
+            return Response(self._get_order_data(order))
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['delete'], url_path='remove-medicine/(?P<item_id>[^/.]+)')
+    def remove_medicine(self, request, pk=None, item_id=None):
+        """Remove a medicine item from a PENDING pharmacy order."""
+        from .models import PharmacyOrder, PharmacyOrderItem
+        try:
+            order = PharmacyOrder.objects.get(id=pk)
+            if order.status not in ['PENDING', 'STOCK_CHECKED']:
+                return Response({'error': 'Can only remove medicines from PENDING orders.'}, status=400)
+            PharmacyOrderItem.objects.filter(id=item_id, order=order).delete()
+            return Response(self._get_order_data(order))
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+class MedicineViewSet(viewsets.ModelViewSet):
+    serializer_class = MedicineSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        clinic_id = get_clinic_context(self.request)
+        if not clinic_id:
+            return Medicine.objects.none()
+        return Medicine.objects.filter(clinic_id=clinic_id).prefetch_related('batches')
+
+    def perform_create(self, serializer):
+        clinic_id = self.request.data.get('clinic_id') or get_clinic_context(self.request)
+        serializer.save(clinic_id=clinic_id)
+
+    @action(detail=False, methods=['get'], url_path='low-stock')
+    def low_stock(self, request):
+        clinic_id = get_clinic_context(request)
+        if not clinic_id:
+            return Response({'error': 'clinic_id required'}, status=400)
+        # Filter where stock_quantity <= low_stock_threshold
+        medicines = Medicine.objects.filter(
+            clinic_id=clinic_id,
+            stock_quantity__lte=models.F('low_stock_threshold')
+        )
+        return Response(MedicineSerializer(medicines, many=True).data)
+
+class MedicineBatchViewSet(viewsets.ModelViewSet):
+    serializer_class = MedicineBatchSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = MedicineBatch.objects.all()
+        medicine_id = self.request.query_params.get('medicine_id')
+        clinic_id = get_clinic_context(self.request)
+        
+        if medicine_id:
+            queryset = queryset.filter(medicine_id=medicine_id)
+        if clinic_id:
+            queryset = queryset.filter(medicine__clinic_id=clinic_id)
+            
+        if not medicine_id and not clinic_id:
+            return MedicineBatch.objects.none()
+            
+        return queryset
+
+    @action(detail=False, methods=['get'], url_path='expiring-soon')
+    def expiring_soon(self, request):
+        clinic_id = get_clinic_context(request)
+        if not clinic_id:
+            return Response({'error': 'clinic_id required'}, status=400)
+        days = int(request.query_params.get('days', 30))
+        from django.utils import timezone
+        cutoff = timezone.now().date() + timezone.timedelta(days=days)
+        batches = MedicineBatch.objects.filter(
+            medicine__clinic_id=clinic_id,
+            expiry_date__lte=cutoff,
+            current_quantity__gt=0
+        ).select_related('medicine')
+        return Response(MedicineBatchSerializer(batches, many=True).data)

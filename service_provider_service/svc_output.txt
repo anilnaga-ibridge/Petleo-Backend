@@ -1,0 +1,125 @@
+
+Service: Veterinary (ID: 2dff446f-c95f-4310-ba4d-05e3395dd7eb)
+------------------------------------------------------------------------------------------------------------------------
+  Category Name                          | Linked Cap                     | Admin ID
+  Reception Desk                         | VETERINARY_VISITS              | VET_CAT_VETERINARY_VISITS
+  Nurse Station                          | VETERINARY_VITALS              | VET_CAT_VETERINARY_VITALS
+  Laboratory                             | VETERINARY_LABS                | VET_CAT_VETERINARY_LABS
+  veterinary_pharmacy                    | VETERINARY_PHARMACY            | VET_CAT_VETERINARY_PHARMACY
+  Schedule                               | VETERINARY_SCHEDULE            | VET_CAT_VETERINARY_SCHEDULE
+  veterinary_doctor                      | VETERINARY_DOCTOR              | VET_CAT_VETERINARY_DOCTOR
+  veterinary_doctor                      | VETERINARY_DOCTOR              | 34857c1d-7f37-4c16-b989-378ddb127ad5
+  Reception Desk                         | VETERINARY_VISITS              | f0e16151-1dd9-409e-9f62-832c1d455cae
+  Nurse Station                          | VETERINARY_VITALS              | 7dae55eb-1bbe-4249-bb35-cb8a201e2f67
+  Laboratory                             | VETERINARY_LABS                | bf255bf5-ffe7-4d27-a4ad-0d5c39a04bee
+  Medicine Reminders                     | VETERINARY_MEDICINE_REMINDERS  | 6a2f2625-c277-43ae-b5d3-ac9e67974d27
+  veterinary_pharmacy                    | VETERINARY_PHARMACY            | 7f29f495-d3af-447c-ad03-b51a82940133
+
+Service: Grooming (ID: 8da6c82b-2136-4a14-9670-2973682107a6)
+------------------------------------------------------------------------------------------------------------------------
+  Category Name                          | Linked Cap                     | Admin ID
+  drgf                                   | None                           | d155e7a6-62f5-4a43-a385-7cd2d817770b
+  Bathing                                | None                           | 2c7b32f1-6e51-4c71-bf51-72518eddf996
+
+Service: Pet Day Care (ID: fe211d28-6f8c-4712-b92c-4dee3e531abb)
+------------------------------------------------------------------------------------------------------------------------
+  Category Name                          | Linked Cap                     | Admin ID
+  Full Day Care                          | None                           | 2a75a983-2bc1-4d08-b8d9-ddda73da3516
+  Weekly Package                         | None                           | 35dd36de-067f-4a8d-9127-dcabce17056d
+  Half Day Care                          | None                           | 847047e0-801c-45d8-9a9e-51408e90fc8b
+
+Service: hgcvghvhvg (ID: f064a9ab-1b63-4234-bbc5-ddab93f3f868)
+------------------------------------------------------------------------------------------------------------------------
+  Category Name                          | Linked Cap                     | Admin ID
+  ghfdxsred                              | None                           | 58db63a0-1a3c-4daf-9595-70b351360f48
+
+Service: Boarding (ID: 46abbf1d-cb3a-4899-9cd6-f66eb10070c2)
+------------------------------------------------------------------------------------------------------------------------
+  Category Name                          | Linked Cap                     | Admin ID
+  Short-Term Boarding                    | None                           | 21530ab6-eb8e-4bcf-912c-fe3e485b876b
+  Long-Term Boarding                     | None                           | 6576d394-6d57-48e8-875f-81aa2de5aff7
+  Luxury Boarding                        | None                           | 05c60dfc-45d2-49cf-83cf-76375de09a77
+
+Service: Daycare (ID: 2170653c-9de5-4f61-b1ca-35b1a0439b17)
+------------------------------------------------------------------------------------------------------------------------
+  Category Name                          | Linked Cap                     | Admin ID
+  Puppy Day Care                         | None                           | 2e9da8d4-9747-41a7-8bf4-96e4df658070
+  Small Breed Dog Day Care               | None                           | 2e3ace4c-ed69-4be2-84e1-4a302ef1c411
+  jhdvcytwdg                             | None                           | b8e2bd36-071c-4893-acd7-39a5200130f3
+
+Service: Grooming (ID: 711fac84-16dc-4252-b7e3-6afb7ee57c71)
+------------------------------------------------------------------------------------------------------------------------
+  Category Name                          | Linked Cap                     | Admin ID
+  Hair Cut                               | None                           | 999d6284-d8b5-4577-b000-1e51cc4ac5fa
+  Nial Cutting                           | None                           | e3c49920-e626-4d3d-904d-e8dbe69cb3f6
+  Bath & Brush                           | GROOMING_BATH                  | CAT_GROOMING_BATH
+  Full Haircut                           | GROOMING_HAIRCUT               | CAT_GROOMING_HAIRCUT
+  Nail Trim                              | GROOMING_NAILS                 | CAT_GROOMING_NAILS
+
+Service: Pet Spa (ID: 1240489e-1aea-4877-8fcb-42a1e350fba5)
+------------------------------------------------------------------------------------------------------------------------
+  Category Name                          | Linked Cap                     | Admin ID
+  Luxury Spa                             | None                           | 240a2866-5510-45fd-8aba-a7633e089f14
+  Aroma Therapy                          | None                           | 1de275b6-6619-47ad-a487-07558a43d793
+  Relaxation Spa                         | None                           | bcf03126-d631-44be-af44-19a4935f794e
+  Paw Care                               | None                           | 6c0007cf-53a0-4cb3-955e-495d6af157d4
+  Therapeutic Spa                        | None                           | 4b825f3a-2814-4577-9ca0-b40e3eba45f4
+
+Service: Veterinary Management (ID: 58409ace-6cd4-468d-a6d9-616792cbbd2e)
+------------------------------------------------------------------------------------------------------------------------
+  Category Name                          | Linked Cap                     | Admin ID
+  VETERINARY_ONLINE_CONSULT              | None                           | bcd444c4-9136-4a70-85d7-d8dbee4c3a63
+  VETERINARY_OFFLINE_VISIT               | None                           | d0a588a1-e4a1-4428-80dd-51a0a82db3cf
+  VETERINARY_MEDICINE_REMINDERS          | None                           | e0b6859f-8eb1-46d4-a9e4-6d58474a784a
+  VETERINARY_VACCINES                    | None                           | f063db79-dd22-4742-94c5-1d75fdfff9bf
+  VETERINARY_CORE                        | None                           | a92bb447-0581-4908-a371-0c2db49739a4
+  VETERINARY_VISITS                      | None                           | 831d48ab-6f22-44be-acf0-8e0332f7d728
+  VETERINARY_VITALS                      | None                           | b09fc06a-f489-4f69-a2b3-badf0934b852
+  VETERINARY_LABS                        | None                           | ae5356a6-08e9-43bc-a002-f701e4c7023d
+  veterinary_pharmacy                    | VETERINARY_PHARMACY            | 34dee3da-50ed-4b39-853f-642836d0161b
+  veterinary_doctor                      | VETERINARY_DOCTOR              | 4e320dbb-8e93-4464-b195-69e128e71de8
+
+Service: Training (ID: 7ce1a0c2-50f0-40fe-a82f-df6767fcf91e)
+------------------------------------------------------------------------------------------------------------------------
+  Category Name                          | Linked Cap                     | Admin ID
+  dfgd                                   | None                           | e5088946-69fe-4047-9e82-b28b94450f55
+  Basic Training                         | None                           | 9c1f40c4-c3a4-4202-988a-92831ac1052a
+
+Service: Pet Walking & Sitting (ID: c9cd0763-aab4-4a2a-a71f-44ff99264a8b)
+------------------------------------------------------------------------------------------------------------------------
+  Category Name                          | Linked Cap                     | Admin ID
+  Home Pet Sitting                       | None                           | f09cd251-2790-4744-a23e-094bbe8ca0cb
+  Overnight Sitting                      | None                           | 80214751-4907-4510-9ff0-1e0160728b07
+
+Service: Pet Adoption & Rescue (ID: e8107ce6-bb78-4bf3-9f47-9306496bcd11)
+------------------------------------------------------------------------------------------------------------------------
+  Category Name                          | Linked Cap                     | Admin ID
+  Rescue Services                        | None                           | 8182d093-f9c0-4e36-bf13-c12c105f7661
+  Foster Care                            | None                           | 0b3f80c2-d055-4b78-9140-7b273a6772ee
+
+Service: Pet Retail & Supplies (ID: 4fe2290b-0d07-4598-a6d8-585a9b22e819)
+------------------------------------------------------------------------------------------------------------------------
+  Category Name                          | Linked Cap                     | Admin ID
+  Pet Food                               | None                           | 6c63b1bb-3dc5-4d19-928d-0f521b613fdb
+  Toys                                   | None                           | 8f04417d-2767-4ed7-83ce-699ea0dc7751
+
+Service: wdf (ID: 5ec07d87-902a-4327-9386-2774e910bd58)
+------------------------------------------------------------------------------------------------------------------------
+  Category Name                          | Linked Cap                     | Admin ID
+  adsf                                   | None                           | 01852621-2c7d-42f0-ab56-308250d8ed68
+
+Service: DayCare (ID: 013a72ea-5fb8-4597-922e-6a67dc49168a)
+------------------------------------------------------------------------------------------------------------------------
+  Category Name                          | Linked Cap                     | Admin ID
+  dfs                                    | None                           | f6c39a02-3ee9-409c-ae12-b14987a66414
+
+Service: Training (ID: c9fd149a-0f68-4a0b-8167-7b20731ce429)
+------------------------------------------------------------------------------------------------------------------------
+  Category Name                          | Linked Cap                     | Admin ID
+  dscsad                                 | None                           | ef45d240-a5f5-41c2-a426-d5c3d174114f
+
+Service: Grooming (ID: fa4df47d-21df-48a7-a287-6232faf3eaf2)
+------------------------------------------------------------------------------------------------------------------------
+  Category Name                          | Linked Cap                     | Admin ID
+  Hair Cutting                           | None                           | 26e95b06-1799-4bf0-bf3e-d3d5b5f6fc8b
+  Bathing                                | None                           | fb056b9f-1a5f-4330-9990-0f84bcbfef3f

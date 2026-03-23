@@ -42,7 +42,7 @@ from .views import (
     UserViewSet,ResendOTPView,RoleViewSet,PermissionViewSet, SetPinView,
     LoginWithPinView,
     ResetPinView,ChangePinView,EmailTemplateViewSet, SendManualEmailView,CheckSessionView,
-    CheckPinLengthView,
+    CheckPinLengthView, InternalUserByPhoneView
 )
 router = DefaultRouter()
 router.register(r'users', UserViewSet, basename='user')
@@ -82,6 +82,9 @@ urlpatterns = [
     
     path('email/send-manual/', SendManualEmailView.as_view(), name='send-manual-email'),
     # Manual email sending endpoint
+    
+    # Internal inter-service integration endpoint
+    path('api/auth/internal/user-by-phone/', InternalUserByPhoneView.as_view(), name='internal-user-by-phone'),
     
     
     

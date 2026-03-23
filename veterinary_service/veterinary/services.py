@@ -1,5 +1,6 @@
 import uuid
 import json
+from datetime import timedelta
 import urllib.request
 import urllib.error
 from django.db import transaction, models
@@ -8,7 +9,7 @@ from django.utils import timezone
 from .models import (
     DynamicFieldDefinition, DynamicFieldValue, Clinic, Visit,
     FormDefinition, FormField, FieldValidation, FormSubmission,
-    PharmacyDispense, MedicationReminder, VeterinaryAuditLog,
+    PharmacyDispense, MedicineReminder, VeterinaryAuditLog,
     MedicalAppointment, Pet, StaffClinicAssignment
 )
 from .events import (
@@ -85,10 +86,20 @@ class VisitQueueService:
         Returns a filtered QuerySet of visits based on the queue name.
         Strictly status-driven.
         """
-        base_qs = Visit.objects.filter(clinic_id=clinic_id).select_related('pet', 'pet__owner').order_by('priority', 'created_at')
+        # Map priority to integers to enforce correct sort order: P1 (1) > P2 (2) > P3 (3)
+        base_qs = Visit.objects.filter(clinic_id=clinic_id).select_related('pet', 'pet__owner').annotate(
+            priority_score=Case(
+                When(priority='P1', then=Value(1)),
+                When(priority='P2', then=Value(2)),
+                When(priority='P3', then=Value(3)),
+                default=Value(4),
+                output_field=IntegerField(),
+            )
+        ).order_by('priority_score', 'queue_entered_at')
         
         if queue_name == 'WAITING_ROOM':
-            return base_qs.filter(status__in=['CREATED'])
+            # [SENIOR DEV FIX] WAITING_ROOM includes both Expected (CREATED) and Arrived (CHECKED_IN)
+            return base_qs.filter(status__in=['CREATED', 'CHECKED_IN'])
             
         elif queue_name == 'VITALS_QUEUE':
             from django.utils import timezone
@@ -148,15 +159,18 @@ class VisitQueueService:
 
             qs = qs.annotate(
                 sort_order=Case(
-                    When(status='VITALS_RECORDED', then=Value(1)),
-                    When(status='DOCTOR_ASSIGNED', then=Value(2)),
-                    When(status='LAB_COMPLETED', then=Value(3)),
-                    When(status='PRESCRIPTION_FINALIZED', then=Value(4)),
-                    When(status='CHECKED_IN', then=Value(5)), # Waiting for Vitals
+                    When(status='VITALS_RECORDED', then=Value(1)), # Ready for consultation
+                    When(status='CHECKED_IN', then=Value(2)),      # Pushed by receptionist directly to doctor optionally
+                    When(status='LAB_COMPLETED', then=Value(3)),   # Needs review to write prescription
+                    When(status='LAB_REQUESTED', then=Value(4)),   # Pending action from others
+                    When(status='DOCTOR_ASSIGNED', then=Value(5)), # Generic acknowledged state
                     default=Value(10),
                     output_field=IntegerField(),
                 )
-            ).order_by('priority', 'sort_order', 'created_at')
+            ).order_by('priority_score', 'sort_order', 'queue_entered_at')
+            
+            # [Fix] Optionally filter by doctor if the request is for a specific person's queue
+            # Assuming we can inspect context or we do it down the line. We will skip filtering here to let Frontend filter `doctor_id`.
             return qs
 
         elif queue_name == 'LAB_QUEUE':
@@ -173,25 +187,33 @@ class VisitQueueService:
             
             return base_qs.filter(id__in=pending_visit_ids).exclude(status='CLOSED').distinct()
         elif queue_name == 'NURSE_QUEUE':
-            return base_qs.filter(status='MEDICINES_DISPENSED')
+            return base_qs.filter(status__in=['PRESCRIPTION_FINALIZED', 'MEDICINES_DISPENSED'])
+        elif queue_name == 'CHECKOUT_QUEUE':
+            return base_qs.filter(status__in=['COMPLETED', 'PAYMENT_PENDING', 'PAID', 'MEDICINES_DISPENSED'])
+        elif queue_name == 'BILLING_QUEUE':
+            return base_qs.filter(status__in=['PAYMENT_PENDING', 'COMPLETED'])
         elif queue_name == 'CLOSED':
-            return base_qs.filter(status='TREATMENT_COMPLETED')
+            return base_qs.filter(status='CLOSED')
         else:
             return base_qs.none()
 
 class WorkflowService:
     TRANSITIONS = {
-        'CREATED': ['CHECKED_IN', 'CLOSED'],
-        'CHECKED_IN': ['VITALS_STARTED', 'VITALS_RECORDED', 'DOCTOR_ASSIGNED', 'CLOSED'],
-        'VITALS_STARTED': ['VITALS_RECORDED', 'CLOSED'],
-        'VITALS_RECORDED': ['DOCTOR_ASSIGNED', 'CLOSED'],
-        'DOCTOR_ASSIGNED': ['LAB_REQUESTED', 'PRESCRIPTION_FINALIZED', 'CLOSED'],
-        'LAB_REQUESTED': ['LAB_COMPLETED', 'CLOSED', 'PRESCRIPTION_FINALIZED', 'MEDICINES_DISPENSED'],
-        'LAB_COMPLETED': ['PRESCRIPTION_FINALIZED', 'CLOSED', 'MEDICINES_DISPENSED'],
-        'PRESCRIPTION_FINALIZED': ['MEDICINES_DISPENSED', 'FOLLOWUP_SCHEDULED', 'CLOSED', 'LAB_REQUESTED'],
-        'MEDICINES_DISPENSED': ['TREATMENT_COMPLETED', 'CLOSED', 'LAB_REQUESTED'],
-        'TREATMENT_COMPLETED': ['CLOSED'],
-        'CLOSED': []
+        'CREATED': ['CHECKED_IN', 'CANCELLED'],
+        'CHECKED_IN': ['VITALS_RECORDED', 'DOCTOR_ASSIGNED', 'CONSULTATION_IN_PROGRESS', 'PRESCRIPTION_FINALIZED', 'CANCELLED'],
+        'VITALS_RECORDED': ['DOCTOR_ASSIGNED', 'CONSULTATION_IN_PROGRESS', 'LAB_REQUESTED', 'PRESCRIPTION_FINALIZED', 'CANCELLED'],
+        'DOCTOR_ASSIGNED': ['CONSULTATION_IN_PROGRESS', 'LAB_REQUESTED', 'PRESCRIPTION_FINALIZED', 'CONSULTATION_DONE', 'CANCELLED'],
+        'LAB_REQUESTED': ['LAB_COMPLETED', 'CANCELLED'],
+        'LAB_COMPLETED': ['PRESCRIPTION_FINALIZED', 'CONSULTATION_DONE', 'LAB_REQUESTED', 'CANCELLED'],
+        'CONSULTATION_IN_PROGRESS': ['CONSULTATION_DONE', 'LAB_REQUESTED', 'PRESCRIPTION_FINALIZED', 'CANCELLED'],
+        'CONSULTATION_DONE': ['PRESCRIPTION_FINALIZED', 'COMPLETED', 'LAB_REQUESTED', 'CANCELLED'],
+        'PRESCRIPTION_FINALIZED': ['MEDICINES_DISPENSED', 'COMPLETED', 'LAB_REQUESTED', 'CANCELLED'],
+        'MEDICINES_DISPENSED': ['COMPLETED', 'CLOSED', 'CANCELLED'],
+        'COMPLETED': ['PAYMENT_PENDING', 'CLOSED', 'CANCELLED'],
+        'PAYMENT_PENDING': ['PAID', 'CANCELLED'],
+        'PAID': ['CLOSED', 'CANCELLED'],
+        'CLOSED': [],
+        'CANCELLED': []
     }
 
     @staticmethod
@@ -209,6 +231,8 @@ class WorkflowService:
         
         # Capture Timestamps (SLA Tracking)
         now = timezone.now()
+        visit.queue_entered_at = now  # Reset queue timer on every state change
+
         if new_status == 'CHECKED_IN':
             visit.checked_in_at = now
         elif new_status == 'VITALS_STARTED':
@@ -229,29 +253,87 @@ class WorkflowService:
             # Business Rule: Log warning if invoice is UNPAID (don't block for now)
             invoice = getattr(visit, 'invoice', None)
             if invoice and invoice.status != 'PAID':
+                import logging
+                logger = logging.getLogger(__name__)
                 logger.warning(f"⚠️ Visit {visit.id} is being CLOSED but invoice {invoice.id} is UNPAID!")
             visit.closed_at = now
 
         visit.status = new_status
         visit.save()
 
-        # Emit Events
-        emit_domain_event(VISIT_STATUS_CHANGED, visit, {'new_status': new_status})
+        # Emit Events (Real-time updates to frontend)
+        emit_domain_event(VISIT_STATUS_CHANGED, visit, {
+            'new_status': new_status,
+            'old_status': current_status,
+            'queue_entered_at': now.isoformat()
+        })
         
         if new_status == 'LAB_COMPLETED':
             emit_domain_event(LAB_RESULTS_READY, visit)
         elif new_status == 'PRESCRIPTION_FINALIZED':
             emit_domain_event(PRESCRIPTION_FINALIZED, visit)
+            # Auto-create a PharmacyOrder from the latest PRESCRIPTION submission
+            try:
+                from .models import PharmacyOrder, PharmacyOrderItem, FormSubmission
+                if not hasattr(visit, 'pharmacy_order') or visit.pharmacy_order is None:
+                    prescription_sub = FormSubmission.objects.filter(
+                        visit=visit, form_definition__code='PRESCRIPTION'
+                    ).order_by('-created_at').first()
+                    
+                    if prescription_sub and prescription_sub.data.get('medicines'):
+                        medicines_data = prescription_sub.data['medicines']
+                        po = PharmacyOrder.objects.create(
+                            visit=visit,
+                            clinic=visit.clinic,
+                            pet_name=visit.pet.name if visit.pet else '',
+                            owner_name=visit.pet.owner.name if visit.pet and visit.pet.owner else '',
+                            owner_phone=visit.pet.owner.phone if visit.pet and visit.pet.owner else '',
+                            owner_email=visit.pet.owner.email if visit.pet and visit.pet.owner else '',
+                            status='PENDING',
+                        )
+                        from .models import Medicine
+                        for m in medicines_data:
+                            med_name = m.get('name', '')
+                            med = Medicine.objects.filter(
+                                clinic=visit.clinic, name__iexact=med_name, is_active=True
+                            ).first()
+                            if med:
+                                # Get quantity (count) from medicine data, or fallback to dosage if it's a number
+                                qty = m.get('quantity')
+                                if qty is None:
+                                    try:
+                                        qty = float(m.get('dosage', 1))
+                                    except:
+                                        qty = 1
+                                
+                                unit_price = float(m.get('unit_price', med.unit_price or 0))
+                                
+                                PharmacyOrderItem.objects.create(
+                                    order=po,
+                                    medicine=med,
+                                    quantity_prescribed=qty,
+                                    unit_price=unit_price,
+                                )
+            except Exception as hook_err:
+                import logging
+                logging.getLogger(__name__).warning(f"⚠️ PharmacyOrder auto-create failed: {hook_err}")
         elif new_status == 'CLOSED':
             emit_domain_event(VISIT_COMPLETED, visit)
 
-        # Audit Log
+        # Audit Log & Deep History
         if user_role: # Or user_id if we pass it
-             VeterinaryAuditLog.objects.create(
+            from .models import VeterinaryAuditLog, VisitStatusHistory
+            VeterinaryAuditLog.objects.create(
                 visit=visit,
                 action_type='STATUS_CHANGE',
                 performed_by=str(user_role), # Should be user ID ideally
                 metadata={'old_status': current_status, 'new_status': new_status}
+            )
+            VisitStatusHistory.objects.create(
+                visit=visit,
+                old_status=current_status,
+                new_status=new_status,
+                changed_by_user_id=str(user_role)
             )
             
         return visit
@@ -299,6 +381,22 @@ class MetadataService:
             submitted_by=user_id,
             data=data
         )
+
+        # ---------------------------------------------------------
+        # NEW: Save to physical Vitals model (Phase 2)
+        # ---------------------------------------------------------
+        if form_code == 'VITALS':
+            from .models import Vitals
+            Vitals.objects.update_or_create(
+                visit_id=visit_id,
+                defaults={
+                    'weight': float(data.get('weight', 0)),
+                    'temperature': float(data.get('temperature', 0)),
+                    'pulse': int(data.get('pulse', 0)),
+                    'respiration': int(data.get('respiration', 0)),
+                    'symptoms': data.get('symptoms', '')
+                }
+            )
 
         # Add Audit Log for tracking
         action_map = {
@@ -391,6 +489,24 @@ class MetadataService:
                     instructions=med_data.get('notes', '')
                 )
 
+        # ---------------------------------------------------------
+        # NEW: Lab Order Integration (Phase 2)
+        # ---------------------------------------------------------
+        if form_code == 'LAB_ORDER':
+            from .models import LabOrder, LabTestTemplate
+            tests = data.get('tests', [])
+            for test_name in tests:
+                # Find or create a template for this test
+                template, _ = LabTestTemplate.objects.get_or_create(
+                    name=test_name
+                )
+                LabOrder.objects.create(
+                    visit_id=visit_id,
+                    template=template,
+                    requested_by=str(user_id),
+                    status='LAB_REQUESTED'
+                )
+
         return submission
 
     @staticmethod
@@ -421,8 +537,11 @@ class MetadataService:
             "status": visit.status,
             "visit_type": visit.visit_type,
             "reason": visit.reason,
+            "clinic_id": str(visit.clinic.id) if visit.clinic else None,
+            "pharmacy_order_id": str(visit.pharmacy_order.id) if hasattr(visit, 'pharmacy_order') and visit.pharmacy_order else None,
             "created_at": visit.created_at,
             "vitals": vitals,
+            "consultation_notes": visit.consultation_notes or "",
             "lab_order": lab_order.data if lab_order else {},
             "lab_results": lab_results.data if lab_results else {},
             "prescription": prescription.data if prescription else {},
@@ -635,25 +754,31 @@ class ReminderService:
     @staticmethod
     def generate_reminders(visit_id, prescription_data):
         """
-        Generates reminders based on prescription data.
-        prescription_data: { "medicines": [ { "name": "X", "frequency": "1-0-1", "days": 5 } ] }
+        Generates reminders based on prescription data (Legacy fallback).
+        For new system, use MedicineReminderViewSet directly.
         """
         visit = Visit.objects.get(id=visit_id)
         medicines = prescription_data.get('medicines', [])
         
         reminders = []
         for med in medicines:
-            # Parse frequency and duration to calculate schedule
-            # Simplified for Phase 3: Create one active reminder record per medicine
-            reminder = MedicationReminder.objects.create(
-                visit=visit,
+            # Note: The new MedicineReminder model has different fields.
+            # This is a basic mapping for legacy compatibility.
+            # We try to find the medicine in the catalog by name
+            from .models import Medicine
+            medicine = Medicine.objects.filter(clinic_id=visit.clinic_id, name=med.get('name')).first()
+            if not medicine:
+                continue
+                
+            reminder = MedicineReminder.objects.create(
                 pet=visit.pet,
-                medicine_name=med.get('name', 'Unknown'),
+                medicine=medicine,
                 dosage=med.get('dosage', 'As prescribed'),
-                frequency=med.get('frequency', 'Daily'),
                 start_date=visit.created_at.date(),
-                end_date=visit.created_at.date(), # Should calculate based on duration
-                next_reminder_at=visit.created_at # Should be calculated
+                end_date=visit.created_at.date() + timedelta(days=int(med.get('duration', 5))),
+                reminder_times=["09:00"], 
+                food_instruction="AFTER_FOOD",
+                pet_owner_auth_id=str(visit.pet.owner.auth_user_id) if visit.pet.owner else ""
             )
             reminders.append(reminder)
             
@@ -1051,6 +1176,51 @@ class ClinicAnalyticsService:
             except ValueError: pass
 
         yesterday = target_date - datetime.timedelta(days=1)
+
+
+class ClinicRegistrationService:
+    @staticmethod
+    def initialize_new_clinic(clinic):
+        """
+        Handles post-creation logic for a new clinic:
+        1. Setup default trial subscription.
+        2. Log initialization event.
+        """
+        from .models import ClinicSubscription
+        from datetime import date, timedelta
+        
+        # 1. Create 30-day Trial Subscription (Basic Plan)
+        # Using the ID found in Super_Admin_Service
+        BASIC_PLAN_ID = "13dd0736-e8b5-454b-a345-2abf880e7150"
+        
+        ClinicSubscription.objects.get_or_create(
+            clinic=clinic,
+            defaults={
+                "plan_id": BASIC_PLAN_ID,
+                "plan_name": "Basic Plan (Trial)",
+                "status": "ACTIVE",
+                "start_date": date.today(),
+                "end_date": date.today() + timedelta(days=30)
+            }
+        )
+        
+        # 2. Update Clinic status
+        clinic.is_active = True
+        clinic.subscription_plan = "BASIC"
+        clinic.save()
+        
+        # 3. Emit Event for other services (RBAC initialization etc)
+        from .kafka.producer import producer
+        try:
+            producer.send_event('CLINIC_INITIALIZED', {
+                'clinic_id': str(clinic.id),
+                'name': clinic.name,
+                'owner_id': clinic.organization_id
+            })
+        except:
+            pass # Kafka not configured in all environments
+            
+        return clinic
         
         # --- 1. CURRENT STATS (Labelled 'today' for frontend compat) ---
         visits_today = Visit.objects.filter(clinic_id=clinic_id, created_at__date=target_date)
@@ -1190,8 +1360,11 @@ class ClinicAnalyticsService:
         completed_count = visits_today.filter(status__in=['TREATMENT_COMPLETED', 'CLOSED']).count()
 
         # Reminders for Today (Simple count)
-        from .models import MedicationReminder
-        reminders_count = MedicationReminder.objects.filter(visit__clinic_id=clinic_id, next_reminder_at__date=target_date).count()
+        from .models import MedicineReminderSchedule
+        reminders_count = MedicineReminderSchedule.objects.filter(
+            reminder__pet__owner__clinic_id=clinic_id, 
+            scheduled_datetime__date=target_date
+        ).count()
         
         # Next Consultations (Scheduled for today, Status=CREATED) - Same as Waiting basically, but maybe distinguish?
         # For dashboard, "Waiting" usually means physically there. "Scheduled" means expecting.
@@ -1259,18 +1432,79 @@ class ClinicAnalyticsService:
 
 class RolePermissionService:
     ROLE_PERMISSIONS = {
-        'Receptionist': ['VETERINARY_CORE', 'VETERINARY_VISITS', 'VETERINARY_SCHEDULE', 'VETERINARY_ADMIN_SETTINGS', 'VETERINARY_VACCINES'],
-        'Doctor': ['VETERINARY_CORE', 'VETERINARY_DOCTOR', 'VETERINARY_PRESCRIPTIONS', 'VETERINARY_VITALS', 'VETERINARY_VISITS'],
-        'Senior Doctor': ['VETERINARY_CORE', 'VETERINARY_DOCTOR', 'VETERINARY_PRESCRIPTIONS', 'VETERINARY_VITALS', 'VETERINARY_VISITS', 'VETERINARY_LABS', 'VETERINARY_PHARMACY'],
-        'Veterinary Doctor': ['VETERINARY_CORE', 'VETERINARY_DOCTOR', 'VETERINARY_PRESCRIPTIONS', 'VETERINARY_VITALS', 'VETERINARY_VISITS'],
-        'Nurse': ['VETERINARY_CORE', 'VETERINARY_VISITS', 'VETERINARY_VITALS', 'VETERINARY_VACCINES', 'VETERINARY_LABS'],
+        'Receptionist': ['VETERINARY_CORE', 'VETERINARY_VISITS', 'VETERINARY_SCHEDULE', 'VETERINARY_ONLINE_CONSULT', 'VETERINARY_OFFLINE_VISIT'],
+        'Doctor': ['VETERINARY_CORE', 'VETERINARY_DOCTOR', 'VETERINARY_CONSULTATION', 'VETERINARY_PRESCRIPTIONS', 'VETERINARY_VITALS', 'VETERINARY_VISITS', 'VETERINARY_SCHEDULE'],
+        'Senior Doctor': ['VETERINARY_CORE', 'VETERINARY_DOCTOR', 'VETERINARY_CONSULTATION', 'VETERINARY_PRESCRIPTIONS', 'VETERINARY_VITALS', 'VETERINARY_VISITS', 'VETERINARY_LABS', 'VETERINARY_PHARMACY', 'VETERINARY_SCHEDULE'],
+        'Veterinary Doctor': ['VETERINARY_CORE', 'VETERINARY_DOCTOR', 'VETERINARY_CONSULTATION', 'VETERINARY_PRESCRIPTIONS', 'VETERINARY_VITALS', 'VETERINARY_VISITS', 'VETERINARY_SCHEDULE'],
+        'Nurse': ['VETERINARY_CORE', 'VETERINARY_VISITS', 'VETERINARY_VITALS', 'VETERINARY_VACCINES', 'VETERINARY_LABS', 'VETERINARY_MEDICINE_REMINDERS'],
         'Lab Technician': ['VETERINARY_CORE', 'VETERINARY_LABS'],
         'Pharmacist': ['VETERINARY_CORE', 'VETERINARY_PHARMACY', 'VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_PRESCRIPTIONS'],
-        'Admin': ['VETERINARY_CORE', 'VETERINARY_ADMIN', 'VETERINARY_ADMIN_SETTINGS', 'VETERINARY_VISITS', 'VETERINARY_VITALS', 'VETERINARY_PRESCRIPTIONS', 'VETERINARY_LABS', 'VETERINARY_VACCINES', 'VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_PHARMACY', 'VETERINARY_DOCTOR', 'VETERINARY_SCHEDULE', 'VETERINARY_ONLINE_CONSULT'],
-        'Practice Manager': ['VETERINARY_CORE', 'VETERINARY_ADMIN', 'VETERINARY_ADMIN_SETTINGS', 'VETERINARY_VISITS', 'VETERINARY_VITALS', 'VETERINARY_PRESCRIPTIONS', 'VETERINARY_LABS', 'VETERINARY_VACCINES', 'VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_PHARMACY', 'VETERINARY_DOCTOR', 'VETERINARY_SCHEDULE', 'VETERINARY_ONLINE_CONSULT'],
+        'Admin': ['VETERINARY_CORE', 'VETERINARY_ADMIN', 'VETERINARY_ADMIN_SETTINGS', 'VETERINARY_METADATA', 'VETERINARY_VISITS', 'VETERINARY_VITALS', 'VETERINARY_CONSULTATION', 'VETERINARY_PRESCRIPTIONS', 'VETERINARY_LABS', 'VETERINARY_VACCINES', 'VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_PHARMACY', 'VETERINARY_DOCTOR', 'VETERINARY_SCHEDULE', 'VETERINARY_ONLINE_CONSULT', 'VETERINARY_OFFLINE_VISIT', 'VETERINARY_CHECKOUT'],
+        'Practice Manager': ['VETERINARY_CORE', 'VETERINARY_ADMIN', 'VETERINARY_ADMIN_SETTINGS', 'VETERINARY_METADATA', 'VETERINARY_VISITS', 'VETERINARY_VITALS', 'VETERINARY_CONSULTATION', 'VETERINARY_PRESCRIPTIONS', 'VETERINARY_LABS', 'VETERINARY_VACCINES', 'VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_PHARMACY', 'VETERINARY_DOCTOR', 'VETERINARY_SCHEDULE', 'VETERINARY_ONLINE_CONSULT', 'VETERINARY_OFFLINE_VISIT', 'VETERINARY_CHECKOUT'],
         'Vitals Staff': ['VETERINARY_CORE', 'VETERINARY_VITALS'],
         'employee': ['VETERINARY_CORE', 'VETERINARY_VISITS', 'VETERINARY_VITALS', 'VETERINARY_PRESCRIPTIONS', 'VETERINARY_DOCTOR']
     }
+
+    # Mapping of Capability Keys to higher-level Feature IDs used in UI
+    CAPABILITY_FEATURE_MAP = {
+        "VETERINARY_VISITS": "vet_visits",
+        "VETERINARY_PATIENTS": "vet_visits",
+        "VETERINARY_VITALS": "vet_vitals",
+        "VETERINARY_DOCTOR_STATION": "vet_doctor_station",
+        "VETERINARY_PHARMACY": "vet_pharmacy",
+        "VETERINARY_LABS": "vet_labs",
+        "VETERINARY_SCHEDULING": "vet_scheduling",
+        "VETERINARY_ONLINE_CONSULT": "vet_scheduling",
+        "VETERINARY_OFFLINE_VISIT": "vet_scheduling",
+        "VETERINARY_REMINDERS": "vet_reminders",
+        "VETERINARY_ADMIN_SETTINGS": "vet_system",
+        "VETERINARY_METADATA": "vet_system",
+        "VETERINARY_CHECKOUT": "vet_checkout"
+    }
+
+    @staticmethod
+    def bridge_capability_keys(granular_caps):
+        """
+        Enterprise Bridge: Maps legacy service-level keys to granular module keys.
+        Example: {'capability_key': 'VETERINARY_VITALS', 'can_view': True} 
+                 -> adds {'capability_key': 'vitals.*', 'can_view': True}
+        """
+        BRIDGE_MAP = {
+            "VETERINARY_VISITS": "appointment.*",
+            "VETERINARY_VITALS": "vitals.*",
+            "VETERINARY_DOCTOR": "consultation.*",
+            "VETERINARY_PRESCRIPTIONS": "pharmacy.*",
+            "VETERINARY_LABS": "lab.*",
+            "VETERINARY_VACCINES": "vaccination.*",
+            "VETERINARY_MEDICINE_REMINDERS": "reminder.*",
+            "VETERINARY_CHECKOUT": "billing.*",
+            "VETERINARY_SCHEDULE": "appointment.*",
+            "VETERINARY_ADMIN": "analytics.view",
+            "VETERINARY_ADMIN_SETTINGS": "vet_system.*",
+            "VETERINARY_METADATA": "vet_system.*",
+            "VETERINARY_PATIENTS": "patient.*"
+        }
+        
+        bridged_caps = []
+        for cap in granular_caps:
+            # Keep original
+            bridged_caps.append(cap)
+            
+            # Add bridged module-level key if applicable
+            key = cap.get('capability_key')
+            bridged_key = BRIDGE_MAP.get(key)
+            if bridged_key:
+                # Copy flags from the parent service key
+                bridged_caps.append({
+                    "capability_key": bridged_key,
+                    "can_view": cap.get('can_view', False),
+                    "can_create": cap.get('can_create', False),
+                    "can_edit": cap.get('can_edit', False),
+                    "can_delete": cap.get('can_delete', False),
+                    "is_bridged": True
+                })
+        
+        return bridged_caps
 
     @staticmethod
     def get_permissions_for_role(role_name, organization_id=None):
@@ -1281,12 +1515,11 @@ class RolePermissionService:
         2. Hardcoded defaults (for System Roles)
         """
         if not role_name:
-            return ['VETERINARY_CORE']
+            return [{'capability_key': 'VETERINARY_CORE', 'can_view': True}]
 
         # 1. Dynamic Resolution (Internal API Call)
         if organization_id:
             try:
-                # Clean role name for URL (no spaces etc)
                 import urllib.parse
                 safe_role = urllib.parse.quote(role_name)
                 url = f"http://127.0.0.1:8002/api/provider/roles/resolve/?org_id={organization_id}&role_name={safe_role}"
@@ -1294,20 +1527,24 @@ class RolePermissionService:
                 with urllib.request.urlopen(url, timeout=2) as response:
                     if response.status == 200:
                         data = json.loads(response.read().decode())
-                        caps = data.get('capabilities')
+                        caps = data.get('capabilities') # This is now a list of objects
                         if caps:
-                            print(f"✅ Resolved role '{role_name}' dynamically from Provider Service.")
-                            return caps
+                            print(f"✅ Resolved role '{role_name}' dynamically. Expanding via Bridge...")
+                            return RolePermissionService.bridge_capability_keys(caps)
             except Exception as e:
-                # Silent fail, fallback to hardcoded
                 print(f"⚠️ Failed to resolve role '{role_name}' dynamically: {e}")
 
         # 2. Hardcoded Fallback
         for key, perms in RolePermissionService.ROLE_PERMISSIONS.items():
             if key.lower() == role_name.lower():
-                return perms
+                # Convert flat legacy list to granular objects for consistency
+                granular_perms = [{
+                    "capability_key": p,
+                    "can_view": True, "can_create": True, "can_edit": True, "can_delete": True
+                } for p in perms]
+                return RolePermissionService.bridge_capability_keys(granular_perms)
         
-        return ['VETERINARY_CORE'] # Absolute fallback
+        return [{'capability_key': 'VETERINARY_CORE', 'can_view': True}] 
 
 
 class VeterinaryAvailabilityService:
@@ -1432,13 +1669,22 @@ class VeterinaryAppointmentService:
 
         # 3. Resolve Doctor Assignment
         try:
+            # First try as DOCTOR
             doctor_assign = StaffClinicAssignment.objects.get(
                 clinic_id=clinic_id,
                 staff__auth_user_id=doctor_auth_id,
                 role='DOCTOR'
             )
         except StaffClinicAssignment.DoesNotExist:
-            raise ValueError(f"Selected staff {doctor_auth_id} is not an active doctor in this clinic")
+            # Fallback for ONLINE consultations: allow any active staff member if they were manually selected or passed in
+            try:
+                doctor_assign = StaffClinicAssignment.objects.get(
+                    clinic_id=clinic_id,
+                    staff__auth_user_id=doctor_auth_id,
+                    is_active=True
+                )
+            except StaffClinicAssignment.DoesNotExist:
+                raise ValueError(f"Selected staff {doctor_auth_id} is not an active member in this clinic")
 
         # 4. Calculate End Time (Fetch duration from service_provider)
         duration = 30 # Default
@@ -1507,6 +1753,16 @@ class VeterinaryAppointmentService:
         
         if doctors.exists():
             return doctors.first().staff.auth_user_id
+        
+        # Fallback: Find ANY active staff member (e.g. receptionist/admin) if NO doctors exist
+        any_staff = StaffClinicAssignment.objects.filter(
+            clinic_id=clinic_id,
+            is_active=True
+        ).order_by('id')
+        
+        if any_staff.exists():
+            return any_staff.first().staff.auth_user_id
+            
         return None
 
 class EstimateService:
@@ -1724,3 +1980,179 @@ class AIService:
         except Exception as e:
             logger.error(f"Failed to fetch AI prescription suggestions: {str(e)}")
             return []
+
+# ========================
+# SAAS PHARMACY FULFILLMENT SERVICE
+# ========================
+
+class PharmacyFulfillmentService:
+    @staticmethod
+    def check_stock(order_id, user_id):
+        from .models import PharmacyOrder, PharmacyOrderItem
+        order = PharmacyOrder.objects.get(id=order_id)
+        if order.status != 'PENDING':
+            raise ValueError(f"Cannot check stock. Order is in state: {order.status}")
+        
+        items = PharmacyOrderItem.objects.filter(order=order).select_related('medicine')
+        fully_available = True
+        total = 0
+        
+        for item in items:
+            med = item.medicine
+            item.unit_price = med.unit_price
+            if med.stock_quantity >= item.quantity_prescribed:
+                item.is_available = True
+                item.quantity_dispensed = item.quantity_prescribed
+            else:
+                item.is_available = False
+                item.quantity_dispensed = 0
+                fully_available = False
+            
+            total += float(item.unit_price * item.quantity_dispensed)
+            item.save()
+            
+        order.total_amount = total
+        order.status = 'STOCK_CHECKED' if fully_available else 'PENDING'
+        order.pharmacist_auth_id = user_id
+        order.save()
+        return order
+
+    @staticmethod
+    def approve_partial(order_id, quantities, user_id):
+        """ Allow pharmacist to bypass out of stock by dispensing less or zero """
+        from .models import PharmacyOrder, PharmacyOrderItem
+        order = PharmacyOrder.objects.get(id=order_id)
+        if order.status not in ['PENDING', 'STOCK_CHECKED']:
+            raise ValueError("Invalid transition to Partial Approve")
+        
+        items = PharmacyOrderItem.objects.filter(order=order).select_related('medicine')
+        total = 0
+        
+        for item in items:
+            med_id_str = str(item.medicine.id)
+            approved_qty = quantities.get(med_id_str, 0)
+            med = item.medicine
+            
+            if approved_qty > med.stock_quantity or float(approved_qty) > float(item.quantity_prescribed):
+                raise ValueError(f"Cannot dispense more than prescribed or current stock: {med.name}")
+                
+            item.quantity_dispensed = approved_qty
+            item.is_available = approved_qty > 0
+            item.unit_price = med.unit_price
+            total += float(item.unit_price * approved_qty)
+            item.save()
+            
+        order.total_amount = total
+        order.status = 'PARTIAL_APPROVED'
+        order.pharmacist_auth_id = user_id
+        order.save()
+        return order
+
+    @staticmethod
+    def send_otp(order_id, user_id):
+        from .models import PharmacyOrder, OtpVerification
+        from datetime import timedelta
+        import secrets
+        
+        order = PharmacyOrder.objects.get(id=order_id)
+        if order.status not in ['STOCK_CHECKED', 'PARTIAL_APPROVED']:
+            raise ValueError("Stock must be checked prior to sending OTP.")
+            
+        otp_code = f"{secrets.randbelow(1000000):06d}"
+        expires = timezone.now() + timedelta(minutes=5)
+        
+        OtpVerification.objects.filter(order=order).delete()
+        
+        otp = OtpVerification.objects.create(
+            order=order,
+            otp_code=otp_code,
+            expires_at=expires
+        )
+        
+        order.status = 'OTP_SENT'
+        order.pharmacist_auth_id = user_id
+        order.save()
+        
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning(f"🔔 [TWILIO/WHATSAPP MOCK] Sent OTP: {otp_code} to {order.owner_phone} for total: {order.total_amount}")
+        
+        return otp
+
+    @staticmethod
+    def verify_otp(order_id, otp_code, user_id):
+        from .models import PharmacyOrder, OtpVerification
+        order = PharmacyOrder.objects.get(id=order_id)
+        
+        try:
+            otp = OtpVerification.objects.get(
+                order=order, 
+                otp_code=otp_code, 
+                is_used=False,
+                expires_at__gte=timezone.now()
+            )
+            otp.is_used = True
+            otp.save()
+            
+            order.status = 'CONFIRMED'
+            order.pharmacist_auth_id = user_id
+            order.save()
+            return order
+        except OtpVerification.DoesNotExist:
+            raise ValueError("Invalid or Expired OTP")
+
+    @staticmethod
+    @transaction.atomic
+    def complete_order(order_id, user_id):
+        from .models import PharmacyOrder, PharmacyOrderItem, Medicine
+        order = PharmacyOrder.objects.get(id=order_id)
+        
+        if order.status != 'CONFIRMED':
+            raise ValueError("Order must be CONFIRMED via OTP first.")
+            
+        items = PharmacyOrderItem.objects.filter(order=order)
+        for item in items:
+            rem_qty = item.quantity_dispensed
+            if rem_qty > 0:
+                from .models import MedicineBatch
+                med = Medicine.objects.select_for_update().get(id=item.medicine.id)
+                
+                # Check total available stock first
+                if med.stock_quantity < rem_qty:
+                    raise ValueError(f"Insufficient total stock for {med.name}. Required: {rem_qty}, Available: {med.stock_quantity}")
+                
+                # FIFO Batch Reduction
+                batches = MedicineBatch.objects.filter(
+                    medicine=med, 
+                    is_active=True, 
+                    current_quantity__gt=0,
+                    expiry_date__gte=timezone.now().date()
+                ).order_by('expiry_date') # FIFO: Oldest expiry first
+                
+                if not batches.exists():
+                     raise ValueError(f"No active, non-expired batches found for {med.name}.")
+
+                for batch in batches:
+                    if rem_qty <= 0:
+                        break
+                    
+                    if batch.current_quantity >= rem_qty:
+                        batch.current_quantity -= rem_qty
+                        rem_qty = 0
+                    else:
+                        rem_qty -= batch.current_quantity
+                        batch.current_quantity = 0
+                    batch.save()
+                
+                if rem_qty > 0:
+                     raise ValueError(f"Could not fulfill {med.name} from available batches. Gap: {rem_qty}")
+
+                # Update master total
+                med.stock_quantity -= item.quantity_dispensed
+                med.save()
+                
+        order.status = 'COMPLETED'
+        order.completed_at = timezone.now()
+        order.pharmacist_auth_id = user_id
+        order.save()
+        return order

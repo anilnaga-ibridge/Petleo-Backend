@@ -27,6 +27,7 @@ def handle_user_created(payload):
                 "email": payload.get("email"),
                 "phone_number": payload.get("phone_number"),
                 "role": payload.get("role"),
+                "avatar_url": payload.get("avatar_url"),
                 "permissions": payload.get("permissions", []),
             },
         )
@@ -45,6 +46,7 @@ def handle_user_updated(payload):
         email=payload.get("email"),
         phone_number=payload.get("phone_number"),
         role=payload.get("role"),
+        avatar_url=payload.get("avatar_url"),
     )
     logger.info(f"🔄 USER_UPDATED → {updated}")
 

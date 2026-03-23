@@ -2,7 +2,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, serializers, permissions
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, action
 import requests
 from django.conf import settings
 from django.shortcuts import get_object_or_404
@@ -90,7 +90,7 @@ class ServiceProviderProfileView(APIView):
         target = request.GET.get("target") or getattr(verified_user, "provider_type", None)
         if not target:
             # Fallback based on role
-            role = (verified_user.role or "").lower()
+            role = (str(verified_user.role) if verified_user.role else "").lower()
             if role == 'superadmin': target = 'superadmin'
             elif role == 'organization': target = 'organization'
             elif role == 'employee': target = 'employee'
@@ -207,7 +207,7 @@ class ServiceProviderProfileView(APIView):
             "email": verified_user.email,
             "phoneNumber": verified_user.phone_number,
             "role": display_role,
-            "is_superuser": (verified_user.role or "").lower() == 'superadmin',
+            "is_superuser": (str(verified_user.role) if verified_user.role else "").lower() == 'superadmin',
             "provider_type": provider.provider_type if provider else None,
             "avatar": avatar_url,
             "banner_image": banner_url,
@@ -485,11 +485,15 @@ def get_my_permissions(request):
         emp_record = OrganizationEmployee.objects.get(auth_user_id=user.auth_user_id)
         if emp_record.provider_role:
              display_role = emp_record.provider_role.name
+             print(f"✅ [Port 8002] Resolved role from ProviderRole: {display_role}")
+        else:
+             print(f"⚠️ [Port 8002] Employee has no ProviderRole. Using legacy role string: {emp_record.role}")
+             display_role = emp_record.role or display_role
     except OrganizationEmployee.DoesNotExist:
         # [FIX] Use VerifiedUser.role as the primary source of truth for provider_type.
         # The ServiceProvider.provider_type defaults to INDIVIDUAL on creation (JIT auto-create),
         # which means it may be wrong for users who registered as 'organization'.
-        user_role_lower = (getattr(user, 'role', '') or '').lower()
+        user_role_lower = str(getattr(user, 'role', '') or '').lower()
         
         if user_role_lower in ['organization', 'serviceprovider', 'provider']:
             correct_provider_type = 'ORGANIZATION'
@@ -644,16 +648,33 @@ def get_my_permissions(request):
         return Response({"permissions": [], "plan": None, "user_profile": user_profile})
 
     # 3. Fetch Capabilities using the robust helper
-    # IMPORTANT: For employees, we build the tree from the organization owner's capabilities,
-    # then filter by the employee's role permissions below
     permissions_list = _build_permission_tree(subscription_owner, request=request)
     
+    # [LOGGING] Trace capabilities
+    user_perms_map = {}
+    is_employee = False
+    try:
+        # Re-resolve or check if employee was found above
+        employee = OrganizationEmployee.objects.filter(auth_user_id=user.auth_user_id).first()
+        if employee:
+            user_perms_map = employee.get_final_permissions()
+            is_employee = True
+            print(f"🔑 [Port 8002] Employee Permissions: {sorted(list(user_perms_map.keys()))}")
+        else:
+            user_perms_map = {cap: {"can_view": True, "can_create": True, "can_edit": True, "can_delete": True} 
+                             for cap in subscription_owner.get_all_plan_capabilities()}
+            print(f"🔑 [Port 8002] Owner Permissions: {sorted(list(user_perms_map.keys()))}")
+    except Exception as e:
+        print(f"❌ Error tracing capabilities: {e}")
+
     with open("debug_perms.log", "a") as f:
-        f.write(f"\\n[{timezone.now()}] get_my_permissions | User: {user.email} ({user.auth_user_id})\\n")
-        f.write(f"Subscription Owner: {subscription_owner.email}\\n")
-        f.write(f"Tree Count: {len(permissions_list)}\\n")
+        f.write(f"\n[{timezone.now()}] get_my_permissions | User: {user.email} ({user.auth_user_id})\n")
+        f.write(f"Is Employee: {is_employee}\n")
+        f.write(f"Subscription Owner: {subscription_owner.email}\n")
+        f.write(f"Capabilities: {sorted(list(user_perms_map.keys()))}\n")
+        f.write(f"Tree Count: {len(permissions_list)}\n")
         for p in permissions_list:
-            f.write(f" - {p.get('service_key')} ({p.get('service_name')})\\n")
+            f.write(f" - {p.get('service_key')} ({p.get('service_name')})\n")
 
     # --- INJECT DYNAMIC CAPABILITIES (Grooming, Daycare, etc.) ---
     # These might be simple capability keys not yet linked to full Service Templates
@@ -663,7 +684,8 @@ def get_my_permissions(request):
     try:
         emp = OrganizationEmployee.objects.get(auth_user_id=user.auth_user_id)
         
-        user_caps = set(emp.get_final_permissions())
+        user_perms_map = emp.get_final_permissions()
+        user_caps = set(user_perms_map.keys())
         
         print(f"   📊 Final Permissions Count: {len(user_caps)}")
         print(f"   📋 Final Permissions: {list(user_caps)}")
@@ -699,14 +721,14 @@ def get_my_permissions(request):
                 print(f"         Category: {cat_name} (key: {cat_key})")
                 
                 # Check if employee has this specific category capability
-                if cat_key and cat_key in user_caps:
+                if cat_key and cat_key in user_perms_map:
                     print(f"            ✅ Category MATCH - Including")
-                    # IMPORTANT: Rebuild category with ROLE-based perms (True since they have access)
+                    perms = user_perms_map[cat_key]
                     rebuilt_category = category.copy()
-                    rebuilt_category['can_view'] = True
-                    rebuilt_category['can_create'] = True
-                    rebuilt_category['can_edit'] = True
-                    rebuilt_category['can_delete'] = False  # Delete is admin-only by default
+                    rebuilt_category['can_view'] = perms.get('can_view', True)
+                    rebuilt_category['can_create'] = perms.get('can_create', False)
+                    rebuilt_category['can_edit'] = perms.get('can_edit', False)
+                    rebuilt_category['can_delete'] = perms.get('can_delete', False)
                     filtered_categories.append(rebuilt_category)
                 else:
                     print(f"            ❌ Category NO MATCH - Excluding")
@@ -934,8 +956,28 @@ class EmployeeViewSet(viewsets.ModelViewSet):
             return OrganizationEmployee.objects.none()
         except Exception as e:
             with open("debug_views.log", "a") as f:
-                f.write(f"[{timezone.now()}] Error in get_queryset: {e}\\n")
+                f.write(f"[{timezone.now()}] Error in get_queryset: {e}\n")
             return OrganizationEmployee.objects.none()
+
+    @action(detail=False, methods=['get'], url_path='details/(?P<auth_user_id>[^/.]+)')
+    def details_by_auth_id(self, request, auth_user_id=None):
+        """
+        Fetch detailed employee info (for Super Admin popup).
+        Rich metadata including Organization and Capabilities.
+        """
+        try:
+            employee = OrganizationEmployee.objects.select_related('organization__verified_user', 'provider_role').get(auth_user_id=auth_user_id)
+            serializer = self.get_serializer(employee)
+            return Response(serializer.data)
+        except OrganizationEmployee.DoesNotExist:
+            return Response({
+                "error": "Employee record not found",
+                "auth_user_id": auth_user_id,
+                "hint": "Ensure the user is correctly registered in the Service Provider service."
+            }, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            logger.error(f"Error in details_by_auth_id: {e}")
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def create(self, request, *args, **kwargs):
         """
@@ -945,17 +987,20 @@ class EmployeeViewSet(viewsets.ModelViewSet):
         user = request.user
 
         # 1. Build registration payload
+        # Staff always have "employee" type in Auth Service.
+        # Specific job roles are managed via provider_role.
         auth_data = {
             "full_name": request.data.get("full_name"),
             "email": request.data.get("email"),
             "phone_number": request.data.get("phone_number"),
-            "role": request.data.get("role"),
+            "role": "5",  # Force system role to employee (ID 5 in Auth Service) - USING STRING TO PREVENT CRASH
             "organization_id": str(user.auth_user_id),
             "provider_role": request.data.get("provider_role"),
         }
 
         # 2. Call Auth Service to register the user
         auth_header = request.headers.get('Authorization')
+        print(f"DEBUG: Creating employee. Auth data: {auth_data}")
         try:
             auth_url = "http://localhost:8000/auth/api/auth/register/"
             response = requests.post(
@@ -963,6 +1008,7 @@ class EmployeeViewSet(viewsets.ModelViewSet):
                 json=auth_data,
                 headers={"Authorization": auth_header}
             )
+            print(f"DEBUG: Auth Service response status={response.status_code}, body={response.text}")
             if response.status_code != 201:
                 return Response(response.json(), status=response.status_code)
 
@@ -1598,31 +1644,77 @@ def resolve_role_capabilities(request):
     
     try:
         # Models already imported at top-level
-        from .models import ProviderRoleCapability
+        from .models import ProviderRoleCapability, VerifiedUser
         
         # 0. Special Handling for Organization Admin/Owner
         if role_name.lower() in ['admin', 'owner', 'organization', 'individual']:
-            from .models import VerifiedUser
             user = VerifiedUser.objects.filter(auth_user_id=org_id).first()
             if user:
                 caps = list(user.get_all_plan_capabilities())
-                return Response({"role": role_name, "capabilities": caps, "source": "organization_plan"})
+                # For Owners, we grant full CRUD on everything they own
+                granular_caps = [{
+                    "capability_key": cap,
+                    "can_view": True, "can_create": True, "can_edit": True, "can_delete": True
+                } for cap in caps]
+                return Response({
+                    "role": role_name, 
+                    "capabilities": granular_caps, 
+                    "flat_keys": caps,
+                    "source": "organization_plan"
+                })
         
         # 1. Check for Custom Provider Role
         role = ProviderRole.objects.filter(provider__verified_user__auth_user_id=org_id, name__iexact=role_name).first()
         if role:
-            caps = list(ProviderRoleCapability.objects.filter(provider_role=role).values_list('capability_key', flat=True))
+            role_caps = ProviderRoleCapability.objects.filter(provider_role=role)
+            granular_caps = []
+            flat_keys = []
+            
+            for rc in role_caps:
+                granular_caps.append({
+                    "capability_key": rc.capability_key,
+                    "can_view": rc.can_view,
+                    "can_create": rc.can_create,
+                    "can_edit": rc.can_edit,
+                    "can_delete": rc.can_delete
+                })
+                flat_keys.append(rc.capability_key)
+            
             # Always ensure VETERINARY_CORE if it has any VETERINARY_* caps
-            if any(c.startswith('VETERINARY_') for c in caps) and 'VETERINARY_CORE' not in caps:
-                caps.append('VETERINARY_CORE')
-            return Response({"role": role_name, "capabilities": caps, "source": "custom_role"})
+            if any(c.startswith('VETERINARY_') for c in flat_keys) and 'VETERINARY_CORE' not in flat_keys:
+                granular_caps.append({
+                    "capability_key": "VETERINARY_CORE",
+                    "can_view": True, "can_create": True, "can_edit": True, "can_delete": True
+                })
+                flat_keys.append("VETERINARY_CORE")
+                
+            return Response({
+                "role": role_name, 
+                "capabilities": granular_caps, 
+                "flat_keys": flat_keys,
+                "source": "custom_role"
+            })
             
         # 2. Fallback to Legacy Map (System Defaults)
-        caps = OrganizationEmployee.LEGACY_ROLE_MAP.get(role_name.lower(), [])
-        if caps:
-             return Response({"role": role_name, "capabilities": caps, "source": "legacy_map"})
+        flat_keys = OrganizationEmployee.LEGACY_ROLE_MAP.get(role_name.lower(), [])
+        if flat_keys:
+             granular_caps = [{
+                 "capability_key": cap,
+                 "can_view": True, "can_create": True, "can_edit": True, "can_delete": True
+             } for cap in flat_keys]
+             return Response({
+                 "role": role_name, 
+                 "capabilities": granular_caps, 
+                 "flat_keys": flat_keys,
+                 "source": "legacy_map"
+             })
 
-        return Response({"role": role_name, "capabilities": ["VETERINARY_CORE"], "source": "fallback"})
+        return Response({
+            "role": role_name, 
+            "capabilities": [{"capability_key": "VETERINARY_CORE", "can_view": True, "can_create": True, "can_edit": True, "can_delete": True}], 
+            "flat_keys": ["VETERINARY_CORE"],
+            "source": "fallback"
+        })
         
     except Exception as e:
         return Response({"error": str(e)}, status=500)
