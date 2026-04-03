@@ -6,5 +6,6 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('auth/', include('users.urls')),
     path("api/v1/auth/", include("users.urls")),
-    path('', include('users.urls')),
+    path('', include('users.urls')), # [FIX] Support /users/, /roles/, etc. directly
 ]
+

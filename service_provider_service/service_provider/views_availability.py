@@ -52,10 +52,16 @@ class AvailabilityViewSet(viewsets.ViewSet):
 
         weekday = target_date.weekday()
         
+        # 1. Resolve Specialist ID (Employee or Virtual)
+        employee_id = request.query_params.get('employee_id')
+        if employee_id and employee_id.startswith('ind-'):
+            employee_id = employee_id.replace('ind-', '')
+        
         slots = []
         if provider.provider_type == 'INDIVIDUAL':
+            # Use ServiceProvider's own availability (Solo mode)
             availabilities = provider.individual_availability.filter(day_of_week=weekday, is_active=True)
-            occupied_times = self._get_occupied_slots(provider_id, date_str)
+            occupied_times = self._get_occupied_slots(provider.id, date_str)
             
             for avail in availabilities:
                 current = datetime.combine(target_date, avail.start_time)
@@ -68,8 +74,6 @@ class AvailabilityViewSet(viewsets.ViewSet):
                     current += timedelta(minutes=avail.slot_duration_minutes)
                     
         elif provider.provider_type == 'ORGANIZATION':
-            employee_id = request.query_params.get('employee_id')
-
             if employee_id:
                 # Specific Employee Path — facility_id is optional (duration falls back to 30 min default)
                 slots = AvailabilityService.get_available_slots(employee_id, facility_id, target_date, consultation_type_id)
@@ -183,6 +187,10 @@ class AvailabilityViewSet(viewsets.ViewSet):
         return Response({"message": "Employee hours saved successfully"})
 
     def _get_occupied_slots(self, provider_id, date_str, employee_id=None):
+        # Strip prefix if present (Virtual Identity unification)
+        if employee_id and isinstance(employee_id, str) and employee_id.startswith('ind-'):
+            employee_id = employee_id.replace('ind-', '')
+            
         try:
             # internal endpoint in customer_service
             url = f"http://localhost:8005/api/pet-owner/bookings/bookings/internal_bookings/"
@@ -349,13 +357,30 @@ class ScheduleViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'], url_path='pending-approvals')
     def pending_approvals(self, request):
         """
-        Provider sees all PENDING schedule submissions from their employees.
+        Provider/Authorized Employee sees all PENDING schedule submissions from their employees.
         """
-        if not hasattr(request.user, 'provider_profile'):
-            return Response({"error": "Only providers can access approvals"}, status=403)
+        user = request.user
+        organization = None
+        
+        # 1. Check if Org Owner
+        if hasattr(user, 'provider_profile'):
+            organization = user.provider_profile
+        else:
+            # 2. Check if Authorized Employee
+            from service_provider.models import OrganizationEmployee
+            try:
+                emp = OrganizationEmployee.objects.get(auth_user_id=user.auth_user_id)
+                perms = emp.get_final_permissions()
+                if 'ROLE_MANAGEMENT' in perms or 'CLINIC_MANAGEMENT' in perms:
+                    organization = emp.organization
+            except OrganizationEmployee.DoesNotExist:
+                pass
+
+        if not organization:
+            return Response({"error": "Only providers or authorized staff can access approvals"}, status=403)
 
         pending = EmployeeDailySchedule.objects.filter(
-            employee__organization=request.user.provider_profile,
+            employee__organization=organization,
             status='PENDING'
         ).select_related('employee').order_by('date', 'employee__full_name')
 
@@ -364,9 +389,22 @@ class ScheduleViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['patch'])
     def approve(self, request, pk=None):
         schedule = self.get_object()
-        if not hasattr(request.user, 'provider_profile'):
-            return Response({"error": "Permission denied"}, status=403)
-        if schedule.employee.organization != request.user.provider_profile:
+        user = request.user
+        permitted = False
+        
+        if hasattr(user, 'provider_profile') and schedule.employee.organization == user.provider_profile:
+            permitted = True
+        else:
+            from service_provider.models import OrganizationEmployee
+            try:
+                emp = OrganizationEmployee.objects.get(auth_user_id=user.auth_user_id)
+                perms = emp.get_final_permissions()
+                if ('ROLE_MANAGEMENT' in perms or 'CLINIC_MANAGEMENT' in perms) and schedule.employee.organization == emp.organization:
+                    permitted = True
+            except OrganizationEmployee.DoesNotExist:
+                pass
+
+        if not permitted:
             return Response({"error": "Permission denied"}, status=403)
 
         schedule.status = 'APPROVED'
@@ -384,9 +422,22 @@ class ScheduleViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['patch'])
     def reject(self, request, pk=None):
         schedule = self.get_object()
-        if not hasattr(request.user, 'provider_profile'):
-            return Response({"error": "Permission denied"}, status=403)
-        if schedule.employee.organization != request.user.provider_profile:
+        user = request.user
+        permitted = False
+        
+        if hasattr(user, 'provider_profile') and schedule.employee.organization == user.provider_profile:
+            permitted = True
+        else:
+            from service_provider.models import OrganizationEmployee
+            try:
+                emp = OrganizationEmployee.objects.get(auth_user_id=user.auth_user_id)
+                perms = emp.get_final_permissions()
+                if ('ROLE_MANAGEMENT' in perms or 'CLINIC_MANAGEMENT' in perms) and schedule.employee.organization == emp.organization:
+                    permitted = True
+            except OrganizationEmployee.DoesNotExist:
+                pass
+
+        if not permitted:
             return Response({"error": "Permission denied"}, status=403)
 
         reason = request.data.get('rejection_reason', 'No reason provided')

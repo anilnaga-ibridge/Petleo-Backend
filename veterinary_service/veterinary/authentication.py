@@ -93,22 +93,25 @@ class ShadowUserAuthentication(JWTAuthentication):
                     user.permissions = assignment.permissions
                     user.clinic_id = assignment.clinic_id
                     user.role = assignment.role or staff.role
-                    perm_log(f"✅ Assignment Found:")
-                    perm_log(f"   - Clinic ID: {assignment.clinic_id}")
-                    perm_log(f"   - Role: {assignment.role}")
-                    perm_log(f"   - Permissions: {assignment.permissions}")
-                    perm_log(f"   - Permission Count: {len(user.permissions)}")
-                    perm_log(f"   - Is Primary: {assignment.is_primary}")
-                    perm_log(f"   - Is Active: {assignment.is_active}")
+                    perm_log(f"✅ Assignment Found: Role={user.role}")
+
+                    # [FIX] Fallback to role-based permissions if assignment perms are empty
+                    if not user.permissions and user.role:
+                        from .services import RolePermissionService
+                        user.permissions = RolePermissionService.get_permissions_for_role(user.role)
+                        perm_log(f"Empty perms in assignment. Falling back to role '{user.role}' defaults.")
                 else:
                     # Fallback to Staff Base permissions
                     user.permissions = staff.permissions
                     user.role = staff.role
                     user.clinic_id = staff.clinic.id if staff.clinic else None
-                    perm_log(f"⚠️ No Assignment Found. Using Base Staff Permissions:")
-                    perm_log(f"   - Permissions: {staff.permissions}")
-                    perm_log(f"   - Permission Count: {len(user.permissions)}")
-                    perm_log(f"   - Clinic ID: {user.clinic_id}")
+                    perm_log(f"⚠️ No Assignment Found. Using Base Staff Permissions: Role={user.role}")
+
+                    # [FIX] Fallback to role-based permissions if base staff perms are empty
+                    if not user.permissions and user.role:
+                        from .services import RolePermissionService
+                        user.permissions = RolePermissionService.get_permissions_for_role(user.role)
+                        perm_log(f"Empty base staff perms. Falling back to role '{user.role}' defaults.")
                     
             else:
                 perm_log("❌ No Staff Profile found for this user")

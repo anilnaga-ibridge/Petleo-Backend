@@ -113,8 +113,11 @@ class VeterinaryPermissionMiddleware(MiddlewareMixin):
                         "VETERINARY_SCHEDULE",
                         "VETERINARY_ONLINE_CONSULT",
                         "VETERINARY_OFFLINE_VISIT",
+                        "VETERINARY_PATIENTS",
+                        "VETERINARY_LABS",
+                        "VETERINARY_PHARMACY",
+                        "VETERINARY_CLINIC_SETTINGS",
                         "analytics.*",
-                        # Unified Granular Suite
                         "appointment.*", "vitals.*", "consultation.*",
                         "pharmacy.*", "lab.*", "vaccination.*",
                         "reminder.*", "billing.*", "patient.*", "vet_system.*"

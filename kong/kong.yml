@@ -3,29 +3,60 @@ _transform: true
 
 services:
   - name: auth-service
-    url: http://auth_service:8000
+    url: http://host.docker.internal:8000
     routes:
       - name: auth-route
         paths:
           - /auth
 
   - name: provider-service
-    url: http://service_provider_service:8000
+    url: http://host.docker.internal:8002
     routes:
       - name: provider-route
         paths:
           - /provider
 
   - name: booking-service
-    url: http://booking_service:8000
+    url: http://host.docker.internal:8006
     routes:
       - name: booking-route
         paths:
           - /booking
 
   - name: superadmin-service
-    url: http://super_admin_service:8000
+    url: http://host.docker.internal:8003
     routes:
       - name: superadmin-route
         paths:
           - /superadmin
+
+plugins:
+  - name: cors
+    config:
+      origins:
+        - http://localhost:5173
+        - http://127.0.0.1:5173
+        - http://localhost:5174
+        - http://127.0.0.1:5174
+      methods:
+        - GET
+        - POST
+        - PUT
+        - DELETE
+        - PATCH
+        - OPTIONS
+      headers:
+        - Accept
+        - Accept-Version
+        - Content-Length
+        - Content-MD5
+        - Content-Type
+        - Date
+        - Authorization
+        - x-clinic-id
+        - x-reset-token
+      exposed_headers:
+        - Content-Type
+        - Authorization
+      credentials: true
+      max_age: 3600

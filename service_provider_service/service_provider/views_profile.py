@@ -109,7 +109,17 @@ class PublicProviderProfileView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def get(self, request, provider_id):
-        provider = get_object_or_404(ServiceProvider, id=provider_id)
+        # 🛡️ SECURITY: Only allow viewing profiles that are Active, Verified, and Subscribed
+        # Align with ProviderRepository.get_active_providers_for_marketplace()
+        queryset = ServiceProvider.objects.filter(
+            profile_status='active',
+            is_fully_verified=True,
+            verified_user__subscription__is_active=True
+        ).exclude(
+            verified_user__role__iexact='superadmin'
+        )
+
+        provider = get_object_or_404(queryset, id=provider_id)
         
         # Ensure defaults exist
         ProviderProfile.objects.get_or_create(provider=provider)

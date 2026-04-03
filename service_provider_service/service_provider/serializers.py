@@ -43,10 +43,16 @@ class OrganizationEmployeeSerializer(serializers.ModelSerializer):
 
     def get_capabilities(self, obj):
         try:
-            # Get the final intersection of Plan and Role permissions
-            perms = obj.get_final_permissions()
-            return sorted(list(perms.keys()))
-        except:
+            # Get the final intersection of Plan and Role permissions (returns a list of strings)
+            perms_list = obj.get_final_permissions()
+            
+            # For the UI, we usually want the base keys (without _VIEW, etc.)
+            # or just return the entire flat list if that's what the UI expects.
+            # Returning the flat list is safer for granular CRUD checks.
+            return sorted(list(set(perms_list)))
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).error(f"Error in get_capabilities: {e}")
             return []
 
     def get_employee_avatar_url(self, obj):
@@ -89,6 +95,22 @@ class OrganizationEmployeeSerializer(serializers.ModelSerializer):
             return url
         except:
             return None
+
+
+class MinimalEmployeeSerializer(serializers.ModelSerializer):
+    """
+    Reduced serializer for non-admin listings (e.g. consultant selection).
+    Excludes sensitive contact info like email and phone number.
+    """
+    provider_role_name = serializers.CharField(source='provider_role.name', read_only=True)
+
+    class Meta:
+        model = OrganizationEmployee
+        fields = [
+            'id', 'auth_user_id', 'full_name', 'status', 
+            'role', 'provider_role', 'provider_role_name',
+            'specialization', 'average_rating'
+        ]
 
 
 class ActiveProviderDTO(serializers.ModelSerializer):
@@ -211,47 +233,73 @@ class PublicProviderDetailSerializer(PublicProviderSerializer):
     address = serializers.SerializerMethodField()
     
     employees = serializers.SerializerMethodField()
+    is_individual_provider = serializers.SerializerMethodField()
     
     class Meta:
         model = ServiceProvider
-        fields = PublicProviderSerializer.Meta.fields + ['bio', 'menu', 'email', 'phone_number', 'rating', 'review_count', 'address', 'employees']
+        fields = PublicProviderSerializer.Meta.fields + [
+            'bio', 'menu', 'email', 'phone_number', 'rating', 'review_count', 
+            'address', 'employees', 'is_individual_provider'
+        ]
+
+    def get_is_individual_provider(self, obj):
+        return obj.provider_type == "INDIVIDUAL"
         
     def get_employees(self, obj):
-         # Return only active employees
-         employees = obj.employees.filter(status='ACTIVE', deleted_at__isnull=True)
-         request = self.context.get("request")
-         
-         from service_provider.models import VerifiedUser
-         
-         employee_data = []
-         for e in employees:
-             avatar_url = None
-             
-             # Fetch the VerifiedUser to get the avatar URL
-             try:
-                 vu = VerifiedUser.objects.filter(auth_user_id=e.auth_user_id).first()
-                 if vu and vu.avatar_url:
-                      # avatar_url is typically already an absolute S3/Cloudinary URL, 
-                      # but if it's relative, build an absolute uri
-                      if request and not vu.avatar_url.startswith('http'):
-                          avatar_url = request.build_absolute_uri(vu.avatar_url)
-                      else:
-                          avatar_url = vu.avatar_url
-             except Exception:
-                 pass
+        request = self.context.get("request")
+        from service_provider.models import VerifiedUser
+        
+        employee_data = []
 
-             employee_data.append({
-                 "id": str(e.id),
-                 "auth_user_id": str(e.auth_user_id),
-                 "full_name": e.full_name,
-                 "role": e.provider_role.name if e.provider_role else e.role,
-                 "specialization": e.specialization,
-                 "consultation_fee": e.consultation_fee,
-                 "average_rating": e.average_rating,
-                 "total_ratings": e.total_ratings,
-                 "avatar": avatar_url
-             })
-         return employee_data
+        # 1. Handle Virtual Employee for Individuals
+        if obj.provider_type == "INDIVIDUAL":
+            vu = obj.verified_user
+            avatar_url = vu.avatar_url
+            if request and avatar_url and not avatar_url.startswith('http'):
+                avatar_url = request.build_absolute_uri(avatar_url)
+                
+            employee_data.append({
+                "id": f"ind-{obj.id}",
+                "auth_user_id": str(vu.auth_user_id),
+                "full_name": vu.full_name or "Specialist",
+                "role": "Individual Provider",
+                "specialization": obj.specialization or vu.role or "Specialist",
+                "consultation_fee": "0.00", # Can be extended later
+                "average_rating": obj.average_rating,
+                "total_ratings": obj.total_ratings,
+                "avatar": avatar_url,
+                "is_individual": True
+            })
+            return employee_data
+
+        # 2. Handle Real Employees for Organizations
+        employees = obj.employees.filter(status='ACTIVE', deleted_at__isnull=True)
+        
+        for e in employees:
+            avatar_url = None
+            try:
+                vu = VerifiedUser.objects.filter(auth_user_id=e.auth_user_id).first()
+                if vu and vu.avatar_url:
+                    if request and not vu.avatar_url.startswith('http'):
+                        avatar_url = request.build_absolute_uri(vu.avatar_url)
+                    else:
+                        avatar_url = vu.avatar_url
+            except Exception:
+                pass
+
+            employee_data.append({
+                "id": str(e.id),
+                "auth_user_id": str(e.auth_user_id),
+                "full_name": e.full_name,
+                "role": e.provider_role.name if e.provider_role else e.role,
+                "specialization": e.specialization,
+                "consultation_fee": e.consultation_fee,
+                "average_rating": e.average_rating,
+                "total_ratings": e.total_ratings,
+                "avatar": avatar_url,
+                "is_individual": False
+            })
+        return employee_data
 
         
     def get_address(self, obj):
@@ -299,7 +347,7 @@ class CapabilitySerializer(serializers.ModelSerializer):
 class ProviderRoleCapabilitySerializer(serializers.ModelSerializer):
     class Meta:
         model = ProviderRoleCapability
-        fields = ['capability_key']
+        fields = ['permission_key']
 
 
 class ProviderRoleSerializer(serializers.ModelSerializer):
@@ -308,52 +356,57 @@ class ProviderRoleSerializer(serializers.ModelSerializer):
         write_only=True,
         required=False
     )
-    capability_actions = serializers.ListField(
-        child=serializers.DictField(),
-        write_only=True,
-        required=False
-    )
 
     class Meta:
         model = ProviderRole
-        fields = ['id', 'provider', 'name', 'description', 'is_system_role', 'capabilities', 'capability_actions', 'employees', 'created_at']
+        fields = ['id', 'provider', 'name', 'description', 'is_system_role', 'capabilities', 'employees', 'created_at']
         read_only_fields = ['provider', 'is_system_role', 'employees', 'created_at']
 
 
     def to_representation(self, instance):
         ret = super().to_representation(instance)
+        from .role_templates import get_role_templates
         
-        # 🛡️ Robust Model Resolution
-        from django.apps import apps
-        CapabilityModel = apps.get_model('service_provider', 'Capability')
+        # 1. Gather all capabilities already in the DB as a flat list
+        target_keys = set(c.permission_key for c in instance.capabilities.all())
         
-        # 1. Capabilities with Labels and Granular Flags
-        cap_actions = instance.capabilities.all()
-        cap_keys = [c.capability_key for c in cap_actions]
-        
-        # Build a map of capabilities for easy lookup
-        caps_map = {c.key: c for c in CapabilityModel.objects.filter(key__in=cap_keys)}
-        
-        details = []
-        for action in cap_actions:
-            cap_obj = caps_map.get(action.capability_key)
-            details.append({
-                "key": action.capability_key,
-                "label": cap_obj.label if cap_obj else action.capability_key,
-                "group": cap_obj.group if cap_obj else "General",
-                "can_view": action.can_view,
-                "can_create": action.can_create,
-                "can_edit": action.can_edit,
-                "can_delete": action.can_delete
-            })
-            
-        ret['capabilities_details'] = details
-        ret['capabilities'] = cap_keys 
-        
-        # Compatibility for expanded dashboard
-        ret['capability_actions'] = details
+        # 2. Determine target keys (If system role, we pull from Role Templates source of truth)
+        if instance.is_system_role:
+            templates = get_role_templates().get('templates', [])
+            features_meta = get_role_templates().get('features', [])
+            template = next((t for t in templates if t.get('name') == instance.name), None)
+            if template:
+                feat_ids = template.get('features', [])
+                for f_id in feat_ids:
+                    feat_obj = next((f for f in features_meta if f.get('id') == f_id), None)
+                    if feat_obj:
+                        for cap_key in feat_obj.get('capabilities', []):
+                            # [AUTOMATION] Use Metadata-driven Defaults instead of hardcoded True
+                            defaults = feat_obj.get('default_permissions', {
+                                'can_view': True, 'can_create': True, 'can_edit': True, 'can_delete': True
+                            })
+                            
+                            can_view = defaults.get('can_view', True)
+                            can_create = defaults.get('can_create', True)
+                            can_edit = defaults.get('can_edit', True)
+                            can_delete = defaults.get('can_delete', True)
+                            
+                            # 🛑 Apply Overrides if defined in template for THIS feature
+                            if template and 'overrides' in template and f_id in template['overrides']:
+                                ovr = template['overrides'][f_id]
+                                can_view = ovr.get('can_view', can_view)
+                                can_create = ovr.get('can_create', can_create)
+                                can_edit = ovr.get('can_edit', can_edit)
+                                can_delete = ovr.get('can_delete', can_delete)
 
-        # 2. Employees with Names/Emails
+                            if can_view: target_keys.add(f"{cap_key}_VIEW")
+                            if can_create: target_keys.add(f"{cap_key}_CREATE")
+                            if can_edit: target_keys.add(f"{cap_key}_EDIT")
+                            if can_delete: target_keys.add(f"{cap_key}_DELETE")
+        
+        ret['capabilities'] = list(target_keys)
+
+        # 3. Employees
         emps = instance.employees.all()
         ret['employees_details'] = [
             {"full_name": e.full_name, "email": e.email} for e in emps
@@ -361,53 +414,34 @@ class ProviderRoleSerializer(serializers.ModelSerializer):
         
         return ret
 
-    def _save_capabilities(self, role, capabilities_data=None, capability_actions=None):
-        """Helper to save capabilities with granular permissions."""
+    def _save_capabilities(self, role, capabilities_data=None):
+        """Helper to save flat string capabilities."""
         from .models import ProviderRoleCapability
         
-        # If capability_actions is provided, use it (Granular support)
-        if capability_actions is not None:
+        if capabilities_data is not None:
             role.capabilities.all().delete()
-            for action in capability_actions:
-                ProviderRoleCapability.objects.create(
-                    provider_role=role,
-                    capability_key=action.get('capability_key'),
-                    can_view=action.get('can_view', False),
-                    can_create=action.get('can_create', False),
-                    can_edit=action.get('can_edit', False),
-                    can_delete=action.get('can_delete', False)
-                )
-        # Fallback to legacy flat list (all True or View only depending on logic)
-        elif capabilities_data is not None:
-            role.capabilities.all().delete()
-            for cap_key in set(capabilities_data):
+            for perm_key in set(capabilities_data):
                 ProviderRoleCapability.objects.create(
                     provider_role=role, 
-                    capability_key=cap_key,
-                    can_view=True,
-                    can_create=True,
-                    can_edit=True,
-                    can_delete=True
+                    permission_key=perm_key
                 )
 
     def create(self, validated_data):
         capabilities_data = validated_data.pop('capabilities', None)
-        capability_actions = validated_data.pop('capability_actions', None)
         
         role = ProviderRole.objects.create(**validated_data)
-        self._save_capabilities(role, capabilities_data, capability_actions)
+        self._save_capabilities(role, capabilities_data)
         return role
 
     def update(self, instance, validated_data):
         capabilities_data = validated_data.pop('capabilities', None)
-        capability_actions = validated_data.pop('capability_actions', None)
         
         instance.name = validated_data.get('name', instance.name)
         instance.description = validated_data.get('description', instance.description)
         instance.save()
         
-        if capabilities_data is not None or capability_actions is not None:
-            self._save_capabilities(instance, capabilities_data, capability_actions)
+        if capabilities_data is not None:
+            self._save_capabilities(instance, capabilities_data)
         
         return instance
 

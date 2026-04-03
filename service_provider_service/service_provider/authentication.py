@@ -18,6 +18,11 @@ class TransientUser:
         self.is_staff = False
         self.is_superuser = False
         self.phone_number = None
+        self.resolved_capabilities = set()
+
+    def get_all_plan_capabilities(self):
+        """Mock for transient users (usually customers with no plan)."""
+        return self.resolved_capabilities
 
     @property
     def username(self):
@@ -95,6 +100,23 @@ class VerifiedUserJWTAuthentication(JWTAuthentication):
                 )
                 with open("debug_auth.log", "a") as f: f.write(log_msg)
                 return (user, validated_token)
+
+            # --------------------------------------------------
+            # 🚀 [NEW] RESOLVE AND ATTACH CAPABILITIES
+            # --------------------------------------------------
+            try:
+                emp = OrganizationEmployee.objects.filter(auth_user_id=user_id).first()
+                if emp:
+                    # User is an employee, use role-based intersection
+                    user.resolved_capabilities = set(emp.get_final_permissions())
+                    log_msg += f"  - Resolved EMPLOYEE capabilities: {len(user.resolved_capabilities)}\n"
+                else:
+                    # User is an owner or transient, use full plan/baseline capabilities
+                    user.resolved_capabilities = user.get_all_plan_capabilities()
+                    log_msg += f"  - Resolved OWNER/TRANS capabilities: {len(user.resolved_capabilities)}\n"
+            except Exception as cap_err:
+                log_msg += f"  - Capability Resolution ERROR: {str(cap_err)}\n"
+                user.resolved_capabilities = set()
 
             with open("debug_auth.log", "a") as f: f.write(log_msg)
             return (user, validated_token)

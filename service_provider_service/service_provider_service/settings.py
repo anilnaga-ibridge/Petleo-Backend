@@ -23,7 +23,7 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Stripe Configuration
-STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY', 'sk_test_fake_key_for_now')
+STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY', 'sk_test_placeholder')
 STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET', 'whsec_fake_secret_for_now')
 
 # SECURITY WARNING: keep the secret key used in production secret!
@@ -66,7 +66,6 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'service_provider.rbac_middleware.RBACMiddleware',
 ]
 CORS_ALLOW_ALL_METHODS = True
 CORS_ALLOW_HEADERS = ["*"]
@@ -117,10 +116,10 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'provider_db',
-        'USER': 'petleo',
-        'PASSWORD': 'petleo',
+        'USER': 'postgres',
+        'PASSWORD': 'postgres',
         'HOST': '127.0.0.1',
-        'PORT': '5432',
+        'PORT': '5434',
     }
 }
 # Password validation

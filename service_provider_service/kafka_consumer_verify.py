@@ -324,7 +324,7 @@ for message in consumer:
                                         defaults={
                                             "service": service_obj,
                                             "name": cat["name"],
-                                            "linked_capability": cat.get("linked_capability")
+                                            "category_key": cat.get("category_key") or cat.get("linked_capability")
                                         }
                                     )
                                 except ProviderTemplateService.DoesNotExist:
@@ -491,7 +491,7 @@ for message in consumer:
                     cat_ids = [c["id"] for c in templates.get("categories", [])]
                     linked_caps = ProviderTemplateCategory.objects.filter(
                         super_admin_category_id__in=cat_ids
-                    ).values_list("linked_capability", flat=True)
+                    ).values_list("category_key", flat=True)
                     linked_caps = [lc for lc in linked_caps if lc]
 
                     if linked_caps:

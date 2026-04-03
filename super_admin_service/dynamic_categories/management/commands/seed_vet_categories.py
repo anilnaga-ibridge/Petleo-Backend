@@ -27,27 +27,27 @@ class Command(BaseCommand):
         system_categories = [
             {
                 "name": "Reception Desk",
-                "linked_capability": "VETERINARY_VISITS",
+                "category_key": "VETERINARY_VISITS",
                 "description": "Register pets, create visits, and check patients in"
             },
             {
                 "name": "Nurse Station",
-                "linked_capability": "VETERINARY_VITALS",
+                "category_key": "VETERINARY_VITALS",
                 "description": "Record temperature, weight, and basic health indicators"
             },
             {
                 "name": "Doctor Consultation",
-                "linked_capability": "VETERINARY_DOCTOR",
+                "category_key": "VETERINARY_DOCTOR",
                 "description": "Diagnose patients and prescribe medications"
             },
             {
                 "name": "Laboratory",
-                "linked_capability": "VETERINARY_LABS",
+                "category_key": "VETERINARY_LABS",
                 "description": "Order and upload lab test results"
             },
             {
                 "name": "Pharmacy",
-                "linked_capability": "VETERINARY_PHARMACY",
+                "category_key": "VETERINARY_PHARMACY",
                 "description": "Dispense medicines and complete visits"
             }
         ]
@@ -55,7 +55,7 @@ class Command(BaseCommand):
         for cat_data in system_categories:
             category, created = Category.objects.get_or_create(
                 service=service,
-                linked_capability=cat_data["linked_capability"],
+                category_key=cat_data["category_key"],
                 defaults={
                     "name": cat_data["name"],
                     "description": cat_data["description"],

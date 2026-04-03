@@ -34,6 +34,7 @@ from .serializers import (
     PublicProviderDetailSerializer,
     ProviderRatingSerializer,
     OrganizationEmployeeSerializer,
+    MinimalEmployeeSerializer,
 )
 
 from provider_dynamic_fields.models import (
@@ -601,10 +602,6 @@ def get_my_permissions(request):
 
     # 1. Determine the "Subscription Owner"
     # If it's an employee, we check the Organization's subscription.
-    print("\\n" + "="*100)
-    print("🚨 NEW CODE LOADED - VINOD FIX ACTIVE 🚨")
-    print("="*100 + "\\n")
-    
     subscription_owner = user
     try:
         try:
@@ -651,19 +648,19 @@ def get_my_permissions(request):
     permissions_list = _build_permission_tree(subscription_owner, request=request)
     
     # [LOGGING] Trace capabilities
-    user_perms_map = {}
+    user_perms_set = set()
     is_employee = False
     try:
         # Re-resolve or check if employee was found above
         employee = OrganizationEmployee.objects.filter(auth_user_id=user.auth_user_id).first()
         if employee:
-            user_perms_map = employee.get_final_permissions()
+            user_perms_set = employee.get_final_permissions()  # flat set of strings
             is_employee = True
-            print(f"🔑 [Port 8002] Employee Permissions: {sorted(list(user_perms_map.keys()))}")
+            print(f"🔑 [Port 8002] Employee Permissions (flat): {sorted(list(user_perms_set))}")
         else:
-            user_perms_map = {cap: {"can_view": True, "can_create": True, "can_edit": True, "can_delete": True} 
-                             for cap in subscription_owner.get_all_plan_capabilities()}
-            print(f"🔑 [Port 8002] Owner Permissions: {sorted(list(user_perms_map.keys()))}")
+            # Owner — get all granular plan capabilities
+            user_perms_set = subscription_owner.get_all_plan_capabilities()
+            print(f"🔑 [Port 8002] Owner Permissions (flat): {len(user_perms_set)} keys")
     except Exception as e:
         print(f"❌ Error tracing capabilities: {e}")
 
@@ -671,8 +668,9 @@ def get_my_permissions(request):
         f.write(f"\n[{timezone.now()}] get_my_permissions | User: {user.email} ({user.auth_user_id})\n")
         f.write(f"Is Employee: {is_employee}\n")
         f.write(f"Subscription Owner: {subscription_owner.email}\n")
-        f.write(f"Capabilities: {sorted(list(user_perms_map.keys()))}\n")
+        f.write(f"Capabilities: {sorted(list(user_perms_set))}\n")
         f.write(f"Tree Count: {len(permissions_list)}\n")
+        f.write(f"Owner Role: {subscription_owner.role}\n")
         for p in permissions_list:
             f.write(f" - {p.get('service_key')} ({p.get('service_name')})\n")
 
@@ -684,15 +682,23 @@ def get_my_permissions(request):
     try:
         emp = OrganizationEmployee.objects.get(auth_user_id=user.auth_user_id)
         
-        user_perms_map = emp.get_final_permissions()
-        user_caps = set(user_perms_map.keys())
+        flat_perms = emp.get_final_permissions()  # e.g. {"BOARDING_BASIC_VIEW", ...}
+        user_perms_set = flat_perms
         
-        print(f"   📊 Final Permissions Count: {len(user_caps)}")
-        print(f"   📋 Final Permissions: {list(user_caps)}")
+        # Derive base capability keys (strip action suffix)
+        for key in flat_perms:
+            for sfx in ['_VIEW', '_CREATE', '_EDIT', '_DELETE']:
+                if key.endswith(sfx):
+                    user_caps.add(key[:-len(sfx)])
+                    break
+            else:
+                user_caps.add(key)  # no known suffix, add as-is
+        
+        print(f"   📊 Final Permissions Count: {len(flat_perms)}")
+        print(f"   📋 Base Capability Keys: {sorted(list(user_caps))}")
         print(f"{'='*100}\n")
         
         # IMPORTANT: Filter the permission tree by employee capabilities
-        # The tree was built from org plan, but we need to restrict it to role capabilities
         print(f"🔍 Filtering permission tree by employee capabilities...")
         print(f"   Tree size before filter: {len(permissions_list)}")
         
@@ -708,36 +714,61 @@ def get_my_permissions(request):
             
             # Check if this service key (or its alias) is in user_caps
             resolved_key = SERVICE_KEY_ALIASES.get(service_key, service_key)
-            has_service_access = (service_key in user_caps) or (resolved_key in user_caps)
             
+            # Initial permissions for this service (Service-Level)
+            svc_can_view = (service_key + "_VIEW" in user_perms_set) or (resolved_key + "_VIEW" in user_perms_set)
+            svc_can_create = (service_key + "_CREATE" in user_perms_set) or (resolved_key + "_CREATE" in user_perms_set)
+            svc_can_edit = (service_key + "_EDIT" in user_perms_set) or (resolved_key + "_EDIT" in user_perms_set)
+            svc_can_delete = (service_key + "_DELETE" in user_perms_set) or (resolved_key + "_DELETE" in user_perms_set)
+
             print(f"   🔍 Checking service: {service_name} (key: {service_key} → {resolved_key})")
-            print(f"      Service key in user_caps? {has_service_access}")
+            print(f"      Initial Svc Perms: V={svc_can_view}, C={svc_can_create}, E={svc_can_edit}, D={svc_can_delete}")
             
-            # Always filter categories by employee role - never pass org-level can_view as-is
+            # Always filter categories by employee role
             filtered_categories = []
             for category in service.get('categories', []):
-                cat_key = category.get('linked_capability') or category.get('category_key')
+                cat_key = category.get('category_key')
                 cat_name = category.get('name') or category.get('category_name')
                 print(f"         Category: {cat_name} (key: {cat_key})")
                 
-                # Check if employee has this specific category capability
-                if cat_key and cat_key in user_perms_map:
-                    print(f"            ✅ Category MATCH - Including")
-                    perms = user_perms_map[cat_key]
-                    rebuilt_category = category.copy()
-                    rebuilt_category['can_view'] = perms.get('can_view', True)
-                    rebuilt_category['can_create'] = perms.get('can_create', False)
-                    rebuilt_category['can_edit'] = perms.get('can_edit', False)
-                    rebuilt_category['can_delete'] = perms.get('can_delete', False)
-                    filtered_categories.append(rebuilt_category)
+                # Check if employee has any permission key matching this category
+                if cat_key:
+                    has_view = f"{cat_key}_VIEW" in flat_perms
+                    has_create = f"{cat_key}_CREATE" in flat_perms
+                    has_edit = f"{cat_key}_EDIT" in flat_perms
+                    has_delete = f"{cat_key}_DELETE" in flat_perms
+                    
+                    if has_view or has_create or has_edit or has_delete:
+                        print(f"            ✅ Category MATCH - Including")
+                        rebuilt_category = category.copy()
+                        rebuilt_category['can_view'] = has_view
+                        rebuilt_category['can_create'] = has_create
+                        rebuilt_category['can_edit'] = has_edit
+                        rebuilt_category['can_delete'] = has_delete
+                        filtered_categories.append(rebuilt_category)
+                        
+                        # AGGREGATE to Service Level
+                        if has_view: svc_can_view = True
+                        if has_create: svc_can_create = True
+                        if has_edit: svc_can_edit = True
+                        if has_delete: svc_can_delete = True
+                    else:
+                        print(f"            ❌ Category NO MATCH - Excluding")
                 else:
-                    print(f"            ❌ Category NO MATCH - Excluding")
+                    print(f"            ⚠️ No category_key — Excluding")
             
-            # Include this service only if employee has service-level access OR matching categories
-            if has_service_access or filtered_categories:
+            # Include this service only if employee has any access
+            if svc_can_view or svc_can_create or svc_can_edit or svc_can_delete or filtered_categories:
                 print(f"      ➕ Adding service with {len(filtered_categories)} filtered categories")
                 filtered_service = service.copy()
                 filtered_service['categories'] = filtered_categories
+                
+                # Set aggregated permissions
+                filtered_service['can_view'] = svc_can_view
+                filtered_service['can_create'] = svc_can_create
+                filtered_service['can_edit'] = svc_can_edit
+                filtered_service['can_delete'] = svc_can_delete
+                
                 # Normalize service_key to VETERINARY_CORE if applicable
                 if service_key != resolved_key:
                     filtered_service['service_key'] = resolved_key
@@ -787,7 +818,7 @@ def get_my_permissions(request):
     
         for allowed_svc in allowed_services:
             # Get the capability key from the service
-            # For dynamic services, this comes from Service.linked_capability
+            # For dynamic services, this comes from Service.category_key
             # Standardizing to match _build_permission_tree: UPPER and with underscores
             cap_key = allowed_svc.name.upper().replace(" ", "_").replace("&", "")
             svc_id_str = str(allowed_svc.service_id)
@@ -829,19 +860,117 @@ def get_my_permissions(request):
         print(f"   Final Tree Count: {len(permissions_list)}\n")
     else:
         print(f"\n⏭️ SKIPPING ALLOWED SERVICE INJECTION (Employee - already filtered)\n")
+
     # -----------------------------------------
-    
-    # Construct response
+    # Construct plan_data from valid_sub
+    # -----------------------------------------
     plan_data = None
     if valid_sub:
         plan_data = {
             "title": valid_sub.plan_title,
+            "plan_title": valid_sub.plan_title,
             "subtitle": f"{valid_sub.billing_cycle_name} Plan",
+            "billing_cycle_name": valid_sub.billing_cycle_name,
             "start_date": valid_sub.start_date,
             "end_date": valid_sub.end_date,
             "days_left": getattr(valid_sub, 'days_left', None),
-            "is_expiring_soon": getattr(valid_sub, 'is_expiring_soon', False)
+            "is_expiring_soon": getattr(valid_sub, 'is_expiring_soon', False),
+            "price_amount": getattr(valid_sub, 'price_amount', None),
+            "price_currency": getattr(valid_sub, 'price_currency', 'INR'),
         }
+
+    # -----------------------------------------
+    # MANDATORY FILTERING FOR INDIVIDUAL PROVIDERS
+    # Removes Management/Clinics/Employee/Role modules for solo practitioners
+    # -----------------------------------------
+    if subscription_owner.role and subscription_owner.role.upper() == 'INDIVIDUAL':
+        print(f"🕵️  [FINAL FILTER] Stripping management modules for individual provider...")
+        final_filtered_tree = []
+        FORBIDDEN_KEYS = ['SYSTEM_ADMIN_CORE', 'ROLE_MANAGEMENT', 'EMPLOYEE_MANAGEMENT', 'CLINIC_MANAGEMENT']
+        FORBIDDEN_NAMES = ['clinics', 'role management', 'employee management', 'system management', 'management']
+
+        for svc in permissions_list:
+            s_key = (svc.get('service_key') or "").upper()
+            s_name = (svc.get('service_name') or "").lower()
+
+            if s_key == 'SYSTEM_ADMIN_CORE' or s_name in FORBIDDEN_NAMES:
+                continue
+
+            svc_cats = svc.get('categories', [])
+            if isinstance(svc_cats, dict):
+                filtered_cats = {k: v for k, v in svc_cats.items() if (v.get('category_key') or "").upper() not in FORBIDDEN_KEYS and (v.get('name') or "").lower() not in FORBIDDEN_NAMES}
+            else:
+                filtered_cats = [c for c in svc_cats if (c.get('category_key') or "").upper() not in FORBIDDEN_KEYS and (c.get('name') or "").lower() not in FORBIDDEN_NAMES]
+
+            if filtered_cats or s_key == 'VETERINARY_CORE':
+                svc['categories'] = filtered_cats
+                final_filtered_tree.append(svc)
+
+        permissions_list = final_filtered_tree
+
+    # -----------------------------------------
+    # [NEW] VETERINARY HUB INJECTION & NORMALIZATION
+    # -----------------------------------------
+    if not is_employee:
+        CLINICAL_MODULE_KEYS = {
+            'PHARMACY', 'VISITS', 'LABS', 'DOCTOR_STATION', 'VETERINARY_ASSISTANT',
+            'PATIENTS', 'OFFLINE_VISITS', 'MEDICINE_REMINDERS', 'CLINIC_SETTINGS',
+            'METADATA_MANAGEMENT', 'BOARDING_BASIC', 'VETERINARY_CORE',
+        }
+        
+        # 1. Normalize existing VETERINARY services to VETERINARY_CORE for frontend consistency
+        has_vet_hub = False
+        for svc in permissions_list:
+            s_key = (svc.get('service_key') or '').upper()
+            if s_key in ('VETERINARY', 'VETERINARY_CORE'):
+                svc['service_key'] = 'VETERINARY_CORE'
+                has_vet_hub = True
+
+        # 2. Collect all category_keys currently in the tree
+        existing_cat_keys = set()
+        for svc in permissions_list:
+            for cat in svc.get('categories', []):
+                ck = (cat.get('category_key') or cat.get('name', '')).upper()
+                existing_cat_keys.add(ck)
+
+        has_clinical_cats = bool(existing_cat_keys & CLINICAL_MODULE_KEYS)
+
+        # 3. If we have clinical modules but no VETERINARY_CORE node, inject it
+        if has_clinical_cats and not has_vet_hub:
+            print(f"🩺 [SIDEBAR FIX] Injecting VETERINARY_CORE service node (clinical modules detected)")
+            vet_categories = []
+            for svc in permissions_list:
+                for cat in svc.get('categories', []):
+                    ck = (cat.get('category_key') or cat.get('name', '')).upper()
+                    if ck in CLINICAL_MODULE_KEYS:
+                        vet_categories.append(cat)
+
+            permissions_list.insert(0, {
+                "service_id": "veterinary-core-injected",
+                "service_name": "Veterinary Management",
+                "service_key": "VETERINARY_CORE",
+                "icon": "tabler-building-hospital",
+                "can_view": True,
+                "can_create": True,
+                "can_edit": True,
+                "can_delete": True,
+                "categories": vet_categories,
+            })
+            has_vet_hub = True
+
+    # -----------------------------------------
+    # [NEW] PLAN TITLE ENRICHMENT
+    # -----------------------------------------
+    if plan_data and not is_employee:
+        plan_title_lower = (plan_data.get('title') or '').lower()
+        has_vet_in_perms = any(
+            (p.get('service_key') or '').upper() == 'VETERINARY_CORE'
+            for p in permissions_list
+        )
+        
+        if (has_vet_in_perms or has_clinical_cats) and 'veterinary' not in plan_title_lower:
+            plan_data['title'] = plan_data['title'] + ' (Veterinary)'
+            plan_data['plan_title'] = plan_data['title']  # Sync enriched title to both fields
 
     response_data = {
         "permissions": permissions_list,
@@ -850,6 +979,7 @@ def get_my_permissions(request):
     }
 
     return Response(response_data)
+
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
@@ -913,14 +1043,24 @@ def get_allowed_services(request):
 from rest_framework import viewsets
 from rest_framework.decorators import action
     # These are already imported at the top of the file
-from .permissions import IsOrganizationAdmin
+from .permissions import IsOrganizationAdmin, HasGranularCapability, require_granular_capability
 
 class EmployeeViewSet(viewsets.ModelViewSet):
     """
     Manage employees for the logged-in organization.
     """
-    permission_classes = [IsAuthenticated, IsOrganizationAdmin]
+    permission_classes = [IsAuthenticated, require_granular_capability('EMPLOYEE_MANAGEMENT')]
     serializer_class = OrganizationEmployeeSerializer
+
+    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated], url_path='public_list')
+    def public_list(self, request):
+        """
+        Minimalist list of employees for non-admin users (e.g. for doctor selection).
+        Accessible to any authenticated staff member in the same organization.
+        """
+        qs = self.get_queryset()
+        serializer = MinimalEmployeeSerializer(qs, many=True)
+        return Response(serializer.data)
     
     def get_queryset(self):
         # Return employees where organization owner is the logged-in user
@@ -1227,7 +1367,7 @@ class EmployeeAssignmentViewSet(viewsets.ViewSet):
     Manage service assignments for employees.
     Supports granular permissions (Service -> Category -> Facility).
     """
-    permission_classes = [IsAuthenticated, IsOrganizationAdmin]
+    permission_classes = [IsAuthenticated, require_granular_capability('EMPLOYEE_MANAGEMENT')]
 
     @action(detail=False, methods=['get'])
     def available(self, request):
@@ -1369,7 +1509,7 @@ class ProviderRoleViewSet(viewsets.ModelViewSet):
     Manage provider-scoped roles.
     """
     serializer_class = ProviderRoleSerializer
-    permission_classes = [IsAuthenticated, IsOrganizationAdmin]
+    permission_classes = [IsAuthenticated, require_granular_capability('ROLE_MANAGEMENT')]
 
     def get_queryset(self):
         try:
@@ -1413,8 +1553,10 @@ class ProviderRoleViewSet(viewsets.ModelViewSet):
         
         try:
             role = serializer.save()
-        except IntegrityError:
-            raise ValidationError({"name": ["A role with this name already exists for your organization."]})
+        except IntegrityError as e:
+            if 'name' in str(e).lower() or 'unique' in str(e).lower():
+                raise ValidationError({"name": ["A role with this name already exists for your organization."]})
+            raise  # Re-raise if it's some other IntegrityError causing failure (e.g. duplicate child keys)
         
         # 🛡️ Audit Log (Guard against TransientUser)
         actor = self.request.user if isinstance(self.request.user, VerifiedUser) else None
@@ -1487,7 +1629,7 @@ class ConsultationTypeViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         if self.action in ['list', 'retrieve']:
             return [permissions.AllowAny()]
-        return [IsAuthenticated(), IsOrganizationAdmin()]
+        return [IsAuthenticated(), require_granular_capability('CLINIC_MANAGEMENT')()]
 
     def get_queryset(self):
         # Public read: filter by provider_id query param
@@ -1518,17 +1660,24 @@ def get_my_access(request):
     user = request.user
     
     # 1. Get Effective Capability Keys
-    capability_keys = set()
+    raw_keys = set()
     try:
         emp = OrganizationEmployee.objects.get(auth_user_id=user.auth_user_id)
-        capability_keys = set(emp.get_final_permissions())
+        raw_keys = set(emp.get_final_permissions())
     except OrganizationEmployee.DoesNotExist:
         # Organization/Individual Owner
-        # Fetch from ProviderCapability table (New Dynamic System)
         if hasattr(user, 'dynamic_capabilities'):
-            capability_keys = set(user.dynamic_capabilities.filter(is_active=True).values_list('capability__key', flat=True))
-        else:
-            capability_keys = set()
+            raw_keys = set(user.dynamic_capabilities.filter(is_active=True).values_list('capability__key', flat=True))
+    
+    # Map back to base keys for Module lookup
+    capability_keys = set()
+    for key in raw_keys:
+        base_key = key
+        for sfx in ["_VIEW", "_CREATE", "_EDIT", "_DELETE"]:
+            if key.endswith(sfx):
+                base_key = key[:-len(sfx)]
+                break
+        capability_keys.add(base_key)
         
     # 2. Fetch Modules for these keys
     from .models import FeatureModule
@@ -1537,7 +1686,7 @@ def get_my_access(request):
     ).order_by('sequence')
     
     return Response({
-        "capabilities": list(capability_keys),
+        "capabilities": list(raw_keys),
         "modules": list(modules)
     })
 
@@ -1668,17 +1817,33 @@ def resolve_role_capabilities(request):
         if role:
             role_caps = ProviderRoleCapability.objects.filter(provider_role=role)
             granular_caps = []
-            flat_keys = []
             
-            for rc in role_caps:
+            # Map flat keys back to base namespaces for legacy compat
+            cap_map = {}
+            flat_keys = [rc.permission_key for rc in role_caps]
+            
+            for key in flat_keys:
+                base_key = key
+                suffix = "VIEW"
+                for sfx in ["_VIEW", "_CREATE", "_EDIT", "_DELETE"]:
+                    if key.endswith(sfx):
+                        base_key = key[:-len(sfx)]
+                        suffix = sfx[1:]
+                        break
+                
+                if base_key not in cap_map:
+                    cap_map[base_key] = {"can_view": False, "can_create": False, "can_edit": False, "can_delete": False}
+                    
+                cap_map[base_key][f"can_{suffix.lower()}"] = True
+            
+            for b_key, flags in cap_map.items():
                 granular_caps.append({
-                    "capability_key": rc.capability_key,
-                    "can_view": rc.can_view,
-                    "can_create": rc.can_create,
-                    "can_edit": rc.can_edit,
-                    "can_delete": rc.can_delete
+                    "capability_key": b_key,
+                    "can_view": flags["can_view"],
+                    "can_create": flags["can_create"],
+                    "can_edit": flags["can_edit"],
+                    "can_delete": flags["can_delete"]
                 })
-                flat_keys.append(rc.capability_key)
             
             # Always ensure VETERINARY_CORE if it has any VETERINARY_* caps
             if any(c.startswith('VETERINARY_') for c in flat_keys) and 'VETERINARY_CORE' not in flat_keys:

@@ -208,6 +208,10 @@ class PurchasedPlan(models.Model):
 
     class Meta:
         unique_together = ("user", "plan", "billing_cycle")
+        indexes = [
+            models.Index(fields=["start_date"]),
+            models.Index(fields=["is_active"]),
+        ]
 
     def __str__(self):
         return f"{self.user} purchased {self.plan.title}"

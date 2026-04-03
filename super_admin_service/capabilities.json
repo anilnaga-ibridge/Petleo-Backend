@@ -1,65 +1,107 @@
 [
     {
         "key": "VETERINARY_CORE",
-        "label": "Veterinary Core Access",
-        "description": "Basic access to veterinary module",
+        "label": "Core Access",
+        "description": "Dashboard access and basic pet search",
         "group": "Core",
         "service": "VETERINARY"
     },
     {
         "key": "VETERINARY_VISITS",
-        "label": "Reception & Check-in",
-        "description": "Register pets, create visits, and check patients in",
+        "label": "Visits & Queue",
+        "description": "Manage OPD queue and patient visits",
+        "group": "Reception",
+        "service": "VETERINARY"
+    },
+    {
+        "key": "VETERINARY_DOCTOR",
+        "label": "Doctor Station",
+        "description": "Access doctor consultation station",
+        "group": "Doctor",
+        "service": "VETERINARY"
+    },
+    {
+        "key": "VETERINARY_PATIENTS",
+        "label": "Patients",
+        "description": "View and manage patient clinical records",
         "group": "Reception",
         "service": "VETERINARY"
     },
     {
         "key": "VETERINARY_VITALS",
-        "label": "Record Vitals",
-        "description": "Record temperature, weight, and basic health indicators",
+        "label": "Veterinary Assistant",
+        "description": "Record patient weight, temp, and vitals",
         "group": "Nursing",
         "service": "VETERINARY"
     },
     {
         "key": "VETERINARY_PRESCRIPTIONS",
-        "label": "Doctor Consultation",
-        "description": "Diagnose patients and prescribe medications",
+        "label": "Prescriptions",
+        "description": "Create and manage digital prescriptions",
         "group": "Doctor",
         "service": "VETERINARY"
     },
     {
         "key": "VETERINARY_LABS",
-        "label": "Lab Testing",
-        "description": "Order and upload lab test results",
+        "label": "Lab Orders",
+        "description": "Order tests and view results",
         "group": "Laboratory",
         "service": "VETERINARY"
     },
     {
-        "key": "VETERINARY_MEDICINE_REMINDERS",
-        "label": "Pharmacy & Medicine Dispensing",
-        "description": "Dispense medicines and complete visits",
+        "key": "VETERINARY_PHARMACY",
+        "label": "Pharmacy",
+        "description": "Dispense medicines and manage prescriptions",
         "group": "Pharmacy",
         "service": "VETERINARY"
     },
     {
-        "key": "VETERINARY_VACCINES",
-        "label": "Vaccination Management",
-        "description": "Manage pet vaccinations and reminders",
-        "group": "Nursing",
+        "key": "VETERINARY_PHARMACY_STORE",
+        "label": "Pharmacy Store",
+        "description": "Inventory control, batch tracking, and stock alerts",
+        "group": "Pharmacy",
+        "service": "VETERINARY"
+    },
+    {
+        "key": "VETERINARY_MEDICINE_REMINDERS",
+        "label": "Medicine Reminders",
+        "description": "Set and track medicine schedules",
+        "group": "Pharmacy",
+        "service": "VETERINARY"
+    },
+    {
+        "key": "VETERINARY_SCHEDULE",
+        "label": "Scheduling",
+        "description": "Manage doctor schedules and availability",
+        "group": "Doctor",
         "service": "VETERINARY"
     },
     {
         "key": "VETERINARY_ONLINE_CONSULT",
-        "label": "Online Consultation",
-        "description": "Provide video or chat-based consultations",
+        "label": "Online Consultancy",
+        "description": "Manage virtual consultations and video meetings",
         "group": "Doctor",
         "service": "VETERINARY"
     },
     {
         "key": "VETERINARY_OFFLINE_VISIT",
-        "label": "In-Clinic Consultation",
-        "description": "Handle physical in-clinic visits",
+        "label": "Offline Visits",
+        "description": "Manage physical walk-in appointments",
         "group": "Doctor",
+        "service": "VETERINARY"
+    },
+    {
+        "key": "VETERINARY_ADMIN_SETTINGS",
+        "label": "System Management",
+        "description": "Configure clinic settings and opening hours",
+        "group": "Admin",
+        "service": "VETERINARY"
+    },
+    {
+        "key": "VETERINARY_METADATA",
+        "label": "Metadata Management",
+        "description": "Configure clinic master data and defaults",
+        "group": "Admin",
         "service": "VETERINARY"
     }
 ]

@@ -3,6 +3,7 @@
 import json
 import logging
 import threading
+import uuid
 from kafka import KafkaProducer
 from django.utils import timezone
 
@@ -54,7 +55,7 @@ def publish_permissions_event(event_name: str, payload: dict):
 
     try:
         producer.send(KAFKA_TOPIC_PERMISSIONS, payload)
-        producer.flush()
+        producer.flush()  # 🔥 Optimization: Restored for critical sync reliability
 
         logger.info(
             f"[KAFKA] Published event '{event_name}' for user {payload.get('data', {}).get('auth_user_id')}"
@@ -75,11 +76,13 @@ def publish_permissions_updated(auth_user_id: str, purchase_id: str, permissions
 
     payload = {
         "event_type": "provider.permissions.updated",
-        "occurred_at": timezone.now().isoformat(),
+        "timestamp": timezone.now().isoformat(),
+        "event_id": str(uuid.uuid4()),
+        "schema_version": "1.1",
         "data": {
-            "auth_user_id": str(auth_user_id),
+            "provider_id": str(auth_user_id),
             "purchase_id": str(purchase_id),
-            "permissions": permissions_list,
+            "capabilities": permissions_list,
             "purchased_plan": purchased_plan,
             "templates": templates or {},
             "dynamic_capabilities": dynamic_capabilities or [],

@@ -24,7 +24,7 @@ class Facility(models.Model):
     
     # New Protocol & Pricing Fields
     protocol_type = models.CharField(max_length=20, choices=PROTOCOL_CHOICES, default='MINUTES_BASED')
-    duration_minutes = models.IntegerField(default=60, help_text="Duration for slots/sessions in minutes")
+    duration_minutes = models.IntegerField(default=60, null=True, blank=True, help_text="Duration for slots/sessions in minutes")
     pricing_strategy = models.CharField(max_length=20, choices=STRATEGY_CHOICES, default='FIXED')
     base_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
 

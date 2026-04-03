@@ -1,6 +1,0 @@
---- Debugging Employee: jhony@gmail.com ---
-Assigned Role (FK): None (ID: None)
-Role Field (Legacy): employee
-Organization: Dhatha privet limited (ID: 5ee51be1-7065-43e0-898a-2dca34dd3820)
-Org Owner Email: dhatha@gmail.com
-Error: Cannot query "Dhatha privet limited (organization)": Must be "ServiceProvider" instance.

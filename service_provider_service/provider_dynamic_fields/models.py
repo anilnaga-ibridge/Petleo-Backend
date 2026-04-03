@@ -419,7 +419,7 @@ class ProviderTemplateCategory(models.Model):
     )
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
-    linked_capability = models.CharField(max_length=100, blank=True, null=True)
+    category_key = models.CharField(max_length=100, unique=True, db_index=True, help_text="Core immutable key defining access namespace.")
     
     display_name = models.CharField(max_length=255, null=True, blank=True)
     duration_minutes = models.PositiveIntegerField(default=60)

@@ -65,7 +65,7 @@ def publish_event(topic: str, event: str, payload: dict, service: str):
             return
 
         producer.send(topic, message)
-        producer.flush()
+        # producer.flush()  # 🔥 Optimization: Removed blocking flush
 
         logger.info(f"📤 Kafka Event SENT → topic={topic}, event={event}")
         logger.debug(f"Payload → {message}")

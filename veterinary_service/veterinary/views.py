@@ -97,10 +97,14 @@ from .services import (
     DynamicEntityService, WorkflowService, MetadataService, 
     LabService, PharmacyService, ReminderService, VisitQueueService,
     VisitTimelineService, ClinicAnalyticsService,
-    VeterinaryAvailabilityService, VeterinaryAppointmentService
+    VeterinaryAvailabilityService, VeterinaryAppointmentService,
+    ClinicRegistrationService
 )
 from .kafka.producer import producer
-from .permissions import HasVeterinaryAccess, IsClinicStaffOfPet, VeterinaryCheckoutPermission, require_capability, require_granular_capability
+from .permissions import (
+    HasVeterinaryAccess, IsClinicStaffOfPet, VeterinaryCheckoutPermission, 
+    require_capability, require_granular_capability, has_capability_access
+)
 from .utils.permissions import permission_required
 from .monetization import feature_tier, PRO, ENTERPRISE
 
@@ -182,9 +186,30 @@ class ClinicViewSet(viewsets.ModelViewSet):
         # 3. Post-Creation Setup (Subscription, Roles etc)
         ClinicRegistrationService.initialize_new_clinic(instance)
 
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        org_id = instance.organization_id
+        
+        # 1. Block deletion if it's the only clinic
+        remaining_count = Clinic.objects.filter(organization_id=org_id).count()
+        if remaining_count <= 1:
+            return Response(
+                {"error": "You must have at least one clinic. Deletion blocked."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # 2. If deleting the primary, promote the next one
+        if instance.is_primary:
+            next_primary = Clinic.objects.filter(organization_id=org_id).exclude(id=instance.id).first()
+            if next_primary:
+                next_primary.is_primary = True
+                next_primary.save()
+
+        return super().destroy(request, *args, **kwargs)
+
 class PetOwnerViewSet(viewsets.ModelViewSet):
     serializer_class = PetOwnerSerializer
-    permission_classes = [permissions.IsAuthenticated, HasVeterinaryAccess]
+    permission_classes = [permissions.IsAuthenticated, HasVeterinaryAccess, require_granular_capability('VETERINARY_PATIENTS')]
     filter_backends = [django_filters.rest_framework.DjangoFilterBackend, filters.SearchFilter]
     search_fields = ['name', 'phone']
     filterset_fields = ['phone']
@@ -282,7 +307,7 @@ class PetOwnerViewSet(viewsets.ModelViewSet):
 
 class PetViewSet(viewsets.ModelViewSet):
     serializer_class = PetSerializer
-    permission_classes = [permissions.IsAuthenticated, HasVeterinaryAccess]
+    permission_classes = [permissions.IsAuthenticated, HasVeterinaryAccess, require_granular_capability('VETERINARY_PATIENTS')]
     filter_backends = [django_filters.rest_framework.DjangoFilterBackend, filters.SearchFilter]
     filterset_fields = ['owner']
     search_fields = ['name']
@@ -294,6 +319,26 @@ class PetViewSet(viewsets.ModelViewSet):
         if clinic_id:
             return Pet.objects.filter(owner__clinic_id=clinic_id)
         return Pet.objects.none()
+
+    @action(detail=False, methods=['get'])
+    def today(self, request):
+        """
+        Fetch pets registered today in the current clinic.
+        Used for 'Pending Admissions' on the schedule sidebar.
+        """
+        clinic_id = get_clinic_context(request)
+        if not clinic_id:
+            return Response([])
+        
+        from django.utils import timezone
+        today = timezone.now().date()
+        
+        queryset = Pet.objects.filter(
+            owner__clinic_id=clinic_id,
+            created_at__date=today
+        ).order_by('-created_at')
+        
+        return Response(PetSerializer(queryset, many=True, context={'request': request}).data)
 
     def _log_trace(self, msg):
         log_file = "/Users/PraveenWorks/Anil Works/Petleo-Backend/veterinary_service/middleware_trace.log"
@@ -514,22 +559,8 @@ class VisitQueueViewSet(viewsets.ViewSet):
         required_cap = REQUIRED_CAPS.get(queue_name)
         
         if required_cap:
-            # 1. AUTH & ROLE EXTRACTION
-            user_id = getattr(request.user, 'username', str(request.user.id)) # Ensure string ID
-            role = str(getattr(request.user, 'role', '')).upper()
-
-            # 2. BYPASS FOR OWNERS (Organization/Individual)
-            if role in ['ORGANIZATION', 'INDIVIDUAL', 'PROVIDER', 'ORGANIZATION_PROVIDER', 'ORGANIZATION_ADMIN']:
-                # Owners have implicit access
-                pass 
-            else:
-                # 3. USE MIDDLEWARE PERMISSIONS (Preferred)
-                # The VeterinaryPermissionMiddleware already resolves StaffClinicAssignment and populates request.user.permissions
-                user_perms = getattr(request.user, 'permissions', [])
-                if required_cap in user_perms:
-                    pass # Access Granted
-                else:
-                    return Response({'error': f'Permission denied. Missing capability: {required_cap}'}, status=status.HTTP_403_FORBIDDEN)
+            if not has_capability_access(request.user, required_cap, 'view'):
+                return Response({'error': f'Permission denied. Missing capability: {required_cap}'}, status=status.HTTP_403_FORBIDDEN)
         
         date_param = request.query_params.get('date')
         queryset = VisitQueueService.get_queue(queue_name, clinic_id, date_param)
@@ -642,7 +673,18 @@ class VisitViewSet(viewsets.ModelViewSet):
     @permission_required('veterinary.visits', 'edit')
     def check_in(self, request, pk=None):
         visit = self.get_object()
+
+        # 1. Enforce doctor assignment
+        doctor_auth_id = request.data.get('assigned_doctor_auth_id') or visit.assigned_doctor_auth_id
+        if not doctor_auth_id:
+            return Response({'error': 'Doctor assignment is mandatory for check-in.'}, status=status.HTTP_400_BAD_REQUEST)
+
         try:
+            # Update doctor if new ID provided in request
+            if request.data.get('assigned_doctor_auth_id') and (request.data.get('assigned_doctor_auth_id') != visit.assigned_doctor_auth_id):
+                visit.assigned_doctor_auth_id = request.data.get('assigned_doctor_auth_id')
+                visit.save(update_fields=['assigned_doctor_auth_id'])
+                
             WorkflowService.transition_visit(visit, 'CHECKED_IN', user_role=get_auth_user_id(request))
             return Response({'status': 'success', 'new_status': visit.status})
         except ValueError as e:
@@ -846,6 +888,17 @@ class VisitViewSet(viewsets.ModelViewSet):
                 next_status = data.get('next_status')
                 if next_status:
                     WorkflowService.transition_visit(visit, next_status, user_role=user_auth_id)
+                
+                # NEW: Trigger Kafka Event for Final Visit Summary
+                producer.send_event('VET_VISIT_SUMMARY_PUBLISHED', {
+                    'visit_id': str(visit.id),
+                    'pet_id': str(visit.pet.id),
+                    'pet_external_id': getattr(visit.pet, 'external_id', None),
+                    'owner_auth_id': getattr(visit.pet.owner, 'auth_user_id', None),
+                    'clinic_name': visit.clinic.name,
+                    'consultation_notes': visit.consultation_notes,
+                    'finalized_at': timezone.now().isoformat()
+                })
 
             return Response({'status': 'success', 'new_status': visit.status})
         except Exception as e:
@@ -1353,6 +1406,25 @@ class LabOrderViewSet(viewsets.ModelViewSet):
                 except ValueError:
                     pass
 
+                # NEW: Trigger Kafka Event for Pet Owner Sync
+                producer.send_event('VET_LAB_RESULT_PUBLISHED', {
+                    'visit_id': str(order.visit.id),
+                    'pet_id': str(order.visit.pet.id),
+                    'pet_external_id': getattr(order.visit.pet, 'external_id', None),
+                    'owner_auth_id': getattr(order.visit.pet.owner, 'auth_user_id', None),
+                    'order_id': str(order.id),
+                    'template_name': order.template.name,
+                    'results': [
+                        {
+                            'field': r.test_field.field_name,
+                            'value': r.value,
+                            'unit': r.test_field.unit,
+                            'flag': r.flag
+                        } for r in saved_results
+                    ],
+                    'completed_at': order.completed_at.isoformat() if order.completed_at else None
+                })
+
             return Response({'status': 'success', 'order_status': order.status})
             
         except Exception as e:
@@ -1587,11 +1659,28 @@ class MedicalAppointmentViewSet(viewsets.ModelViewSet):
         clinic_id = get_clinic_context(request)
         user_id = get_auth_user_id(request)
 
-        if appointment.status != 'CONFIRMED':
-            return Response({'error': f'Cannot check-in appointment in {appointment.status} status.'}, status=400)
+        # 1. State check to prevent duplicate check-in
+        if appointment.status in ['CHECKED_IN', 'IN_PROGRESS', 'COMPLETED']:
+            from rest_framework import status
+            return Response({'error': 'Patient is already checked in or visit is already active.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if appointment.status != 'CONFIRMED' and appointment.status != 'SCHEDULED':
+             from rest_framework import status
+             return Response({'error': f'Cannot check-in appointment in {appointment.status} status.'}, status=status.HTTP_400_BAD_REQUEST)
 
         with transaction.atomic():
-            # 1. Create Visit if not exists
+            # Support doctor assignment during check-in if provided
+            doctor_auth_id = request.data.get('assigned_doctor_auth_id') or appointment.doctor_auth_id
+            
+            if not doctor_auth_id:
+                from rest_framework import status
+                return Response({'error': 'Doctor assignment is mandatory for check-in.'}, status=status.HTTP_400_BAD_REQUEST)
+
+            if doctor_auth_id != appointment.doctor_auth_id:
+                appointment.doctor_auth_id = doctor_auth_id
+                appointment.save(update_fields=['doctor_auth_id'])
+
+            # 2. Create Visit if not exists
             visit, created = Visit.objects.get_or_create(
                 appointment=appointment,
                 defaults={
@@ -1600,9 +1689,14 @@ class MedicalAppointmentViewSet(viewsets.ModelViewSet):
                     'service_id': appointment.service_id,
                     'status': 'CREATED',
                     'reason': appointment.notes,
-                    'created_by': user_id
+                    'created_by': user_id,
+                    'assigned_doctor_auth_id': doctor_auth_id
                 }
             )
+
+            if not created and doctor_auth_id:
+                visit.assigned_doctor_auth_id = doctor_auth_id
+                visit.save(update_fields=['assigned_doctor_auth_id'])
 
             # 2. Transition status for both
             from .services import WorkflowService
@@ -1858,6 +1952,22 @@ class PrescriptionViewSet(viewsets.ModelViewSet):
         if clinic_id:
             return Prescription.objects.filter(visit__clinic_id=clinic_id).order_by('-created_at')
         return Prescription.objects.none()
+
+    def perform_create(self, serializer):
+        instance = serializer.save()
+        
+        # NEW: Trigger Kafka Event for Pet Owner Sync
+        producer.send_event('VET_PRESCRIPTION_CREATED', {
+            'prescription_id': str(instance.id),
+            'visit_id': str(instance.visit.id),
+            'pet_id': str(instance.visit.pet.id),
+            'pet_external_id': getattr(instance.visit.pet, 'external_id', None),
+            'owner_auth_id': getattr(instance.visit.pet.owner, 'auth_user_id', None),
+            'medicine_name': instance.medicine_name,
+            'dosage': instance.dosage,
+            'duration_days': instance.duration_days,
+            'notes': instance.notes
+        })
 
     @action(detail=True, methods=['post'], url_path='upload_prescription')
     def upload_prescription(self, request, pk=None):
@@ -2204,6 +2314,17 @@ class VaccinationViewSet(viewsets.ModelViewSet):
              user_auth_id = self.request.auth.get('user_id') or user_auth_id
              
         vaccination = serializer.save(doctor_id=user_auth_id)
+        
+        # NEW: Trigger Kafka Event for Pet Owner Sync
+        producer.send_event('VET_VACCINATION_RECORDED', {
+            'vaccination_id': str(vaccination.id),
+            'pet_id': str(vaccination.pet.id),
+            'pet_external_id': getattr(vaccination.pet, 'external_id', None),
+            'owner_auth_id': getattr(vaccination.pet.owner, 'auth_user_id', None),
+            'vaccine_name': vaccination.vaccine_name,
+            'date_given': vaccination.date_given.isoformat() if vaccination.date_given else None,
+            'next_due_date': vaccination.next_due_date.isoformat() if vaccination.next_due_date else None
+        })
         
         # Automatically generate reminders (7 days and 1 day before)
         if vaccination.next_due_date:

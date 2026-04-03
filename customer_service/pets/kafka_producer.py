@@ -48,7 +48,7 @@ def publish_pet_event(event_type, pet_instance):
 
     try:
         producer.send("customer_events", payload)
-        producer.flush()
+        # producer.flush()  # 🔥 Optimization: Removed blocking flush
         logger.info(f"📤 Published {event_type} for Pet {pet_instance.id}")
     except Exception as e:
         logger.error(f"❌ Failed to publish pet event: {e}")

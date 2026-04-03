@@ -22,7 +22,7 @@ class SmartAssignmentService:
 
         Resolution chain:
           facility → ProviderTemplateFacility.required_capability
-                   OR category.linked_capability
+                   OR category.category_key
                    OR service name → guess capability key
           → ProviderRoleCapability.capability_key == resolved key
           → ProviderRole → OrganizationEmployee
@@ -90,7 +90,7 @@ class SmartAssignmentService:
 
         Resolution order:
         1. ProviderTemplateFacility.required_capability  (explicit, e.g. VETERINARY_DOCTOR)
-        2. ProviderTemplateFacility.category.linked_capability (e.g. VETERINARY_VISITS)
+        2. ProviderTemplateFacility.category.category_key (e.g. VETERINARY_VISITS)
         3. Service name → inferred capability key
            e.g.  "Pet Spa" → PET_SPA
                  "Day care" → DAY_CARE
@@ -115,9 +115,9 @@ class SmartAssignmentService:
             if facility.required_capability:
                 return facility.required_capability
 
-            # 2. Category-level linked capability
-            if facility.category and facility.category.linked_capability:
-                return facility.category.linked_capability
+            # 2. Category-level category key
+            if facility.category and facility.category.category_key:
+                return facility.category.category_key
 
             # 3. Infer from service name → snake_upper
             if facility.category and facility.category.service:
@@ -209,10 +209,10 @@ class SmartAssignmentService:
         """
         from ..models import ProviderRoleCapability
 
-        # Find all roles in this org that have the required capability
+        # Find all roles in this org that have the required capability namespace
         role_ids = list(
             ProviderRoleCapability.objects.filter(
-                capability_key=capability_key,
+                permission_key__startswith=f"{capability_key}_",
                 provider_role__provider_id=org_id,          # scope to this org
             ).values_list('provider_role_id', flat=True)
         )

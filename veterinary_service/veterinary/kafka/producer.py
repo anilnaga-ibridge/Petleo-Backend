@@ -37,7 +37,7 @@ class VeterinaryProducer:
                     'service': 'veterinary_service'
                 }
                 producer.send(topic, message)
-                producer.flush()
+                # producer.flush()  # 🔥 Optimization: Removed blocking flush
                 logger.info(f"Sent event {event_type} to {topic}")
             except Exception as e:
                 logger.error(f"Failed to send event {event_type}: {e}")

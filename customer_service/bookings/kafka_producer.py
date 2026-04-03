@@ -60,7 +60,7 @@ def publish_booking_event(event_type, booking_instance):
 
     try:
         producer.send("booking_events", payload)
-        producer.flush()
+        # producer.flush()  # 🔥 Optimization: Removed blocking flush
         logger.info(f"📤 Published {event_type} for Booking {booking_instance.id} to 'booking_events'")
     except Exception as e:
         logger.error(f"❌ Failed to publish booking event {event_type}: {e}")

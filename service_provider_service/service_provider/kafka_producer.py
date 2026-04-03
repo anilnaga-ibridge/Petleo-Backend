@@ -55,7 +55,7 @@ def publish_document_uploaded(provider_id, document_id, definition_id, file_url,
     
     try:
         producer.send(topic, payload)
-        producer.flush()
+        # producer.flush()  # 🔥 Optimization: Removed blocking flush
         logger.info(f"📤 Published PROVIDER.DOCUMENT.UPLOADED for {filename}")
     except Exception as e:
         logger.error(f"❌ Failed to publish document upload event: {e}")
@@ -96,7 +96,7 @@ def publish_employee_updated(employee):
     
     try:
         producer.send(topic, payload)
-        producer.flush()
+        # producer.flush()  # 🔥 Optimization: Removed blocking flush
         logger.info(f"📤 Published EMPLOYEE_UPDATED for {employee.auth_user_id} with {len(perms)} perms")
     except Exception as e:
         logger.error(f"❌ Failed to publish employee update event: {e}")
@@ -119,7 +119,7 @@ def publish_employee_deleted(auth_user_id):
     
     try:
         producer.send(topic, payload)
-        producer.flush()
+        # producer.flush()  # 🔥 Optimization: Removed blocking flush
         logger.info(f"📤 Published EMPLOYEE_DELETED for {auth_user_id}")
     except Exception as e:
         logger.error(f"❌ Failed to publish employee deletion event: {e}")
@@ -143,7 +143,7 @@ def publish_permissions_synced(auth_user_id, permissions):
     
     try:
         producer.send(topic, payload)
-        producer.flush()
+        # producer.flush()  # 🔥 Optimization: Removed blocking flush
         logger.info(f"📤 Published USER_PERMISSIONS_SYNCED for {auth_user_id}")
     except Exception as e:
         logger.error(f"❌ Failed to publish permission sync event: {e}")
@@ -175,7 +175,7 @@ def publish_user_profile_updated(auth_user_id, full_name=None, email=None, phone
     
     try:
         producer.send(topic, payload)
-        producer.flush()
+        # producer.flush()  # 🔥 Optimization: Removed blocking flush
         logger.info(f"📤 Published EMPLOYEE_UPDATED (Profile Sync) for {auth_user_id}")
     except Exception as e:
         logger.error(f"❌ Failed to publish profile update event: {e}")

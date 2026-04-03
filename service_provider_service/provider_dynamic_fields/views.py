@@ -379,7 +379,7 @@ class ProviderFieldValueDeleteView(generics.GenericAPIView):
 # ==========================================================
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
-from service_provider.permissions import HasProviderPermission
+from service_provider.permissions import HasGranularCapability
 from .models import ProviderCategory, ProviderFacility, ProviderPricing
 from .serializers import ProviderCategorySerializer, ProviderFacilitySerializer, ProviderPricingSerializer
 
@@ -408,7 +408,7 @@ def get_effective_provider_user(auth_user):
 
 class ProviderCategoryViewSet(viewsets.ModelViewSet):
     serializer_class = ProviderCategorySerializer
-    permission_classes = [IsAuthenticated, HasProviderPermission]
+    permission_classes = [IsAuthenticated, HasGranularCapability]
 
     def get_verified_user(self):
         return get_effective_provider_user(self.request.user)
@@ -592,7 +592,6 @@ class ProviderCategoryViewSet(viewsets.ModelViewSet):
             else:
                 # For employees, we MUST check permissions even for custom data
                 s_id = str(item.get("service_id"))
-                # For custom data, original_id might not be set, use id
                 c_id = str(item.get("original_id") or item.get("id"))
                 
                 category_perms = perm_map.get(c_id, []) + service_level_perms
@@ -602,12 +601,36 @@ class ProviderCategoryViewSet(viewsets.ModelViewSet):
                 can_edit = False
                 can_delete = False
                 
+                # 1. Legacy Check
                 for p in category_perms:
                     if p.can_view: can_view = True
                     if not p.facility_id:
                         if p.can_create: can_create = True
                         if p.can_edit: can_edit = True
                         if p.can_delete: can_delete = True
+
+                # 2. Modern Key-Based Fallback
+                if not (can_view and can_create and can_edit and can_delete):
+                    user_caps = getattr(request, 'capabilities', set())
+                    
+                    from .models import ProviderTemplateService
+                    svc_template = ProviderTemplateService.objects.filter(super_admin_service_id=s_id).first()
+                    if svc_template:
+                        svc_key = svc_template.name.upper().replace(" ", "_")
+                        if f"{svc_key}_VIEW" in user_caps: can_view = True
+                        if f"{svc_key}_CREATE" in user_caps: can_create = True
+                        if f"{svc_key}_EDIT" in user_caps: can_edit = True
+                        if f"{svc_key}_DELETE" in user_caps: can_delete = True
+                    
+                    # Category-specific check
+                    from .models import ProviderTemplateCategory
+                    cat_template = ProviderTemplateCategory.objects.filter(super_admin_category_id=c_id).first()
+                    if cat_template and cat_template.category_key:
+                        cat_key = cat_template.category_key
+                        if f"{cat_key}_VIEW" in user_caps: can_view = True
+                        if f"{cat_key}_CREATE" in user_caps: can_create = True
+                        if f"{cat_key}_EDIT" in user_caps: can_edit = True
+                        if f"{cat_key}_DELETE" in user_caps: can_delete = True
                 
                 item["can_view"] = can_view
                 item["can_create"] = can_create
@@ -625,7 +648,7 @@ class ProviderCategoryViewSet(viewsets.ModelViewSet):
                         f["can_edit"] = f_perm.can_edit
                         f["can_delete"] = f_perm.can_delete
                     else:
-                        # Fallback to category permissions
+                        # Fallback to category permissions (which already include modern keys)
                         f["can_view"] = can_view
                         f["can_create"] = can_create
                         f["can_edit"] = can_edit
@@ -638,7 +661,7 @@ class ProviderCategoryViewSet(viewsets.ModelViewSet):
 
 class ProviderFacilityViewSet(viewsets.ModelViewSet):
     serializer_class = ProviderFacilitySerializer
-    permission_classes = [IsAuthenticated, HasProviderPermission]
+    permission_classes = [IsAuthenticated, HasGranularCapability]
     parser_classes = [MultiPartParser, FormParser]
 
     def get_verified_user(self):
@@ -967,26 +990,52 @@ class ProviderFacilityViewSet(viewsets.ModelViewSet):
                 f_id = str(item.get("original_id") or item.get("id"))
                 c_id = str(item.get("category_id"))
                 
-                perm = perm_map.get(f_id)
-                
-                if not perm:
-                    # Fallback to Category level
-                    perm = category_level_perms.get(c_id)
-                
-                if not perm and service_level_perms:
-                    # Fallback to Service level
-                    perm = service_level_perms[0]
-                
+                can_view = False
+                can_create = False
+                can_edit = False
+                can_delete = False
+
                 if perm:
-                    item["can_view"] = perm.can_view
-                    item["can_create"] = perm.can_create
-                    item["can_edit"] = perm.can_edit
-                    item["can_delete"] = perm.can_delete
-                else:
-                    item["can_view"] = False
-                    item["can_create"] = False
-                    item["can_edit"] = False
-                    item["can_delete"] = False
+                    can_view = perm.can_view
+                    can_create = perm.can_create
+                    can_edit = perm.can_edit
+                    can_delete = perm.can_delete
+
+                # 2. Modern Key-Based Fallback (for Employees/Custom Roles)
+                if not (can_view and can_create and can_edit and can_delete):
+                    user_caps = getattr(request, 'capabilities', set())
+                    
+                    # Try Service-level key first
+                    from .models import ProviderTemplateService
+                    service_id = resolve_service_id(request.query_params.get("service"))
+                    if service_id:
+                        svc_template = ProviderTemplateService.objects.filter(super_admin_service_id=service_id).first()
+                        if svc_template:
+                            svc_key = svc_template.name.upper().replace(" ", "_")
+                            if f"{svc_key}_VIEW" in user_caps: can_view = True
+                            if f"{svc_key}_CREATE" in user_caps: can_create = True
+                            if f"{svc_key}_EDIT" in user_caps: can_edit = True
+                            if f"{svc_key}_DELETE" in user_caps: can_delete = True
+
+                    # Try Category-level key
+                    if c_id:
+                        from .models import ProviderTemplateCategory
+                        cat_template = ProviderTemplateCategory.objects.filter(super_admin_category_id=c_id).first()
+                        if cat_template and cat_template.category_key:
+                            cat_key = cat_template.category_key
+                            if f"{cat_key}_VIEW" in user_caps: can_view = True
+                            if f"{cat_key}_CREATE" in user_caps: can_create = True
+                            if f"{cat_key}_EDIT" in user_caps: can_edit = True
+                            if f"{cat_key}_DELETE" in user_caps: can_delete = True
+                    
+                    # Special check for Facilities? 
+                    # Usually permissions are at Service or Category level, 
+                    # but if we have a specific facility check, we'd add it here.
+
+                item["can_view"] = can_view
+                item["can_create"] = can_create
+                item["can_edit"] = can_edit
+                item["can_delete"] = can_delete
             
             final_data.append(item)
         return Response(final_data)
@@ -994,7 +1043,7 @@ class ProviderFacilityViewSet(viewsets.ModelViewSet):
 
 class ProviderPricingViewSet(viewsets.ModelViewSet):
     serializer_class = ProviderPricingSerializer
-    permission_classes = [IsAuthenticated, HasProviderPermission]
+    permission_classes = [IsAuthenticated, HasGranularCapability]
 
     def get_verified_user(self):
         return get_effective_provider_user(self.request.user)
@@ -1416,16 +1465,47 @@ class ProviderPricingViewSet(viewsets.ModelViewSet):
                 if not perm:
                     perm = perm_map.get((s, "None", "None"))
                 
+                can_view = False
+                can_create = False
+                can_edit = False
+                can_delete = False
+
                 if perm:
-                    item["can_view"] = perm.can_view
-                    item["can_create"] = perm.can_create
-                    item["can_edit"] = perm.can_edit
-                    item["can_delete"] = perm.can_delete
-                else:
-                    item["can_view"] = False
-                    item["can_create"] = False
-                    item["can_edit"] = False
-                    item["can_delete"] = False
+                    can_view = perm.can_view
+                    can_create = perm.can_create
+                    can_edit = perm.can_edit
+                    can_delete = perm.can_delete
+
+                # 2. Modern Key-Based Fallback (for Employees/Custom Roles)
+                if not (can_view and can_create and can_edit and can_delete):
+                    user_caps = getattr(request, 'capabilities', set())
+                    
+                    # Try Service-level key first
+                    from .models import ProviderTemplateService
+                    if s != "None":
+                        svc_template = ProviderTemplateService.objects.filter(super_admin_service_id=s).first()
+                        if svc_template:
+                            svc_key = svc_template.name.upper().replace(" ", "_")
+                            if f"{svc_key}_VIEW" in user_caps: can_view = True
+                            if f"{svc_key}_CREATE" in user_caps: can_create = True
+                            if f"{svc_key}_EDIT" in user_caps: can_edit = True
+                            if f"{svc_key}_DELETE" in user_caps: can_delete = True
+
+                    # Try Category-level key
+                    if c != "None":
+                        from .models import ProviderTemplateCategory
+                        cat_template = ProviderTemplateCategory.objects.filter(super_admin_category_id=c).first()
+                        if cat_template and cat_template.category_key:
+                            cat_key = cat_template.category_key
+                            if f"{cat_key}_VIEW" in user_caps: can_view = True
+                            if f"{cat_key}_CREATE" in user_caps: can_create = True
+                            if f"{cat_key}_EDIT" in user_caps: can_edit = True
+                            if f"{cat_key}_DELETE" in user_caps: can_delete = True
+                
+                item["can_view"] = can_view
+                item["can_create"] = can_create
+                item["can_edit"] = can_edit
+                item["can_delete"] = can_delete
 
             final_data.append(item)
 

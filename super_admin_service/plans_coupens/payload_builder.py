@@ -31,7 +31,7 @@ def build_unified_payload(user, plan, purchased_plan_id, auth_user_id):
             "category_name": getattr(p.category, "name", None),
             "facility_id": str(p.facility.id) if p.facility else None,
             "facility_name": getattr(p.facility, "name", None),
-            "linked_capability": getattr(p.category, "linked_capability", None) if p.category else None,
+            "category_key": getattr(p.category, "category_key", None) if p.category else None,
             "can_view": bool(p.permissions.get("can_view", True)) if p.permissions else True,
             "can_create": bool(p.permissions.get("can_create", False)) if p.permissions else False,
             "can_edit": bool(p.permissions.get("can_edit", False)) if p.permissions else False,
@@ -62,7 +62,7 @@ def build_unified_payload(user, plan, purchased_plan_id, auth_user_id):
             "service_id": str(cat.service.id),
             "name": cat.name,
             "description": getattr(cat, "description", ""),
-            "linked_capability": cat.linked_capability,
+            "category_key": cat.category_key,
             "is_template": True
         })
         seen_categories.add(cat.id)
@@ -137,7 +137,33 @@ def build_unified_payload(user, plan, purchased_plan_id, auth_user_id):
             # This should never happen due to auto-generation in Service.save()
             logger.warning(f"⚠️  Service '{svc.display_name}' missing linked_capability! Skipping.")
 
+    import uuid
+    from django.utils import timezone
+
+    # 4. Generate Enterprise Metadata
+    event_id = uuid.uuid4()
+    
     return {
+        "event_id": str(event_id),
+        "schema_version": "2.0",
+        "provider_id": str(auth_user_id),
+        "plan_id": str(plan.id),
+        "timestamp": timezone.now().isoformat(),
+        # Nested payload for the new consumer
+        "capabilities": [
+            {
+                "service_id": p["service_id"],
+                "category_id": p["category_id"],
+                "facility_id": p["facility_id"],
+                "permissions": {
+                    "can_view": p["can_view"],
+                    "can_create": p["can_create"],
+                    "can_edit": p["can_edit"],
+                    "can_delete": p["can_delete"]
+                }
+            } for p in perms_payload
+        ],
+        # Legacy fields for backward compatibility
         "perms_payload": perms_payload,
         "templates": templates,
         "dynamic_capabilities": dynamic_caps_payload

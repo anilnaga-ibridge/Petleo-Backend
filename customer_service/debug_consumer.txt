@@ -1,1480 +1,175 @@
-2026-02-11 04:59:59,155 [INFO] 🚀 Starting Customer Service Kafka Consumer...
-2026-02-11 04:59:59,170 [INFO] ✅ Connected to Kafka broker.
-2026-02-12 04:40:31,936 [INFO] 🚀 Starting Customer Service Kafka Consumer...
-2026-02-12 04:40:31,950 [INFO] ✅ Connected to Kafka broker.
-2026-02-13 04:58:43,935 [INFO] 🚀 Starting Customer Service Kafka Consumer...
-2026-02-13 04:58:43,948 [INFO] ✅ Connected to Kafka broker.
-2026-02-13 08:34:21,059 [INFO] 🔥 Event: USER_CREATED | User: 5a50989c-82be-413a-b5d4-1f5e6b863aa9 | Role: petowner
-2026-02-13 08:34:21,126 [ERROR] ❌ Error processing Kafka message: Invalid field name(s) for model PetOwnerProfile: 'avatar_url'.
-2026-02-13 08:35:08,433 [INFO] 🔥 Event: USER_VERIFIED | User: 5a50989c-82be-413a-b5d4-1f5e6b863aa9 | Role: petowner
-2026-02-13 08:35:08,436 [ERROR] ❌ Error processing Kafka message: Invalid field name(s) for model PetOwnerProfile: 'avatar_url'.
-2026-02-17 04:48:05,410 [INFO] 🚀 Starting Customer Service Kafka Consumer...
-2026-02-17 04:48:05,423 [INFO] ✅ Connected to Kafka broker.
-2026-02-17 05:21:29,887 [INFO] 🔥 Event: USER_DELETED | User: 5a50989c-82be-413a-b5d4-1f5e6b863aa9 | Role: petowner
-2026-02-17 05:21:30,115 [INFO] 🗑️ Deleted PetOwnerProfile for 5a50989c-82be-413a-b5d4-1f5e6b863aa9
-2026-02-17 10:14:09,571 [INFO] 🔥 Event: USER_CREATED | User: ce5494d1-0062-467c-bf48-c09e024ce0a9 | Role: petowner
-2026-02-17 10:14:09,589 [ERROR] ❌ Error processing Kafka message: Invalid field name(s) for model PetOwnerProfile: 'avatar_url'.
-2026-02-17 10:14:37,066 [INFO] 🔥 Event: USER_VERIFIED | User: ce5494d1-0062-467c-bf48-c09e024ce0a9 | Role: petowner
-2026-02-17 10:14:37,070 [ERROR] ❌ Error processing Kafka message: Invalid field name(s) for model PetOwnerProfile: 'avatar_url'.
-2026-02-18 05:03:45,562 [INFO] 🚀 Starting Customer Service Kafka Consumer...
-2026-02-18 05:03:45,575 [INFO] ✅ Connected to Kafka broker.
-2026-02-19 05:41:07,116 [INFO] 🚀 Starting Customer Service Kafka Consumer...
-2026-02-19 05:41:07,128 [INFO] ✅ Connected to Kafka broker.
-2026-02-19 07:24:39,458 [INFO] 🔥 Event: USER_CREATED | User: 07d7bbe3-3865-42ae-a5c1-36d8cd89634f | Role: petowner
-2026-02-19 07:24:39,516 [ERROR] ❌ Error processing Kafka message: Invalid field name(s) for model PetOwnerProfile: 'avatar_url'.
-2026-02-19 07:24:58,736 [INFO] 🔥 Event: USER_VERIFIED | User: 07d7bbe3-3865-42ae-a5c1-36d8cd89634f | Role: petowner
-2026-02-19 07:24:58,741 [ERROR] ❌ Error processing Kafka message: Invalid field name(s) for model PetOwnerProfile: 'avatar_url'.
-2026-02-20 05:09:55,097 [INFO] 🚀 Starting Customer Service Kafka Consumer...
-2026-02-20 05:09:55,110 [INFO] ✅ Connected to Kafka broker.
-2026-02-21 04:43:49,641 [INFO] 🚀 Starting Customer Service Kafka Consumer...
-2026-02-21 04:43:49,655 [INFO] ✅ Connected to Kafka broker.
-2026-02-23 05:04:31,606 [INFO] 🚀 Starting Customer Service Kafka Consumer...
-2026-02-23 05:04:31,618 [INFO] ✅ Connected to Kafka broker.
-2026-02-24 04:53:07,424 [INFO] 🚀 Starting Customer Service Kafka Consumer...
-2026-02-24 04:53:07,437 [INFO] ✅ Connected to Kafka broker.
-2026-02-24 10:55:16,122 [INFO] 🚀 Starting Customer Service Kafka Consumer...
-2026-02-24 10:55:16,134 [INFO] ✅ Connected to Kafka broker.
-2026-02-25 05:06:54,397 [INFO] 🚀 Starting Customer Service Kafka Consumer...
-2026-02-25 05:06:54,408 [INFO] ✅ Connected to Kafka broker.
-2026-02-25 16:21:12,954 [INFO] 🚀 Starting Customer Service Kafka Consumer...
-2026-02-25 16:21:12,969 [INFO] ✅ Connected to Kafka broker.
-2026-02-26 04:33:54,370 [INFO] 🚀 Starting Customer Service Kafka Consumer...
-2026-02-26 04:33:54,463 [INFO] ✅ Connected to Kafka broker.
-2026-02-27 04:56:29,512 [INFO] 🚀 Starting Customer Service Kafka Consumer...
-2026-02-27 04:56:29,526 [INFO] ✅ Connected to Kafka broker.
-2026-02-28 04:59:58,621 [INFO] 🚀 Starting Customer Service Kafka Consumer...
-2026-02-28 04:59:58,634 [INFO] ✅ Connected to Kafka broker.
-2026-03-02 10:15:48,728 [INFO] 🚀 Starting Customer Service Kafka Consumer...
-2026-03-02 10:15:48,740 [INFO] ✅ Connected to Kafka broker.
-2026-03-03 10:11:24,986 [INFO] 🚀 Starting Customer Service Kafka Consumer...
-2026-03-03 10:11:25,001 [INFO] ✅ Connected to Kafka broker.
-2026-03-04 10:14:22,887 [INFO] 🚀 Starting Customer Service Kafka Consumer...
-2026-03-04 10:14:22,900 [INFO] ✅ Connected to Kafka broker.
-2026-03-05 13:12:15,974 [INFO] 🚀 Starting Customer Service Kafka Consumer...
-2026-03-05 13:12:16,013 [INFO] ✅ Connected to Kafka broker.
-2026-03-06 10:11:56,475 [INFO] 🚀 Starting Customer Service Kafka Consumer...
-2026-03-06 10:11:56,488 [INFO] ✅ Connected to Kafka broker.
-2026-03-06 11:06:05,025 [INFO] 🚀 Starting Customer Service Kafka Consumer...
-2026-03-06 11:06:05,039 [INFO] ✅ Connected to Kafka broker.
-2026-03-07 10:24:28,882 [INFO] 🚀 Starting Customer Service Kafka Consumer...
-2026-03-07 10:24:28,895 [INFO] ✅ Connected to Kafka broker.
-2026-03-09 11:18:48,676 [INFO] 🚀 Starting Customer Service Kafka Consumer...
-2026-03-09 11:18:48,688 [INFO] ✅ Connected to Kafka broker.
-2026-03-10 14:08:04,928 [INFO] 🚀 Starting Customer Service Kafka Consumer...
-2026-03-10 14:08:04,944 [INFO] ✅ Connected to Kafka broker.
-2026-03-11 11:35:29,400 [INFO] 🚀 Starting Customer Service Kafka Consumer...
-2026-03-11 11:35:29,412 [INFO] ✅ Connected to Kafka broker.
-2026-03-11 18:38:20,626 [INFO] 🔥 Event: USER_CREATED | User: e10dd52c-bf90-47fa-87aa-e79cb42123d3 | Role: petowner
-2026-03-11 18:38:20,684 [ERROR] ❌ Error processing Kafka message: Invalid field name(s) for model PetOwnerProfile: 'avatar_url'.
-2026-03-11 18:41:44,217 [INFO] 🔥 Event: USER_CREATED | User: 379ef695-9b1b-4109-9a28-db9a7181fe12 | Role: petowner
-2026-03-11 18:41:44,220 [ERROR] ❌ Error processing Kafka message: Invalid field name(s) for model PetOwnerProfile: 'avatar_url'.
-2026-03-12 12:41:39,253 [INFO] 🚀 Starting Customer Service Kafka Consumer...
-2026-03-12 12:41:39,266 [INFO] ✅ Connected to Kafka broker.
-2026-03-13 10:27:57,859 [INFO] 🚀 Starting Customer Service Kafka Consumer...
-2026-03-13 10:27:57,871 [INFO] ✅ Connected to Kafka broker.
-2026-03-13 16:38:46,420 [INFO] 🚀 Starting Customer Service Kafka Consumer...
-2026-03-13 16:38:46,434 [INFO] ✅ Connected to Kafka broker.
-2026-03-16 11:13:30,316 [INFO] 🚀 Starting Customer Service Kafka Consumer...
-2026-03-16 11:13:30,339 [INFO] ✅ Connected to Kafka broker.
-2026-03-16 16:22:53,999 [INFO] 🔥 Event: USER_VERIFIED | User: e10dd52c-bf90-47fa-87aa-e79cb42123d3 | Role: petowner
-2026-03-16 16:22:54,054 [ERROR] ❌ Error processing Kafka message: Invalid field name(s) for model PetOwnerProfile: 'avatar_url'.
-2026-03-17 11:49:14,145 [INFO] 🚀 Starting Customer Service Kafka Consumer...
-2026-03-17 11:49:14,161 [INFO] ✅ Connected to Kafka broker.
-2026-03-18 11:46:23,652 [INFO] 🚀 Starting Customer Service Kafka Consumer...
-2026-03-18 11:46:25,655 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:46:32,664 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:46:39,668 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:46:46,674 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:46:53,680 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:47:00,686 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:47:07,692 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:47:14,698 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:47:21,705 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:47:28,711 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:47:35,715 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:47:42,722 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:47:49,730 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:47:56,735 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:48:03,740 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:48:10,746 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:48:17,756 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:48:24,761 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:48:31,768 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:48:38,776 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:48:45,780 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:48:52,786 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:48:59,793 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:49:06,814 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:49:13,856 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:49:20,865 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:49:27,873 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:49:34,881 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:49:41,890 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:49:48,893 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:49:55,895 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:50:02,904 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:50:09,910 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:50:16,917 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:50:23,921 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:50:30,927 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:50:37,935 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:50:44,940 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:50:51,948 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:50:58,958 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:51:05,965 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:51:12,971 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:51:19,982 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:51:26,990 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:51:33,997 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:51:41,005 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:51:48,013 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:51:55,016 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:52:02,022 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:52:09,029 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:52:16,034 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:52:23,042 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:52:30,051 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:52:37,056 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:52:44,065 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:52:51,072 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:52:58,079 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:53:05,086 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:53:12,092 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:53:19,097 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:53:26,106 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:53:33,114 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:53:40,118 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:53:47,124 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:53:54,130 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:54:01,139 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:54:08,147 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:54:15,157 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:54:22,167 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:54:29,174 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:54:36,184 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:54:43,195 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:54:50,203 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:54:57,208 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:55:04,216 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:55:11,224 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:55:18,233 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:55:25,238 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:55:32,248 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:55:39,252 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:55:46,258 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:55:53,263 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:56:00,268 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:56:07,278 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:56:14,285 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:56:21,293 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:56:28,301 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:56:35,304 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:56:42,308 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:56:49,327 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:56:56,343 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:57:03,360 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:57:10,380 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:57:17,397 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:57:24,410 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:57:31,414 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:57:38,432 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:57:45,442 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:57:52,449 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:57:59,468 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:58:06,488 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:58:13,497 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:58:20,509 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:58:27,547 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:58:34,562 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:58:41,577 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:58:48,594 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:58:55,612 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:59:02,629 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:59:09,643 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:59:16,659 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:59:23,676 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:59:30,689 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:59:37,694 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:59:44,709 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:59:51,722 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 11:59:58,740 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:00:05,754 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:00:12,773 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:00:19,791 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:00:26,801 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:00:33,810 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:00:40,816 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:00:47,824 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:00:54,825 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:01:01,835 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:01:08,846 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:01:15,849 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:01:22,855 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:01:29,862 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:01:36,869 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:01:43,876 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:01:50,885 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:01:57,895 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:02:04,898 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:02:11,906 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:02:18,913 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:02:25,919 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:02:32,942 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:02:39,950 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:02:46,969 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:02:53,978 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:03:00,991 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:03:07,999 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:03:15,006 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:03:22,016 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:03:29,034 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:03:36,070 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:03:43,081 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:03:50,090 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:03:57,124 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:04:04,131 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:04:11,135 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:04:18,141 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:04:25,185 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:04:32,192 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:04:39,198 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:04:46,205 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:04:53,214 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:05:00,220 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:05:07,225 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:05:14,230 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:05:21,236 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:05:28,242 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:05:35,248 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:05:42,253 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:05:49,260 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:05:56,265 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:06:03,274 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:06:10,280 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:06:17,295 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:06:24,298 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:06:31,306 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:06:38,314 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:06:45,319 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:06:52,327 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:06:59,336 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:07:06,345 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:07:13,392 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:07:20,400 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:07:27,403 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:07:34,413 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:07:41,434 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:07:48,504 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:07:55,510 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:08:02,520 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:08:09,522 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:08:16,546 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:08:23,554 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:08:30,582 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:08:37,592 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:08:44,596 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:08:51,604 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:08:58,612 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:09:05,618 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:09:12,626 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:09:19,634 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:09:26,662 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:09:33,689 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:09:40,696 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:09:47,702 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:09:54,705 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:10:01,738 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:10:08,746 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:10:15,755 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:10:22,760 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:10:29,831 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:10:36,842 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:10:43,852 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:10:50,860 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:10:57,891 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:11:04,909 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:11:11,913 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:11:18,922 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:11:25,928 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:11:32,938 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:11:39,939 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:11:46,948 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:11:53,959 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:12:00,968 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:12:07,975 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:12:14,983 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:12:21,992 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:12:29,001 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:12:36,008 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:12:43,016 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:12:50,023 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:12:57,031 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:13:04,034 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:13:11,040 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:13:18,046 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:13:25,053 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:13:32,059 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:13:39,066 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:13:46,069 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:13:53,078 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:14:00,083 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:14:07,095 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:14:14,098 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:14:21,103 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:14:28,106 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:14:35,114 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:14:42,118 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:14:49,126 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:14:56,134 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:15:03,177 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:15:10,180 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:15:17,182 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:15:24,188 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:15:31,197 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:15:38,202 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:15:45,243 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:15:52,254 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:15:59,264 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:16:06,316 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:16:13,366 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:16:20,389 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:16:27,404 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:16:34,411 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:16:41,446 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:16:48,447 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:16:55,456 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:17:02,464 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:17:09,474 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:17:16,491 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:17:23,497 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:17:30,506 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:17:37,513 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:17:44,535 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:17:51,563 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:17:58,588 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:18:05,594 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:18:12,596 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:18:19,601 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:18:26,610 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:18:33,623 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:18:40,636 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:18:47,649 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:18:54,658 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:19:01,668 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:19:08,672 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:19:15,680 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:19:22,693 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:19:29,700 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:19:36,705 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:19:43,712 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:19:50,720 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:19:57,723 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:20:04,731 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:20:11,743 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:20:18,746 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:20:25,754 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:20:32,755 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:20:39,762 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:20:46,768 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:20:53,773 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:21:00,776 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:21:07,781 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:21:14,791 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:21:21,799 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:21:28,807 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:21:35,818 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:21:42,824 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:21:49,828 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:21:56,829 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:22:03,836 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:22:10,843 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:22:17,853 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:22:24,862 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:22:31,869 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:22:38,873 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:22:45,879 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:22:52,886 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:22:59,894 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:23:06,896 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:23:13,918 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:23:20,925 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:23:27,930 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:23:34,938 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:23:41,943 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:23:48,948 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:23:55,954 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:24:02,989 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:24:10,025 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:24:17,035 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:24:24,040 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:24:31,043 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:24:38,048 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:24:45,055 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:24:52,064 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:24:59,070 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:25:06,076 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:25:13,081 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:25:20,087 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:25:27,096 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:25:34,102 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:25:41,109 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:25:48,118 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:25:55,121 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:26:02,130 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:26:09,138 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:26:16,144 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:26:23,153 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:26:30,161 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:26:37,169 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:26:44,177 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:26:51,185 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:26:58,190 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:27:05,195 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:27:12,201 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:27:19,209 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:27:26,213 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:27:33,219 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:27:40,226 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:27:47,234 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:27:54,244 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:28:01,270 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:28:08,276 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:28:15,284 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:28:22,291 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:28:29,297 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:28:36,304 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:28:43,310 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:28:50,330 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:28:57,348 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:29:04,362 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:29:11,371 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:29:18,380 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:29:25,386 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:29:32,392 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:29:39,397 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:29:46,403 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:29:53,451 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:30:00,469 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:30:07,474 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:30:14,486 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:30:21,493 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:30:28,502 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:30:35,552 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:30:42,560 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:30:49,568 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:30:56,575 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:31:03,583 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:31:10,591 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:31:17,616 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:31:24,625 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:31:31,628 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:31:38,637 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:31:45,645 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:31:52,698 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:31:59,706 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:32:06,712 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:32:13,721 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:32:20,758 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:32:27,764 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:32:34,789 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:32:41,797 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:32:48,802 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:32:55,808 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:33:02,812 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:33:09,814 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:33:16,815 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:33:23,822 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:33:30,830 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:33:37,833 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:33:44,898 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:33:51,913 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:33:58,929 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:34:05,939 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:34:12,978 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:34:19,985 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:34:26,993 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:34:34,002 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:34:41,011 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:34:48,035 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:34:55,048 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:35:02,051 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:35:09,062 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:35:16,072 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:35:23,081 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:35:30,086 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:35:37,091 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:35:44,093 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:35:51,099 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:35:58,109 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:36:05,116 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:36:12,123 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:36:19,131 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:36:26,136 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:36:33,139 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:36:40,146 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:36:47,151 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:36:54,160 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:37:01,170 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:37:08,176 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:37:15,185 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:37:22,191 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:37:29,198 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:37:36,207 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:37:43,213 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:37:50,223 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:37:57,229 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:38:04,233 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:38:11,242 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:38:18,251 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:38:25,261 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:38:32,265 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:38:39,273 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:38:46,276 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:38:53,301 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:39:00,311 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:39:07,318 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:39:14,358 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:39:21,363 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:39:28,373 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:39:35,375 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:39:42,382 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:39:49,389 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:39:56,398 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:40:03,427 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:40:10,434 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:40:17,439 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:40:24,442 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:40:31,447 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:40:38,455 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:40:45,509 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:40:52,541 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:40:59,550 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:41:06,608 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:41:13,611 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:41:20,622 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:41:27,631 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:41:34,637 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:41:41,639 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:41:48,658 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:41:55,694 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:42:02,701 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:42:09,707 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:42:16,715 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:42:23,770 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:42:30,776 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:42:37,823 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:42:44,832 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:42:51,841 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:42:58,849 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:43:05,868 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:43:12,875 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:43:19,892 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:43:26,894 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:43:33,898 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:43:40,908 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:43:47,914 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:43:54,922 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:44:01,931 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:44:08,944 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:44:15,990 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:44:23,022 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:44:30,026 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:44:37,038 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:44:44,048 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:44:51,056 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:44:58,065 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:45:05,074 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:45:12,082 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:45:19,097 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:45:26,148 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:45:33,202 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:45:40,211 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:45:47,215 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:45:54,228 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:46:01,235 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:46:08,242 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:46:15,247 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:46:22,252 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:46:29,262 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:46:36,273 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:46:43,290 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:46:50,300 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:46:57,333 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:47:04,340 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:47:11,362 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:47:18,368 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:47:25,372 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:47:32,382 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:47:39,392 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:47:46,394 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:47:53,398 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:48:00,406 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:48:07,413 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:48:14,416 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:48:21,426 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:48:28,434 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:48:35,440 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:48:42,446 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:48:49,451 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:48:56,461 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:49:03,479 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:49:10,506 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:49:17,524 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:49:24,564 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:49:31,585 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:49:38,590 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:49:45,596 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:49:52,607 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:49:59,631 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:50:06,641 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:50:13,647 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:50:20,653 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:50:27,661 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:50:34,667 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:50:41,673 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:50:48,705 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:50:55,739 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:51:02,746 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:51:09,749 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:51:16,753 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:51:23,757 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:51:30,766 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:51:37,772 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:51:44,774 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:51:51,785 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:51:58,791 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:52:05,796 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:52:12,807 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:52:19,809 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:52:26,816 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:52:33,818 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:52:40,826 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:52:47,832 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:52:54,839 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:53:01,848 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:53:08,854 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:53:15,864 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:53:22,868 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:53:29,875 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:53:36,882 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:53:43,885 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:53:50,891 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:53:57,901 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:54:04,908 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:54:11,918 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:54:18,925 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:54:25,934 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:54:32,943 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:54:39,951 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:54:46,961 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:54:53,967 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:55:00,974 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:55:07,981 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:55:14,986 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:55:21,991 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:55:29,000 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:55:36,008 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:55:43,015 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:55:50,023 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:55:57,033 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:56:04,043 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:56:11,052 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:56:18,060 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:56:25,070 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:56:32,078 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:56:39,093 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:56:46,101 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:56:53,108 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:57:00,112 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:57:07,121 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:57:14,149 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:57:21,168 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:57:28,171 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:57:35,261 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:57:42,266 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:57:49,272 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:57:56,282 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:58:03,288 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:58:10,296 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:58:17,360 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:58:24,426 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:58:31,465 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:58:38,499 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:58:45,513 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:58:52,523 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:58:59,529 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:59:06,536 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:59:13,576 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:59:20,586 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:59:27,590 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:59:34,627 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:59:41,650 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:59:48,660 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 12:59:55,667 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:00:02,677 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:00:09,695 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:00:16,716 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:00:23,727 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:00:30,736 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:00:37,745 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:00:44,753 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:00:51,763 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:00:58,770 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:01:05,772 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:01:12,782 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:01:19,786 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:01:26,794 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:01:33,801 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:01:40,816 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:01:47,851 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:01:54,860 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:02:01,865 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:02:08,874 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:02:15,882 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:02:22,923 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:02:29,929 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:02:36,937 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:02:43,945 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:02:50,952 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:02:57,958 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:03:04,984 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:03:12,007 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:03:19,041 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:03:26,048 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:03:33,056 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:03:40,062 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:03:47,096 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:03:54,105 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:04:01,125 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:04:08,131 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:04:15,139 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:04:22,145 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:04:29,157 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:04:36,172 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:04:43,178 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:04:50,194 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:04:57,205 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:05:04,216 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:05:11,222 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:05:18,229 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:05:25,269 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:05:32,304 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:05:39,340 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:05:46,344 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:05:53,348 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:06:00,357 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:06:07,362 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:06:14,364 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:06:21,369 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:06:28,390 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:06:35,396 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:06:42,403 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:06:49,412 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:06:56,420 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:07:03,428 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:07:10,469 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:07:17,528 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:07:24,546 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:07:31,556 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:07:38,587 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:07:45,597 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:07:52,606 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:07:59,613 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:08:06,624 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:08:13,631 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:08:20,637 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:08:27,655 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:08:34,675 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:08:41,684 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:08:48,694 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:08:55,727 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:09:02,746 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:09:09,751 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:09:16,806 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:09:23,822 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:09:30,831 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:09:37,837 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:09:44,846 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:09:51,848 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:09:58,853 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:10:05,935 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:10:12,944 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:10:19,979 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:10:27,012 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:10:34,018 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:10:41,030 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:10:48,033 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:10:55,039 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:11:02,044 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:11:09,046 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:11:16,052 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:11:23,055 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:11:30,065 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:11:37,067 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:11:44,075 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:11:51,082 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:11:58,088 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:12:05,096 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:12:12,100 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:12:19,107 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:12:26,113 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:12:33,120 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:12:40,126 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:12:47,130 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:12:54,132 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:13:01,136 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:13:08,164 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:13:15,184 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:13:22,193 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:13:29,201 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:13:36,211 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:13:43,233 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:13:50,306 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:13:57,331 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:14:04,335 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:14:11,340 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:14:18,382 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:14:25,385 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:14:32,391 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:14:39,428 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:14:46,444 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:14:53,449 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:15:00,455 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:15:07,461 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:15:14,482 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:15:21,489 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:15:28,495 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:15:35,528 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:15:42,531 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:15:49,539 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:15:56,578 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:16:03,580 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:16:10,581 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:16:17,583 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:16:24,587 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:16:31,590 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:16:38,599 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:16:45,617 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:16:52,627 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:16:59,673 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:17:06,682 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:17:13,703 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:17:20,707 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:17:27,715 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:17:34,721 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:17:41,742 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:17:48,753 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:17:55,757 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:18:02,823 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:18:09,830 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:18:16,838 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:18:23,844 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:18:30,889 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:18:37,901 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:18:44,915 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:18:51,922 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:18:58,939 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:19:05,949 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:19:12,959 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:19:19,981 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:19:27,059 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:19:34,065 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:19:41,072 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:19:48,082 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:19:55,096 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:20:02,113 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:20:09,118 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:20:16,137 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:20:23,146 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:20:30,185 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:20:37,200 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:20:44,224 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:20:51,234 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:20:58,237 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:21:05,244 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:21:12,251 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:21:19,257 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:21:26,275 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:21:33,283 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:21:40,287 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:21:47,293 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:21:54,302 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:22:01,310 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:22:08,316 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:22:15,321 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:22:22,329 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:22:29,336 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:22:36,344 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:22:43,349 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:22:50,356 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:22:57,366 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:23:04,369 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:23:11,377 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:23:18,382 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:23:25,384 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:23:32,395 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:23:39,406 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:23:46,413 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:23:53,421 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:24:00,430 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:24:07,439 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:24:14,447 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:24:21,453 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:24:28,459 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:24:35,463 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:24:42,474 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:24:49,480 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:24:56,482 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:25:03,491 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:25:10,493 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:25:17,501 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:25:24,510 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:25:31,514 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:25:38,523 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:25:45,531 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:25:52,540 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:25:59,550 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:26:06,560 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:26:13,566 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:26:20,572 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:26:27,582 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:26:34,590 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:26:41,600 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:26:48,612 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:26:55,620 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:27:02,628 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:27:09,636 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:27:16,644 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:27:23,650 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:27:30,657 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:27:37,665 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:27:44,673 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:27:51,681 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:27:58,689 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:28:05,698 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:28:12,707 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:28:19,711 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:28:26,721 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:28:33,737 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:28:40,753 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:28:47,762 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:28:54,780 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:29:01,796 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:29:08,805 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:29:15,818 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:29:22,835 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:29:29,847 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:29:36,863 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:29:43,875 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:29:50,895 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:29:57,913 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:30:04,929 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:30:11,944 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:30:18,955 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:30:25,970 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:30:32,986 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:30:40,001 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:30:47,013 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:30:54,030 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:31:01,044 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:31:08,053 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:31:15,058 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:31:22,063 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:31:29,072 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:31:36,078 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:31:43,086 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:31:50,099 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:31:57,104 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:32:04,112 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:32:11,119 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:32:18,125 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:32:25,133 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:32:32,141 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:32:39,149 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:32:46,159 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:32:53,161 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:33:00,169 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:33:07,177 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:33:14,184 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:33:21,194 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:33:28,215 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:33:35,258 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:33:42,261 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:33:49,299 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:33:56,303 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:34:03,312 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:34:10,319 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:34:17,337 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:34:24,342 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:34:31,344 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:34:38,355 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:34:45,368 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:34:52,377 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:34:59,380 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:35:06,390 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:35:13,408 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:35:20,410 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:35:27,416 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:35:34,423 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:35:41,427 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:35:48,428 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:35:55,442 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:36:02,477 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:36:09,479 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:36:16,484 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:36:23,497 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:36:30,503 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:36:37,508 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:36:44,515 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:36:51,524 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:36:58,555 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:37:05,579 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:37:12,589 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:37:19,596 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:37:26,602 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:37:33,610 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:37:40,617 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:37:47,623 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:37:54,630 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:38:01,654 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:38:08,664 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:38:15,671 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:38:22,676 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:38:29,684 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:38:36,709 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:38:43,732 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:38:50,740 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:38:57,742 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:39:04,751 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:39:11,759 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:39:18,768 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:39:25,776 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:39:32,812 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:39:39,827 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:39:46,837 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:39:53,841 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:40:00,891 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:40:07,902 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:40:14,909 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:40:21,915 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:40:28,920 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:40:35,934 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:40:42,941 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:40:49,942 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:40:56,947 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:41:03,978 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:41:10,986 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:41:18,018 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:41:25,019 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:41:32,048 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:41:39,065 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:41:46,072 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:41:53,081 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:42:00,085 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:42:07,129 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:42:14,135 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:42:21,144 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:42:28,151 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:42:35,157 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:42:42,161 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:42:49,167 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:42:56,173 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:43:03,186 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:43:10,197 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:43:17,206 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:43:24,213 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:43:31,217 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:43:38,222 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:43:45,228 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:43:52,232 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:43:59,239 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:44:06,241 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:44:13,256 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:44:20,280 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:44:27,288 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:44:34,298 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:44:41,308 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:44:48,360 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:44:55,367 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:45:02,377 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:45:09,386 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:45:16,392 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:45:23,398 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:45:30,409 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:45:37,421 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:45:44,427 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:45:51,434 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:45:58,442 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:46:05,449 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:46:12,454 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:46:19,481 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:46:26,520 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:46:33,534 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:46:40,542 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:46:47,566 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:46:54,586 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:47:01,592 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:47:08,598 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:47:15,607 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:47:22,615 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:47:29,621 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:47:36,626 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:47:43,662 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:47:50,669 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:47:57,675 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:48:04,682 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:48:11,692 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:48:18,700 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:48:25,710 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:48:32,742 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:48:39,748 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:48:46,758 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:48:53,772 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:49:00,806 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:49:07,812 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:49:14,818 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:49:21,822 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:49:28,829 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:49:35,834 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:49:42,841 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:49:49,860 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:49:56,889 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:50:03,899 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:50:10,908 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:50:17,927 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:50:24,933 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:50:31,943 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:50:38,963 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:50:45,969 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:50:52,978 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:50:59,984 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:51:06,992 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:51:14,030 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:51:21,051 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:51:28,069 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:51:35,107 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:51:42,117 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:51:49,135 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:51:56,181 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:52:03,193 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:52:10,225 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:52:17,255 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:52:24,293 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:52:31,310 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:52:38,360 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:52:45,368 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:52:52,377 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:52:59,389 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:53:06,402 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:53:13,408 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:53:20,418 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:53:27,434 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:53:34,444 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:53:41,457 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:53:48,466 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:53:55,511 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:54:02,552 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:54:09,556 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:54:16,564 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:54:23,586 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:54:30,603 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:54:37,613 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:54:44,661 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:54:51,671 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:54:58,678 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:55:05,687 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:55:12,693 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:55:19,700 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:55:26,702 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:55:33,710 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:55:40,717 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:55:47,721 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:55:54,723 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:56:01,733 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:56:08,739 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:56:15,742 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:56:22,761 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:56:29,789 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:56:36,793 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:56:43,801 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:56:50,807 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:56:57,810 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:57:04,817 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:57:11,823 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:57:18,829 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:57:25,836 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:57:32,841 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:57:39,860 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:57:46,862 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:57:53,868 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:58:00,899 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:58:07,903 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:58:14,927 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:58:21,934 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:58:28,941 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:58:35,945 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:58:42,953 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:58:49,960 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:58:56,963 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:59:03,970 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:59:10,979 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:59:17,985 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:59:24,991 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:59:31,996 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:59:39,004 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:59:46,052 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 13:59:53,054 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:00:00,060 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:00:07,068 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:00:14,096 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:00:21,118 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:00:28,123 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:00:35,214 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:00:42,236 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:00:49,246 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:00:56,295 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:01:03,298 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:01:10,302 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:01:17,305 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:01:24,313 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:01:31,337 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:01:38,371 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:01:45,376 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:01:52,431 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:01:59,441 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:02:06,448 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:02:13,465 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:02:20,470 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:02:27,474 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:02:34,482 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:02:41,485 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:02:48,501 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:02:55,509 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:03:02,513 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:03:09,520 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:03:16,526 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:03:23,535 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:03:30,536 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:03:37,560 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:03:44,569 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:03:51,579 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:03:58,585 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:04:05,592 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:04:12,596 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:04:19,605 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:04:26,612 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:04:33,619 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:04:40,629 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:04:47,635 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:04:54,642 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:05:01,675 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:05:08,678 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:05:15,696 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:05:22,705 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:05:29,742 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:05:36,748 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:05:43,755 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:05:50,764 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:05:57,769 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:06:04,785 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:06:11,791 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:06:18,797 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:06:25,812 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:06:32,823 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:06:39,831 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:06:46,841 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:06:53,845 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:07:00,859 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:07:07,867 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:07:14,877 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:07:21,879 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:07:28,919 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:07:35,921 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:07:42,929 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:07:49,931 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:07:56,939 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:08:03,946 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:08:10,956 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:08:18,029 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:08:25,038 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:08:32,054 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:08:39,060 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:08:46,065 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:08:53,090 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:09:00,105 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:09:07,123 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:09:14,141 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:09:21,150 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:09:28,159 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:09:35,165 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:09:42,171 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:09:49,173 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:09:56,177 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:10:03,242 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:10:10,253 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:10:17,259 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:10:24,267 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:10:31,276 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:10:38,306 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:10:45,313 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:10:52,335 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:10:59,339 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:11:06,344 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:11:13,351 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:11:20,361 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:11:27,364 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:11:34,371 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:11:41,437 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:11:48,451 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:11:55,459 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:12:02,490 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:12:09,496 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:12:16,504 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:12:23,508 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:12:30,517 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:12:37,532 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:12:44,539 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:12:51,561 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:12:58,566 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:13:05,575 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:13:12,613 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:13:19,619 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:13:26,634 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:13:33,640 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:13:40,648 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:13:47,659 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:13:54,670 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:14:01,681 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:14:08,690 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:14:15,701 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:14:22,708 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:14:29,711 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:14:36,712 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:14:43,742 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:14:50,781 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:14:57,802 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:15:04,820 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:15:11,823 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:15:18,872 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:15:25,878 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:15:32,882 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:15:39,887 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:15:46,889 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:15:53,939 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:16:00,943 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:16:07,950 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:16:14,965 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:16:21,984 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:16:28,989 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:16:35,998 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:16:43,008 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:16:50,025 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:16:57,056 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:17:04,064 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:17:11,080 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:17:18,090 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:17:25,133 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:17:32,191 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:17:39,204 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:17:46,220 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:17:53,255 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:18:00,270 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:18:07,283 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:18:14,296 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:18:21,300 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:18:28,321 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:18:35,328 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:18:42,335 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:18:49,342 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:18:56,351 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:19:03,352 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:19:10,357 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:19:17,365 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:19:24,366 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:19:31,374 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:19:38,409 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:19:45,416 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:19:52,425 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:19:59,440 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:20:06,459 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:20:13,465 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:20:20,474 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:20:27,507 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:20:34,524 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:20:41,531 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:20:48,543 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:20:55,565 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:21:02,592 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:21:09,598 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:21:16,607 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:21:23,610 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:21:30,613 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:21:37,613 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:21:44,619 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:21:51,621 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:21:58,630 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:22:05,635 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:22:12,639 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:22:19,661 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:22:26,669 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:22:33,677 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:22:40,685 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:22:47,689 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:22:54,694 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:23:01,700 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:23:08,711 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:23:15,719 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:23:22,723 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:23:29,743 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:23:36,751 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:23:43,787 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:23:50,801 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:23:57,806 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:24:04,811 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:24:11,819 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:24:18,827 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:24:25,834 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:24:32,841 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:24:39,848 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:24:46,856 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:24:53,863 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:25:00,868 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:25:07,890 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:25:14,899 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:25:21,913 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:25:28,915 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-18 14:59:52,939 [INFO] 🚀 Starting Customer Service Kafka Consumer...
-2026-03-18 14:59:52,952 [INFO] ✅ Connected to Kafka broker.
-2026-03-20 10:59:18,264 [INFO] 🚀 Starting Customer Service Kafka Consumer...
-2026-03-20 10:59:18,278 [INFO] ✅ Connected to Kafka broker.
-2026-03-20 14:25:18,771 [INFO] 🚀 Starting Customer Service Kafka Consumer...
-2026-03-20 14:25:20,778 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-20 14:25:27,786 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-20 14:25:32,814 [INFO] ✅ Connected to Kafka broker.
-2026-03-20 14:36:39,791 [INFO] 🚀 Starting Customer Service Kafka Consumer...
-2026-03-20 14:36:41,793 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-20 14:36:48,796 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-20 14:36:53,822 [INFO] ✅ Connected to Kafka broker.
-2026-03-20 15:54:00,138 [INFO] 🔥 Event: USER_DELETED | User: 07d7bbe3-3865-42ae-a5c1-36d8cd89634f | Role: petowner
-2026-03-20 15:54:00,240 [INFO] 🗑️ Deleted PetOwnerProfile for 07d7bbe3-3865-42ae-a5c1-36d8cd89634f
-2026-03-20 15:54:03,230 [INFO] 🔥 Event: USER_DELETED | User: ce5494d1-0062-467c-bf48-c09e024ce0a9 | Role: petowner
-2026-03-20 15:54:03,262 [INFO] 🗑️ Deleted PetOwnerProfile for ce5494d1-0062-467c-bf48-c09e024ce0a9
-2026-03-20 15:54:06,326 [INFO] 🔥 Event: USER_DELETED | User: e10dd52c-bf90-47fa-87aa-e79cb42123d3 | Role: petowner
-2026-03-20 15:54:06,340 [INFO] 🗑️ Deleted PetOwnerProfile for e10dd52c-bf90-47fa-87aa-e79cb42123d3
-2026-03-20 15:54:08,873 [INFO] 🔥 Event: USER_DELETED | User: fe6c1f05-f81b-4c6e-8ff1-5c48d09c16e2 | Role: petowner
-2026-03-20 15:54:08,876 [INFO] 🗑️ Deleted PetOwnerProfile for fe6c1f05-f81b-4c6e-8ff1-5c48d09c16e2
-2026-03-20 15:54:11,536 [INFO] 🔥 Event: USER_DELETED | User: 379ef695-9b1b-4109-9a28-db9a7181fe12 | Role: petowner
-2026-03-20 15:54:11,537 [INFO] 🗑️ Deleted PetOwnerProfile for 379ef695-9b1b-4109-9a28-db9a7181fe12
-2026-03-20 15:54:14,405 [INFO] 🔥 Event: USER_DELETED | User: f0930d1c-4068-48a2-b3d3-9e544276ac4c | Role: petowner
-2026-03-20 15:54:14,432 [INFO] 🗑️ Deleted PetOwnerProfile for f0930d1c-4068-48a2-b3d3-9e544276ac4c
-2026-03-20 15:54:59,636 [INFO] 🔥 Event: USER_CREATED | User: 19d173b5-5e44-41e1-acc6-957162f81036 | Role: petowner
-2026-03-20 15:54:59,642 [ERROR] ❌ Error processing Kafka message: Invalid field name(s) for model PetOwnerProfile: 'avatar_url'.
-2026-03-20 16:10:33,056 [INFO] 🔥 Event: USER_DELETED | User: 19d173b5-5e44-41e1-acc6-957162f81036 | Role: petowner
-2026-03-20 16:10:33,058 [INFO] 🗑️ Deleted PetOwnerProfile for 19d173b5-5e44-41e1-acc6-957162f81036
-2026-03-20 16:31:25,045 [INFO] 🔥 Event: USER_CREATED | User: 0edfd595-7af8-4f0b-b8e8-cc55702d35b3 | Role: petowner
-2026-03-20 16:31:25,049 [ERROR] ❌ Error processing Kafka message: Invalid field name(s) for model PetOwnerProfile: 'avatar_url'.
-2026-03-23 10:46:19,141 [INFO] 🚀 Starting Customer Service Kafka Consumer...
-2026-03-23 10:46:21,144 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-23 10:46:28,150 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-23 10:46:35,151 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
-2026-03-23 10:46:40,190 [INFO] ✅ Connected to Kafka broker.
+2026-03-25 17:18:38,204 [INFO] 🚀 Starting Customer Service Kafka Consumer...
+2026-03-25 17:18:40,211 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-25 17:18:47,217 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-25 17:18:52,245 [INFO] ✅ Connected to Kafka broker.
+2026-03-26 10:40:14,045 [INFO] 🚀 Starting Customer Service Kafka Consumer...
+2026-03-26 10:40:16,049 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-26 10:40:23,053 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-26 10:40:28,075 [INFO] ✅ Connected to Kafka broker.
+2026-03-26 15:04:25,052 [INFO] 🚀 Starting Customer Service Kafka Consumer...
+2026-03-26 15:04:27,057 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-26 15:04:34,063 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-26 15:04:41,075 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-26 15:04:48,088 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-26 15:04:55,104 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-26 15:05:02,122 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-26 15:05:09,136 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-26 15:05:16,152 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-26 15:05:23,168 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-26 15:05:30,184 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-26 15:05:37,204 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-26 15:05:44,209 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-26 15:05:51,215 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-26 15:05:58,224 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-26 15:06:05,231 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-26 15:06:12,237 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-26 15:06:19,248 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-26 15:06:26,258 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-26 15:06:33,265 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-26 15:06:38,329 [INFO] ✅ Connected to Kafka broker.
+2026-03-27 10:58:07,451 [INFO] 🚀 Starting Customer Service Kafka Consumer...
+2026-03-27 10:58:09,456 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-27 10:58:16,467 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-27 10:58:23,472 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-27 10:58:28,488 [INFO] ✅ Connected to Kafka broker.
+2026-03-27 11:24:29,634 [INFO] 🚀 Starting Customer Service Kafka Consumer...
+2026-03-27 11:24:31,637 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-27 11:24:38,643 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-27 11:24:43,786 [INFO] ✅ Connected to Kafka broker.
+2026-03-27 11:29:43,665 [INFO] 🚀 Starting Customer Service Kafka Consumer...
+2026-03-27 11:29:45,667 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-27 11:29:52,676 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-27 11:29:57,703 [INFO] ✅ Connected to Kafka broker.
+2026-03-27 11:31:37,949 [INFO] 🚀 Starting Customer Service Kafka Consumer...
+2026-03-27 11:31:39,954 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-27 11:31:46,963 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-27 11:31:52,010 [INFO] ✅ Connected to Kafka broker.
+2026-03-27 11:35:08,581 [INFO] 🚀 Starting Customer Service Kafka Consumer...
+2026-03-27 11:35:10,584 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-27 11:35:17,594 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-27 11:35:24,603 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-27 11:35:29,617 [INFO] ✅ Connected to Kafka broker.
+2026-03-27 11:38:31,908 [INFO] 🚀 Starting Customer Service Kafka Consumer...
+2026-03-27 11:38:33,913 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-27 11:38:40,919 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-27 11:38:47,925 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-27 11:38:54,929 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-27 11:39:01,934 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-27 11:39:08,937 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-27 11:39:15,946 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-27 11:39:22,952 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-27 11:39:28,041 [INFO] ✅ Connected to Kafka broker.
+2026-03-27 11:40:21,969 [INFO] 🚀 Starting Customer Service Kafka Consumer...
+2026-03-27 11:40:23,974 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-27 11:40:30,980 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-27 11:40:37,984 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-27 11:40:44,992 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-27 11:40:52,000 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-27 11:40:55,219 [INFO] 🚀 Starting Customer Service Kafka Consumer...
+2026-03-27 11:40:57,225 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-27 11:40:59,003 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-27 11:41:04,228 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-27 11:41:06,012 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-27 11:41:11,232 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-27 11:41:13,014 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-27 11:41:18,241 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-27 11:41:20,021 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-27 11:41:25,248 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-27 11:41:27,046 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-27 11:41:32,272 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-27 11:41:34,049 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-27 11:41:39,291 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-27 11:41:41,055 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-27 11:41:46,299 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-27 11:41:48,062 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-27 11:41:53,309 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-27 11:41:55,067 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-27 11:41:58,345 [INFO] ✅ Connected to Kafka broker.
+2026-03-27 11:42:00,087 [INFO] ✅ Connected to Kafka broker.
+2026-03-27 11:43:39,020 [INFO] 🚀 Starting Customer Service Kafka Consumer...
+2026-03-27 11:43:41,026 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-27 11:43:48,031 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-27 11:43:55,041 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-27 11:44:02,043 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-27 11:44:09,054 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-27 11:44:16,061 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-27 11:44:23,072 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-27 11:44:30,075 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-27 11:44:37,079 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-27 11:44:44,081 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-27 11:44:51,086 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-27 11:44:58,092 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-27 11:45:05,097 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-27 11:45:12,102 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-27 11:45:17,135 [INFO] ✅ Connected to Kafka broker.
+2026-03-27 11:48:22,946 [INFO] 🚀 Starting Customer Service Kafka Consumer...
+2026-03-27 11:48:24,948 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-27 11:48:31,960 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-27 11:48:38,967 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-27 11:48:43,989 [INFO] ✅ Connected to Kafka broker.
+2026-03-30 09:55:06,118 [INFO] 🚀 Starting Customer Service Kafka Consumer...
+2026-03-30 09:55:08,120 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-30 09:55:15,125 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-30 09:55:22,133 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-30 09:55:27,153 [INFO] ✅ Connected to Kafka broker.
+2026-03-30 13:47:36,645 [INFO] 🚀 Starting Customer Service Kafka Consumer...
+2026-03-30 13:47:38,654 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-30 13:47:45,658 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-30 13:47:52,665 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-30 13:47:59,671 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-30 13:48:04,717 [INFO] ✅ Connected to Kafka broker.
+2026-03-31 10:21:04,716 [INFO] 🚀 Starting Customer Service Kafka Consumer...
+2026-03-31 10:21:06,726 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-31 10:21:13,728 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-31 10:21:20,743 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-31 10:21:25,785 [INFO] ✅ Connected to Kafka broker.
+2026-03-31 13:50:04,597 [INFO] 🚀 Starting Customer Service Kafka Consumer...
+2026-03-31 13:50:06,605 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-31 13:50:13,616 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-31 13:50:20,621 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-03-31 13:50:25,635 [INFO] ✅ Connected to Kafka broker.
+2026-04-01 10:17:45,947 [INFO] 🚀 Starting Customer Service Kafka Consumer...
+2026-04-01 10:17:47,948 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-01 10:17:54,953 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-01 10:17:59,982 [INFO] ✅ Connected to Kafka broker.
+2026-04-01 13:39:38,657 [INFO] 🔥 User Event: USER_CREATED | User: 123a4adc-da24-4486-9ca9-5cb65629691f
+2026-04-01 13:39:38,737 [ERROR] ❌ Error processing Kafka message: Invalid field name(s) for model PetOwnerProfile: 'avatar_url'.
+2026-04-01 15:34:04,670 [INFO] 🔥 User Event: USER_DELETED | User: 123a4adc-da24-4486-9ca9-5cb65629691f
+2026-04-01 15:34:04,675 [INFO] 🗑️ Deleted PetOwnerProfile for 123a4adc-da24-4486-9ca9-5cb65629691f
+2026-04-01 15:34:52,578 [INFO] 🔥 User Event: USER_CREATED | User: adeadabb-dc50-4a25-97e3-0c8c52d0f7c7
+2026-04-01 15:34:52,588 [ERROR] ❌ Error processing Kafka message: Invalid field name(s) for model PetOwnerProfile: 'avatar_url'.
+2026-04-01 16:18:33,532 [INFO] 🏥 Veterinary Event: VET_VISIT_CREATED | Pet: 417e4e06-973e-4300-abe9-fc6d6d94fa25
+2026-04-01 16:18:33,547 [WARNING] ⚠️ Pet 417e4e06-973e-4300-abe9-fc6d6d94fa25 not found in customer service. Skipping sync.
+2026-04-01 18:20:23,691 [INFO] 🚀 Starting Customer Service Kafka Consumer...
+2026-04-01 18:20:25,698 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-01 18:20:32,701 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-01 18:20:39,703 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-01 18:20:44,728 [INFO] ✅ Connected to Kafka broker.
+2026-04-02 10:17:16,244 [INFO] 🚀 Starting Customer Service Kafka Consumer...
+2026-04-02 10:17:18,248 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-02 10:17:25,253 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-02 10:17:32,260 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-02 10:17:39,262 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-02 10:17:44,275 [INFO] ✅ Connected to Kafka broker.
+2026-04-02 10:24:51,740 [INFO] 🔥 User Event: USER_DELETED | User: adeadabb-dc50-4a25-97e3-0c8c52d0f7c7
+2026-04-02 10:24:51,797 [INFO] 🗑️ Deleted PetOwnerProfile for adeadabb-dc50-4a25-97e3-0c8c52d0f7c7
+2026-04-02 11:50:56,857 [INFO] 🔥 User Event: USER_CREATED | User: 59961f88-396f-4769-a485-a1a00d319988
+2026-04-02 11:50:56,867 [ERROR] ❌ Error processing Kafka message: Invalid field name(s) for model PetOwnerProfile: 'avatar_url'.
+2026-04-02 12:03:33,012 [INFO] 🔥 User Event: USER_VERIFIED | User: 59961f88-396f-4769-a485-a1a00d319988
+2026-04-02 12:03:33,020 [ERROR] ❌ Error processing Kafka message: Invalid field name(s) for model PetOwnerProfile: 'avatar_url'.
+2026-04-02 16:03:00,127 [INFO] 🚀 Starting Customer Service Kafka Consumer...
+2026-04-02 16:03:02,131 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-02 16:03:09,134 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-02 16:03:16,140 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-02 16:03:23,143 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-02 16:03:28,163 [INFO] ✅ Connected to Kafka broker.
+2026-04-03 11:29:57,615 [INFO] 🚀 Starting Customer Service Kafka Consumer...
+2026-04-03 11:29:59,629 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-03 11:30:06,637 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-03 11:30:13,649 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-03 11:30:18,673 [INFO] ✅ Connected to Kafka broker.
+2026-04-03 16:53:50,927 [INFO] 🚀 Starting Customer Service Kafka Consumer...
+2026-04-03 16:53:52,930 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-03 16:53:59,938 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-03 16:54:06,942 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-03 16:54:11,976 [INFO] ✅ Connected to Kafka broker.

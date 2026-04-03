@@ -88,6 +88,7 @@ class VerifiedUser(models.Model):
             models.Index(fields=["auth_user_id"]),
             models.Index(fields=["email"]),
             models.Index(fields=["phone_number"]),
+            models.Index(fields=["created_at"]),
         ]
 
     def __str__(self):
@@ -159,3 +160,16 @@ class AdminProfile(models.Model):
 
     def __str__(self):
         return f"Admin: {self.verified_user.email}"
+
+class GlobalBranding(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    app_name = models.CharField(max_length=255, default="PetLeo")
+    primary_color = models.CharField(max_length=7, default="#7367F0")
+    secondary_color = models.CharField(max_length=7, default="#CE9FFC")
+    logo = models.ImageField(upload_to="branding/logos/", null=True, blank=True)
+    favicon = models.ImageField(upload_to="branding/favicons/", null=True, blank=True)
+    hide_app_name = models.BooleanField(default=False)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Global Branding - {self.app_name}"

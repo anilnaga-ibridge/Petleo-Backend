@@ -28,5 +28,40 @@
         "label": "Dispense Medicines",
         "group": "Pharmacy",
         "description": "Issue medicines and manage medication reminders"
+    },
+    "VETERINARY_PHARMACY_STORE": {
+        "label": "Pharmacy Store",
+        "group": "Pharmacy",
+        "description": "Inventory management, batch tracking and stock alerts"
+    },
+    "VETERINARY_ONLINE_CONSULT": {
+        "label": "Online Consultation",
+        "group": "Doctor",
+        "description": "Digital consultation station access"
+    },
+    "VETERINARY_OFFLINE_VISIT": {
+        "label": "Offline Visits",
+        "group": "Reception",
+        "description": "Manage walk-in and physical clinic appointments"
+    },
+    "EMPLOYEE_MANAGEMENT": {
+        "label": "Employee Management",
+        "group": "System",
+        "description": "Manage staff members and their roles"
+    },
+    "ROLE_MANAGEMENT": {
+        "label": "Role Management",
+        "group": "System",
+        "description": "Configure roles and permissions"
+    },
+    "CUSTOMER_BOOKING": {
+        "label": "Customer Booking Management",
+        "group": "System",
+        "description": "Manage customer appointments and bookings"
+    },
+    "CLINIC_MANAGEMENT": {
+        "label": "Clinic Management",
+        "group": "System",
+        "description": "Manage clinic settings and operations"
     }
 }

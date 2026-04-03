@@ -5,10 +5,11 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 
-from .models import AdminProfile, VerifiedUser, Permission, SuperAdmin
+from .models import AdminProfile, VerifiedUser, Permission, SuperAdmin, GlobalBranding
 from .serializers import (
     AdminProfileSerializer, AdminProfileUpdateSerializer,
-    VerifiedUserSerializer, PermissionSerializer, SuperAdminSerializer
+    VerifiedUserSerializer, PermissionSerializer, SuperAdminSerializer,
+    GlobalBrandingSerializer
 )
 from .permissions import IsSuperAdmin 
 
@@ -128,8 +129,7 @@ class SuperAdminDashboardViewSet(viewsets.ViewSet):
         total_subscriptions = PurchasedPlan.objects.filter(is_active=True).count()
         new_subscriptions_30d = PurchasedPlan.objects.filter(start_date__gte=thirty_days_ago).count()
         
-        # 2. Revenue (Assuming Plan.price is monthly)
-        # Note: Summing prices of all active purchased plans
+        # 2. Revenue
         total_mrr = PurchasedPlan.objects.filter(is_active=True).aggregate(
             total=Sum('plan__price')
         )['total'] or 0.00
@@ -138,7 +138,20 @@ class SuperAdminDashboardViewSet(viewsets.ViewSet):
         total_users = VerifiedUser.objects.count()
         new_users_30d = VerifiedUser.objects.filter(created_at__gte=thirty_days_ago).count()
         
-        # 4. Plan Distribution
+        # 4. Additional Platform Stats (for Command Center)
+        from dynamic_services.models import Service
+        from pets.models import PetType
+        from admin_core.models import Permission 
+        
+        total_services = Service.objects.count()
+        total_plans = Plan.objects.count()
+        total_pets = PetType.objects.count()
+        
+        # In this system, "Roles" are often defined by Permission count 
+        from django.contrib.auth.models import Group
+        total_roles = Group.objects.count() or Permission.objects.count() 
+
+        # 5. Plan Distribution
         plan_distribution = PurchasedPlan.objects.filter(is_active=True).values(
             'plan__title'
         ).annotate(count=Count('id')).order_by('-count')
@@ -149,7 +162,11 @@ class SuperAdminDashboardViewSet(viewsets.ViewSet):
                 "new_subscriptions_30d": new_subscriptions_30d,
                 "monthly_recurring_revenue": float(total_mrr),
                 "total_verified_users": total_users,
-                "new_users_30d": new_users_30d
+                "new_users_30d": new_users_30d,
+                "total_services": total_services,
+                "total_plans": total_plans,
+                "total_pets": total_pets,
+                "total_roles": total_roles
             },
             "plans": [
                 {"name": p['plan__title'], "count": p['count']} 
@@ -157,3 +174,63 @@ class SuperAdminDashboardViewSet(viewsets.ViewSet):
             ],
             "timestamp": now.isoformat()
         })
+
+
+class GlobalBrandingViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing global branding settings.
+    """
+    queryset = GlobalBranding.objects.all()
+    serializer_class = GlobalBrandingSerializer
+
+    def get_permissions(self):
+        if self.action == 'public':
+            return []
+        return [IsSuperAdmin()]
+
+    @action(detail=False, methods=['get'], url_path='public')
+    def public(self, request):
+        """
+        Public endpoint to get the current branding settings.
+        """
+        branding = GlobalBranding.objects.first()
+        if not branding:
+            # Return default values if no branding record exists
+            return Response({
+                "app_name": "PetLeo",
+                "primary_color": "#7367F0",
+                "secondary_color": "#CE9FFC",
+                "logo": None,
+                "favicon": None,
+                "hide_app_name": False
+            })
+        serializer = self.get_serializer(branding)
+        return Response(serializer.data)
+
+    def list(self, request, *args, **kwargs):
+        # Restricted to Super Admin
+        return super().list(request, *args, **kwargs)
+
+    def create(self, request, *args, **kwargs):
+        # Allow only one branding record (singleton-ish)
+        if GlobalBranding.objects.exists():
+            return Response(
+                {"detail": "Branding settings already exist. Use update instead."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        return super().create(request, *args, **kwargs)
+
+    @action(detail=False, methods=['patch', 'put'], url_path='update-settings')
+    def update_settings(self, request):
+        """
+        Action to create or update the single global branding record.
+        """
+        branding = GlobalBranding.objects.first()
+        if branding:
+            serializer = self.get_serializer(branding, data=request.data, partial=True)
+        else:
+            serializer = self.get_serializer(data=request.data)
+        
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)

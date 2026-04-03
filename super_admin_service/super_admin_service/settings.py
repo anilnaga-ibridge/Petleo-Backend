@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'provider_home',
     'dynamic_fields',
     'dynamic_permissions',
+    'notifications',
 ]
 
 AUTH_USER_MODEL = "admin_core.SuperAdmin"
@@ -92,6 +93,8 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
     ],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 20,
 }
 
 SIMPLE_JWT = {
@@ -109,11 +112,11 @@ ROOT_URLCONF = 'super_admin_service.urls'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'Super_Admin',
-        'USER': 'petleo',
-        'PASSWORD': 'petleo',
+        'NAME': 'superadmin_db',
+        'USER': 'postgres',
+        'PASSWORD': 'postgres',
         'HOST': 'localhost',
-        'PORT': '5432',
+        'PORT': '5435',
     }
 }
 

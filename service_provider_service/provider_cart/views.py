@@ -10,8 +10,8 @@ from django.db import transaction
 from django.utils import timezone
 
 from service_provider.models import VerifiedUser
-from .models import ProviderCart, ProviderCartItem
-from .serializers import ProviderCartSerializer
+from .models import ProviderCart, ProviderCartItem, PurchasedPlan
+from .serializers import ProviderCartSerializer, PurchasedPlanSerializer
 
 
 # ✅ Helper
@@ -239,7 +239,7 @@ def checkout_cart(request):
             stripe_interval = 'month'
 
         # Generate Stripe Checkout Session
-        success_url = f"http://localhost:5173/provider/dashboard"
+        success_url = f"http://localhost:5173/provider/dashboard?session_id={{CHECKOUT_SESSION_ID}}"
         cancel_url = f"http://localhost:5173/provider/cart"
         
         try:
@@ -252,7 +252,7 @@ def checkout_cart(request):
                             'name': item.plan_title,
                             'description': f"{item.plan_title} ({item.billing_cycle_name})",
                         },
-                        'unit_amount': int(item.price_amount * 100),
+                        'unit_amount': int(float(item.price_amount) * 100),
                         'recurring': {
                             'interval': stripe_interval,
                         },
@@ -415,7 +415,7 @@ def purchase_plan_direct(request):
             stripe_interval = 'month'
 
         # Generate Stripe Checkout Session
-        success_url = f"http://localhost:5173/provider/dashboard"
+        success_url = f"http://localhost:5173/provider/dashboard?session_id={{CHECKOUT_SESSION_ID}}"
         cancel_url = f"http://localhost:5173/provider/plans"
         
         try:
@@ -428,7 +428,7 @@ def purchase_plan_direct(request):
                             'name': data["plan_title"],
                             'description': f"{data['plan_title']} ({data['billing_cycle_name']})",
                         },
-                        'unit_amount': int(data["price_amount"] * 100),
+                        'unit_amount': int(float(data["price_amount"]) * 100),
                         'recurring': {
                             'interval': stripe_interval,
                         },
@@ -537,3 +537,70 @@ def get_active_subscription(request):
         "permissions": permissions_list,
         "allowed_services": services.values("service_id", "name", "icon")
     })
+
+# ✅ Stripe Webhook (Automated Activation)
+import stripe
+from django.conf import settings
+from django.views.decorators.csrf import csrf_exempt
+from django.http import HttpResponse
+
+@csrf_exempt
+@api_view(["POST"])
+@permission_classes([]) # Public endpoint for Stripe
+def stripe_webhook(request):
+    payload = request.body
+    sig_header = request.headers.get('STRIPE_SIGNATURE')
+    
+    event = None
+    try:
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
+        )
+    except ValueError as e:
+        return Response({"error": "Invalid payload"}, status=400)
+    except stripe.error.SignatureVerificationError as e:
+        return Response({"error": "Invalid signature"}, status=400)
+
+    if event['type'] == 'checkout.session.completed':
+        session = event['data']['object']
+        _activate_purchased_plan(session.id)
+    
+    return HttpResponse(status=200)
+
+
+# ✅ Manual Payment Verification (For Local Dev)
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def verify_payment(request):
+    session_id = request.query_params.get("session_id")
+    if not session_id:
+        return Response({"error": "session_id is required"}, status=400)
+    
+    import stripe
+    stripe.api_key = settings.STRIPE_SECRET_KEY
+    
+    try:
+        session = stripe.checkout.Session.retrieve(session_id)
+        if session.payment_status == 'paid':
+            plan = _activate_purchased_plan(session_id)
+            return Response({
+                "detail": "Payment verified and plan activated!",
+                "plan": PurchasedPlanSerializer(plan).data
+            })
+        else:
+            return Response({"error": f"Payment status is {session.payment_status}"}, status=400)
+    except Exception as e:
+        return Response({"error": str(e)}, status=500)
+
+
+def _activate_purchased_plan(session_id):
+    """
+    Helper to activate the plan and sync with Super Admin.
+    """
+    from .models import PurchasedPlan
+    plan = PurchasedPlan.objects.filter(transaction_id=session_id).first()
+    if plan and not plan.is_active:
+        plan.is_active = True
+        plan.save()
+        print(f"✅ Plan {plan.id} activated via Stripe Success.")
+    return plan

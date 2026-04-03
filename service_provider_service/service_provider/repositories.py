@@ -13,6 +13,8 @@ class ProviderRepository:
             profile_status='active',
             is_fully_verified=True,
             verified_user__subscription__is_active=True
+        ).exclude(
+            verified_user__role__iexact='superadmin'
         ).select_related(
             'verified_user', 
             'verified_user__billing_profile'

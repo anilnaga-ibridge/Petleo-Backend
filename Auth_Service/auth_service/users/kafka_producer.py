@@ -247,7 +247,7 @@ def publish_event(event_type, data: dict, **kwargs):
 
         logger.info(f"📦 Publishing event '{event_type}' → '{topic}' [role={role_name}]")
         producer.send(topic, value=event)
-        producer.flush()
+        # producer.flush()  # 🔥 Optimization: Removed blocking flush for better performance
         logger.info(f"✅ Kafka event '{event_type}' sent successfully")
 
     except Exception as e:

@@ -13,7 +13,7 @@ class CategorySerializer(serializers.ModelSerializer):
             "name",
             "value",
             "description",
-            "linked_capability",
+            "category_key",
             "is_active",
             "is_system",
             "created_at",
@@ -21,13 +21,13 @@ class CategorySerializer(serializers.ModelSerializer):
         ]
 
     def _handle_capability_creation(self, validated_data):
-        linked_cap = validated_data.get('linked_capability')
-        if linked_cap:
+        cat_key = validated_data.get('category_key')
+        if cat_key:
             from dynamic_permissions.models import Capability
             # Check if it exists, if not create it
-            if not Capability.objects.filter(key=linked_cap).exists():
+            if not Capability.objects.filter(key=cat_key).exists():
                 Capability.objects.create(
-                    key=linked_cap,
+                    key=cat_key,
                     name=validated_data.get('name', linked_cap), # Fallback to Category Name
                     description=f"Auto-generated for Feature: {validated_data.get('name')}",
                     service_type="GENERATED"

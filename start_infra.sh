@@ -13,7 +13,7 @@ echo "Starting Infrastructure Services (Zookeeper, Kafka, Kafka UI, Redis, Redis
 # Ensure a clean slate
 ./clean_infra.sh
 
-$DOCKER_CMD compose up -d zookeeper kafka kafka-ui redis redis-insight
+$DOCKER_CMD compose up -d zookeeper kafka kafka-ui redis redis-insight postgres_auth postgres_service_provider postgres_super_admin postgres_veterinary postgres_customer postgres_booking kong
 
 echo "Services started!"
 echo "Kafka UI: http://localhost:8085"

@@ -67,10 +67,10 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'booking_db',
-        'USER': 'petleo',
-        'PASSWORD': 'petleo',
+        'USER': 'postgres',
+        'PASSWORD': 'postgres',
         'HOST': os.environ.get('POSTGRES_HOST', '127.0.0.1'),
-        'PORT': '5432',
+        'PORT': '5438',
     }
 }
 

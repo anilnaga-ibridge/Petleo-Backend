@@ -61,6 +61,12 @@ CAPABILITIES = [
         "group": "Pharmacy"
     },
     {
+        "key": "VETERINARY_PHARMACY_STORE",
+        "label": "Pharmacy Store",
+        "description": "Inventory control, batch tracking, and stock management.",
+        "group": "Pharmacy"
+    },
+    {
         "key": "VETERINARY_MEDICINE_REMINDERS",
         "label": "Medicine Reminders",
         "description": "Send automated reminders to owners.",
@@ -72,6 +78,43 @@ CAPABILITIES = [
         "label": "Clinic Settings",
         "description": "Configure clinic metadata and settings.",
         "group": "Admin"
+    },
+    {
+        "key": "VETERINARY_ONLINE_CONSULT",
+        "label": "Online Consultancy",
+        "description": "Handle virtual consultations and video calls.",
+        "group": "Doctor"
+    },
+    {
+        "key": "VETERINARY_OFFLINE_VISIT",
+        "label": "Offline Visits",
+        "description": "Manage walk-in and physical clinic appointments.",
+        "group": "Reception"
+    },
+    # System / Clinic Operations
+    {
+        "key": "EMPLOYEE_MANAGEMENT",
+        "label": "Employee Management",
+        "description": "Manage clinic staff, their profiles, and assignments.",
+        "group": "System"
+    },
+    {
+        "key": "ROLE_MANAGEMENT",
+        "label": "Role Management",
+        "description": "Configure roles and granular access permissions.",
+        "group": "System"
+    },
+    {
+        "key": "CUSTOMER_BOOKING",
+        "label": "Customer Booking Management",
+        "description": "Manage online and offline customer bookings.",
+        "group": "System"
+    },
+    {
+        "key": "CLINIC_MANAGEMENT",
+        "label": "Clinic Management",
+        "description": "Manage clinic settings, opening hours, and metadata.",
+        "group": "System"
     },
 ]
 

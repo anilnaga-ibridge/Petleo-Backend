@@ -47,8 +47,9 @@ urlpatterns = [
     path("api/public/provider/", include("dynamic_fields.urls")), 
     
     path("api/superadmin/", include("dynamic_permissions.urls")), 
-      
-      
+    
+    # Notifications
+    path("api/notifications/", include("notifications.urls")),
 
 ]
 

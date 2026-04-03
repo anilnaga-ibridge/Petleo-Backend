@@ -57,7 +57,11 @@ class HasVeterinaryAccess(permissions.BasePermission):
                         "VETERINARY_PRESCRIPTIONS", 
                         "VETERINARY_LABS", 
                         "VETERINARY_VACCINES",
-                        "VETERINARY_MEDICINE_REMINDERS"
+                        "VETERINARY_MEDICINE_REMINDERS",
+                        "VETERINARY_PHARMACY",
+                        "VETERINARY_DOCTOR",
+                        "VETERINARY_PATIENTS",
+                        "VETERINARY_CLINIC_SETTINGS"
                     ]
                 else:
                     log("No clinic context found. Permissions remain empty.")
@@ -136,6 +140,8 @@ class HasGranularCapability(permissions.BasePermission):
             return False
             
         user_perms = getattr(request.user, 'permissions', [])
+        
+        
         if not user_perms:
             return False
 
@@ -150,10 +156,19 @@ class HasGranularCapability(permissions.BasePermission):
 
         # Check for match in list of objects
         for p in user_perms:
-            # Handle both flat strings (Legacy/Owner) and Objects (Staff)
+            # Determine required suffix based on HTTP Method for strict string matching
+            suffix = required_flag.upper().replace('CAN_', '_') # e.g. _VIEW, _CREATE, _EDIT, _DELETE
+            
+            # Handle both flat strings (Legacy/Owner/Expanded) and Objects (Staff)
             if isinstance(p, str):
+                # 1. Base Match (Unrestricted access for legacy strings like 'VETERINARY_VISITS')
                 if p == self.capability_key or ('.' in self.capability_key and p == f"{self.capability_key.split('.')[0]}.*"):
                     return True
+                
+                # 2. Granular Suffix Match (Strict action-based access for strings like 'VETERINARY_VISITS_CREATE')
+                if p == f"{self.capability_key}{suffix}":
+                    return True
+                    
             elif isinstance(p, dict):
                 p_key = p.get('capability_key')
                 if p_key == self.capability_key or ('.' in self.capability_key and p_key == f"{self.capability_key.split('.')[0]}.*"):
@@ -257,3 +272,49 @@ def require_capability(capability):
             return func(view, request, *args, **kwargs)
         return wrapper
     return decorator
+
+
+def has_capability_access(user, required_cap, required_action='view'):
+    """
+    Standardized Authorization Check for Veterinary Capabilities.
+    
+    1. Handles Role-based Bypasses (Organizations/Providers have full access).
+    2. Supports Granular Capability Objects (with can_view, can_create, etc.).
+    3. Supports Legacy Flat String Permissions.
+    
+    Returns: bool (True if authorized, False otherwise)
+    """
+    if not user or not user.is_authenticated:
+        return False
+
+    role = str(getattr(user, 'role', '')).upper()
+
+    # 1. OWNER BYPASS: Organizations and Providers have implicit full access to their clinics
+    if role in ['ORGANIZATION', 'INDIVIDUAL', 'PROVIDER', 'ORGANIZATION_PROVIDER', 'ORGANIZATION_ADMIN']:
+        return True
+
+    # 2. GRANULAR CHECK: Evaluate staff-level permissions
+    user_perms = getattr(user, 'permissions', [])
+    if not user_perms:
+        return False
+
+    # Standardize the required flag name
+    action_flag = f"can_{required_action.lower()}"
+    # Standardize the required suffix for flat strings (e.g. _VIEW)
+    suffix = f"_{required_action.upper()}"
+
+    for p in user_perms:
+        # A. Handle Granular Object (Preferred)
+        if isinstance(p, dict):
+            p_key = p.get('capability_key')
+            if p_key == required_cap or ('.' in required_cap and p_key == f"{required_cap.split('.')[0]}.*"):
+                if p.get(action_flag, False):
+                    return True
+
+        # B. Handle Flat String (Heritage / Re-resolved)
+        elif isinstance(p, str):
+            # Universal match or exact match or suffix match
+            if p == required_cap or p == f"{required_cap}{suffix}" or ('.' in required_cap and p == f"{required_cap.split('.')[0]}.*"):
+                return True
+
+    return False

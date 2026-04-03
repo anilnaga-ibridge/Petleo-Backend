@@ -2,7 +2,7 @@
 
 # admin_core/serializers.py
 from rest_framework import serializers
-from .models import SuperAdmin, VerifiedUser, AdminProfile, Permission
+from .models import SuperAdmin, VerifiedUser, AdminProfile, Permission, GlobalBranding
 
 class PermissionSerializer(serializers.ModelSerializer):
     class Meta:
@@ -62,3 +62,13 @@ class SuperAdminSerializer(serializers.ModelSerializer):
     def get_avatar(self, obj):
         verified_user = VerifiedUser.objects.filter(auth_user_id=obj.auth_user_id).first()
         return verified_user.avatar_url if verified_user else None
+
+
+class GlobalBrandingSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = GlobalBranding
+        fields = [
+            "id", "app_name", "primary_color", "secondary_color",
+            "logo", "favicon", "hide_app_name", "updated_at"
+        ]
+        read_only_fields = ["id", "updated_at"]

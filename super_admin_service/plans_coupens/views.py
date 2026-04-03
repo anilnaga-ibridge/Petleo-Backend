@@ -361,7 +361,7 @@ def purchase_plan(request):
                         "service_id": str(p.category.service.id),
                         "name": p.category.name,
                         "description": getattr(p.category, "description", ""),
-                        "linked_capability": p.category.linked_capability,
+                        "category_key": p.category.category_key,
                         "is_template": True
                     })
                     seen_categories.add(p.category.id)
