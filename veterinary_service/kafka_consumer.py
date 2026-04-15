@@ -223,13 +223,13 @@ for message in consumer:
             
             if auth_user_id:
                 
-                # permissions_list is a list of dicts: [{ "service_key": "VETERINARY_VITALS", ... }]
+                # permissions_list is a list of dicts: [{ "service_key": "VETERINARY_ASSISTANT", ... }]
                 # We need to extract the keys (slugs) to store in VeterinaryStaff.permissions
                 
                 capability_keys = []
                 for perm in permissions_list:
                     # Collect all relevant identifier keys
-                    # We need "linked_capability" (e.g. VETERINARY_DOCTOR) for the frontend sidebar
+                    # We need "linked_capability" (e.g. DOCTOR_STATION) for the frontend sidebar
                     # We also need "service_key" (e.g. VETERINARY_CORE) for broad service access
                     
                     if perm.get("linked_capability"):

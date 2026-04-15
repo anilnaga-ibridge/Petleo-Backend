@@ -30,20 +30,7 @@ class AvailabilityService:
         if isinstance(target_date, str):
             target_date = datetime.strptime(target_date, '%Y-%m-%d').date()
         
-        # 1. Check Cache
-        cached_slots = AvailabilityCacheService.get_slots(employee_id, facility_id, target_date)
-        if cached_slots is not None:
-            # Filter by Redis locks even for cached slots to ensure real-time accuracy
-            return [s for s in cached_slots if not SlotLockService.is_locked(employee_id, datetime.combine(target_date, datetime.strptime(s, '%H:%M').time()))]
-
-        # 2. Get Employee
-        try:
-            employee = OrganizationEmployee.objects.get(auth_user_id=employee_id)
-        except OrganizationEmployee.DoesNotExist:
-            logger.error(f"Employee {employee_id} not found")
-            return []
-
-        # 2. Get Facility/Category Configuration
+        # 1. Get Facility/Category Configuration
         duration = 30
         buffer = 0
         granularity = 15
@@ -57,14 +44,10 @@ class AvailabilityService:
                     facility = ProviderTemplateFacility.objects.get(id=facility_id)
                 
                 if facility:
-                    # Architect Recommendation: Service/Category should control Duration/Price
-                    # We check Category first, then fallback to Facility for legacy or specific overrides
                     category = getattr(facility, 'category', None)
                     if category:
                         duration = category.duration_minutes
-                        # Price is handled at booking time, but we logic it here if needed
                     
-                    # Fallback to facility defaults if category doesn't specify (or for buffer/granularity)
                     duration = duration or getattr(facility, 'duration_minutes', 30)
                     buffer = getattr(facility, 'buffer_minutes', 0)
                     granularity = getattr(facility, 'slot_granularity', 15)
@@ -78,7 +61,26 @@ class AvailabilityService:
             except Exception as e:
                 logger.error(f"Error resolving facility/category/duration: {e}")
 
-        # 3. Check Leaves (Full Day)
+        # 2. Check Cache First (After we know duration to check locks accurately)
+        cached_slots = AvailabilityCacheService.get_slots(employee_id, facility_id, target_date)
+        if cached_slots is not None:
+            # Filter by Redis locks even for cached slots to ensure real-time accuracy
+            final_slots = []
+            for s in cached_slots:
+                slot_dt = datetime.combine(target_date, datetime.strptime(s, '%H:%M').time())
+                slot_end_dt = slot_dt + timedelta(minutes=duration)
+                if not SlotLockService.is_locked(employee_id, facility_id, facility_id, slot_dt, slot_end_dt):
+                    final_slots.append(s)
+            return final_slots
+
+        # 3. Get Employee
+        try:
+            employee = OrganizationEmployee.objects.get(auth_user_id=employee_id)
+        except OrganizationEmployee.DoesNotExist:
+            logger.error(f"Employee {employee_id} not found")
+            return []
+
+        # 4. Check Leaves (Full Day)
         if EmployeeLeave.objects.filter(
             employee=employee, 
             date=target_date, 
@@ -87,7 +89,7 @@ class AvailabilityService:
         ).exists():
             return []
 
-        # 4. Get Approved Daily Schedule or Recurring Weekly Schedule
+        # 5. Get Approved Daily Schedule or Recurring Weekly Schedule
         schedule_start = None
         schedule_end = None
         

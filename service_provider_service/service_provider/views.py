@@ -733,10 +733,33 @@ def get_my_permissions(request):
                 
                 # Check if employee has any permission key matching this category
                 if cat_key:
-                    has_view = f"{cat_key}_VIEW" in flat_perms
-                    has_create = f"{cat_key}_CREATE" in flat_perms
-                    has_edit = f"{cat_key}_EDIT" in flat_perms
-                    has_delete = f"{cat_key}_DELETE" in flat_perms
+                    # [PRODUCTION BRIDGE] Align short DB keys (VISITS) with full capability keys (VETERINARY_VISITS)
+                    # This ensures clinical modules are correctly revealed to staff even if DB keys are legacy.
+                    matched_perms = [f"{cat_key}_VIEW", f"{cat_key}_CREATE", f"{cat_key}_EDIT", f"{cat_key}_DELETE"]
+                    
+                    if service_key == "VETERINARY_CORE" and not cat_key.startswith("VETERINARY_"):
+                        EXT_TO_VET = {
+                             "VISITS": "VETERINARY_VISITS",
+                             "PATIENTS": "VETERINARY_PATIENTS",
+                             "VETERINARY_ASSISTANT": "VETERINARY_VITALS",
+                             "DOCTOR_STATION": "VETERINARY_DOCTOR",
+                             "PHARMACY": "VETERINARY_PHARMACY",
+                             "PHARMACY_STORE": "VETERINARY_PHARMACY_STORE",
+                             "LABS": "VETERINARY_LABS",
+                             "SCHEDULE": "VETERINARY_SCHEDULE",
+                             "ONLINE_CONSULT": "VETERINARY_ONLINE_CONSULT",
+                             "OFFLINE_VISITS": "VETERINARY_OFFLINE_VISIT",
+                             "MEDICINE_REMINDERS": "VETERINARY_MEDICINE_REMINDERS",
+                             "CLINIC_SETTINGS": "VETERINARY_ADMIN_SETTINGS",
+                             "METADATA_MANAGEMENT": "VETERINARY_METADATA",
+                        }
+                        bridge_key = EXT_TO_VET.get(cat_key, f"VETERINARY_{cat_key}")
+                        matched_perms += [f"{bridge_key}_VIEW", f"{bridge_key}_CREATE", f"{bridge_key}_EDIT", f"{bridge_key}_DELETE"]
+                    
+                    has_view = any(p in flat_perms for p in matched_perms if p.endswith("_VIEW"))
+                    has_create = any(p in flat_perms for p in matched_perms if p.endswith("_CREATE"))
+                    has_edit = any(p in flat_perms for p in matched_perms if p.endswith("_EDIT"))
+                    has_delete = any(p in flat_perms for p in matched_perms if p.endswith("_DELETE"))
                     
                     if has_view or has_create or has_edit or has_delete:
                         print(f"            ✅ Category MATCH - Including")
@@ -1663,12 +1686,27 @@ def get_my_access(request):
     raw_keys = set()
     try:
         emp = OrganizationEmployee.objects.get(auth_user_id=user.auth_user_id)
+        # Employees: use their role-gated permissions (already fully granular with _VIEW etc.)
         raw_keys = set(emp.get_final_permissions())
     except OrganizationEmployee.DoesNotExist:
-        # Organization/Individual Owner
-        if hasattr(user, 'dynamic_capabilities'):
-            raw_keys = set(user.dynamic_capabilities.filter(is_active=True).values_list('capability__key', flat=True))
+        # Organization/Individual Owner: use the full plan-derived capabilities
+        # get_all_plan_capabilities() correctly expands plan categories into all
+        # VETERINARY_*, BOARDING_*, GROOMING_* etc. keys with _VIEW/_CREATE/_EDIT/_DELETE suffixes
+        raw_keys = user.get_all_plan_capabilities()
     
+    # 2. [NUCLEAR FILTER] Strip Veterinary if plan doesn't support it
+    # This prevents leakage for 'Gold' or 'Basic' plans that should not have clinical access.
+    from provider_cart.models import PurchasedPlan
+    active_plan = PurchasedPlan.objects.filter(verified_user=user, is_active=True).first()
+    plan_title = (active_plan.plan_title or "").lower() if active_plan else ""
+    
+    is_vet_plan = "veterinary" in plan_title
+    is_explicit_non_vet = ("gold" in plan_title or "basic" in plan_title) and not is_vet_plan
+    
+    if is_explicit_non_vet:
+        # Atomic removal of all VETERINARY_* keys
+        raw_keys = [k for k in raw_keys if not str(k).startswith("VETERINARY")]
+        
     # Map back to base keys for Module lookup
     capability_keys = set()
     for key in raw_keys:
@@ -1846,7 +1884,19 @@ def resolve_role_capabilities(request):
                 })
             
             # Always ensure VETERINARY_CORE if it has any VETERINARY_* caps
-            if any(c.startswith('VETERINARY_') for c in flat_keys) and 'VETERINARY_CORE' not in flat_keys:
+            # [NUCLEAR FILTER] Even if caps exist, strip them for Gold/Basic non-vet plans
+            from provider_cart.models import PurchasedPlan
+            # Resolve the account owner's plan for this org_id
+            owner_plan = PurchasedPlan.objects.filter(verified_user__auth_user_id=org_id, is_active=True).first()
+            p_title = (owner_plan.plan_title or "").lower() if owner_plan else ""
+            is_p_vet = "veterinary" in p_title
+            is_p_non_vet = ("gold" in p_title or "basic" in p_title) and not is_p_vet
+
+            if is_p_non_vet:
+                # Nuclear strip
+                flat_keys = [k for k in flat_keys if not str(k).startswith("VETERINARY")]
+                granular_caps = [c for c in granular_caps if not str(c.get("capability_key", "")).startswith("VETERINARY")]
+            elif any(str(c).startswith('VETERINARY_') for c in flat_keys) and 'VETERINARY_CORE' not in flat_keys:
                 granular_caps.append({
                     "capability_key": "VETERINARY_CORE",
                     "can_view": True, "can_create": True, "can_edit": True, "can_delete": True
@@ -1874,11 +1924,12 @@ def resolve_role_capabilities(request):
                  "source": "legacy_map"
              })
 
+        # [FIX] No capabilities for unknown roles. Never grant VETERINARY_CORE by default.
         return Response({
             "role": role_name, 
-            "capabilities": [{"capability_key": "VETERINARY_CORE", "can_view": True, "can_create": True, "can_edit": True, "can_delete": True}], 
-            "flat_keys": ["VETERINARY_CORE"],
-            "source": "fallback"
+            "capabilities": [], 
+            "flat_keys": [],
+            "source": "fallback_empty"
         })
         
     except Exception as e:

@@ -347,7 +347,7 @@ class VerifyOTPView(APIView):
         # 2️⃣ REGISTRATION FLOW
         # ===============================
         if purpose == "register":
-            return self.handle_registration_verify(phone)
+            return self.handle_registration_verify(phone, request)
 
         # ===============================
         # 3️⃣ NORMAL LOGIN FLOW
@@ -367,7 +367,7 @@ class VerifyOTPView(APIView):
     # EXISTING HANDLER METHODS (UPDATED TIMEZONE-SAFE)
     # ==========================================================
 
-    def handle_registration_verify(self, phone):
+    def handle_registration_verify(self, phone, request):
         try:
             user = User.objects.get(phone_number=phone)
         except User.DoesNotExist:
@@ -400,7 +400,12 @@ class VerifyOTPView(APIView):
         except Exception as e:
             logger.error(f"Kafka USER_VERIFIED failed: {e}")
 
-        return Response({"message": "Phone verified. You can now login."}, status=status.HTTP_200_OK)
+        # [AUTO-LOGIN FIX] Return tokens so user is logged in immediately after verification
+        tokens = get_tokens_for_user(user, request=request, remember_me=False)
+        res = transform_for_frontend(tokens, user)
+        res["message"] = "Phone verified. Account verified and logged in."
+        
+        return Response(res, status=status.HTTP_200_OK)
 
     def handle_login(self, phone, request, remember_me):
         try:

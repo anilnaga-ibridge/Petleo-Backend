@@ -77,6 +77,10 @@ class FacilityTemplatePayload:
     category_id: Optional[str]
     name: str
     description: str
+    protocol_type: str = "MINUTES_BASED"
+    duration_minutes: int = 60
+    pricing_strategy: str = "FIXED"
+    base_price: str = "0.00"
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]):
@@ -84,7 +88,11 @@ class FacilityTemplatePayload:
             id=str(data["id"]),
             category_id=str(data["category_id"]) if data.get("category_id") else None,
             name=str(data["name"]),
-            description=str(data.get("description", ""))
+            description=str(data.get("description", "")),
+            protocol_type=str(data.get("protocol_type", "MINUTES_BASED")),
+            duration_minutes=int(data.get("duration_minutes", 60)),
+            pricing_strategy=str(data.get("pricing_strategy", "FIXED")),
+            base_price=str(data.get("base_price", "0.00"))
         )
 
 @dataclass

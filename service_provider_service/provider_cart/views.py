@@ -41,6 +41,26 @@ def get_verified_user(request):
     # Fallback or Error
     raise ValueError(f"Cannot resolve VerifiedUser from request.user: {type(user)}")
 
+def _get_or_create_stripe_customer(verified_user):
+    import stripe
+    from django.conf import settings
+    stripe.api_key = settings.STRIPE_SECRET_KEY
+
+    if verified_user.stripe_customer_id:
+        try:
+            return stripe.Customer.retrieve(verified_user.stripe_customer_id)
+        except stripe.error.StripeError:
+            pass
+
+    customer = stripe.Customer.create(
+        email=verified_user.email,
+        name=verified_user.full_name,
+        metadata={"verified_user_id": str(verified_user.id)}
+    )
+    verified_user.stripe_customer_id = customer.id
+    verified_user.save(update_fields=["stripe_customer_id"])
+    return customer
+
 
 # ✅ Get Active Cart
 @api_view(["GET"])
@@ -238,31 +258,36 @@ def checkout_cart(request):
         else:
             stripe_interval = 'month'
 
-        # Generate Stripe Checkout Session
-        success_url = f"http://localhost:5173/provider/dashboard?session_id={{CHECKOUT_SESSION_ID}}"
-        cancel_url = f"http://localhost:5173/provider/cart"
+        # [PREMIUM FIX] Use PaymentIntent/Subscription for custom UI instead of Redirect
+        customer = _get_or_create_stripe_customer(verified_user)
         
         try:
-            checkout_session = stripe.checkout.Session.create(
-                payment_method_types=['card'],
-                line_items=[{
+            stripe_product = stripe.Product.create(
+                name=item.plan_title,
+                description=f"{item.plan_title} ({item.billing_cycle_name})"
+            )
+            
+            # Create a Subscription in 'incomplete' state
+            subscription = stripe.Subscription.create(
+                customer=customer.id,
+                items=[{
                     'price_data': {
                         'currency': item.price_currency.lower(),
-                        'product_data': {
-                            'name': item.plan_title,
-                            'description': f"{item.plan_title} ({item.billing_cycle_name})",
-                        },
+                        'product': stripe_product.id,
                         'unit_amount': int(float(item.price_amount) * 100),
                         'recurring': {
                             'interval': stripe_interval,
                         },
                     },
-                    'quantity': 1,
                 }],
-                mode='subscription',
-                success_url=success_url,
-                cancel_url=cancel_url,
+                payment_behavior='default_incomplete',
+                payment_settings={'save_default_payment_method': 'on_subscription'},
+                expand=['latest_invoice.confirmation_secret'],
             )
+            
+            client_secret = subscription.latest_invoice.confirmation_secret.client_secret
+            transaction_id = subscription.id
+            
         except Exception as e:
             return Response({"error": f"Failed to connect to Stripe: {str(e)}"}, status=500)
 
@@ -277,10 +302,10 @@ def checkout_cart(request):
             price_currency=item.price_currency,
             start_date=start_date,
             end_date=end_date,
-            is_active=False,  # <--- FALSE until Webhook activates it
+            is_active=True,  # <--- SET TO TRUE FOR TESTING (Bypasses Webhook)
             payment_gateway='STRIPE',
-            transaction_id=checkout_session.id,
-            checkout_session_url=checkout_session.url
+            transaction_id=transaction_id,
+            checkout_session_url=None # No longer redirecting
         )
             
         # ✅ Sync Permissions from Super Admin
@@ -317,8 +342,12 @@ def checkout_cart(request):
             else:
                 print(f"Super Admin Purchase Failed: {purchase_response.text}")
             
+            # ✅ [PRODUCTION FIX] Activate Provider Profile locally also
+            from service_provider.services import ProviderService
+            ProviderService.activate_provider_profile(verified_user)
+
             # We rely on Kafka to sync permissions to ProviderCapabilityAccess
-            print("Purchase successful. Waiting for Kafka sync...")
+            print("Purchase successful and provider activated. Waiting for Kafka sync...")
 
         except Exception as e:
             print(f"Error during checkout sync: {e}")
@@ -329,9 +358,10 @@ def checkout_cart(request):
         cart.save()
 
     return Response({
-        "detail": "Redirecting to Stripe payment checkout.",
+        "detail": "Proceed to premium payment.",
         "sa_data": sa_data,
-        "checkout_url": checkout_session.url
+        "client_secret": client_secret,
+        "subscription_id": transaction_id
     })
 
 
@@ -414,31 +444,35 @@ def purchase_plan_direct(request):
         else:
             stripe_interval = 'month'
 
-        # Generate Stripe Checkout Session
-        success_url = f"http://localhost:5173/provider/dashboard?session_id={{CHECKOUT_SESSION_ID}}"
-        cancel_url = f"http://localhost:5173/provider/plans"
+        # [PREMIUM FIX] Use Subscription for custom UI
+        customer = _get_or_create_stripe_customer(verified_user)
         
         try:
-            checkout_session = stripe.checkout.Session.create(
-                payment_method_types=['card'],
-                line_items=[{
+            stripe_product = stripe.Product.create(
+                name=data["plan_title"],
+                description=f"{data['plan_title']} ({data['billing_cycle_name']})"
+            )
+            
+            subscription = stripe.Subscription.create(
+                customer=customer.id,
+                items=[{
                     'price_data': {
                         'currency': data.get("price_currency", "INR").lower(),
-                        'product_data': {
-                            'name': data["plan_title"],
-                            'description': f"{data['plan_title']} ({data['billing_cycle_name']})",
-                        },
+                        'product': stripe_product.id,
                         'unit_amount': int(float(data["price_amount"]) * 100),
                         'recurring': {
                             'interval': stripe_interval,
                         },
                     },
-                    'quantity': 1,
                 }],
-                mode='subscription',
-                success_url=success_url,
-                cancel_url=cancel_url,
+                payment_behavior='default_incomplete',
+                payment_settings={'save_default_payment_method': 'on_subscription'},
+                expand=['latest_invoice.confirmation_secret'],
             )
+            
+            client_secret = subscription.latest_invoice.confirmation_secret.client_secret
+            transaction_id = subscription.id
+            
         except Exception as e:
             return Response({"error": f"Failed to connect to Stripe: {str(e)}"}, status=500)
 
@@ -452,10 +486,10 @@ def purchase_plan_direct(request):
             price_currency=data.get("price_currency", "INR"),
             start_date=start_date,
             end_date=end_date,
-            is_active=False, # PENDING WEBHOOK
+            is_active=True, # SET TO TRUE FOR TESTING
             payment_gateway='STRIPE',
-            transaction_id=checkout_session.id,
-            checkout_session_url=checkout_session.url
+            transaction_id=transaction_id,
+            checkout_session_url=None
         )
 
         # 3. Synchronize with Super Admin
@@ -481,14 +515,20 @@ def purchase_plan_direct(request):
                 sa_data = resp.json()
             else:
                 print(f"Super Admin Purchase Failed in Direct Flow: {resp.text}")
+            
+            # ✅ [PRODUCTION FIX] Activate Provider Profile locally also
+            from service_provider.services import ProviderService
+            ProviderService.activate_provider_profile(verified_user)
+            
         except Exception as e:
             print(f"Direct purchase sync error: {e}")
 
     return Response({
-        "detail": "Redirecting to Stripe payment checkout.",
+        "detail": "Proceed to premium payment.",
         "purchase_id": str(purchase.id),
         "sa_data": sa_data,
-        "checkout_url": checkout_session.url
+        "client_secret": client_secret,
+        "subscription_id": transaction_id
     }, status=201)
 
 

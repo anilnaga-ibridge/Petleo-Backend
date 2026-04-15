@@ -42,16 +42,16 @@ class ShadowUserAuthentication(JWTAuthentication):
                 user.permissions = [
                     "VETERINARY_CORE", 
                     "VETERINARY_ADMIN", 
-                    "VETERINARY_VISITS", 
-                    "VETERINARY_VITALS", 
+                    "VISITS", 
+                    "VETERINARY_ASSISTANT", 
                     "VETERINARY_PRESCRIPTIONS", 
-                    "VETERINARY_LABS", 
+                    "LABS", 
                     "VETERINARY_VACCINES",
-                    "VETERINARY_MEDICINE_REMINDERS",
-                    "VETERINARY_PHARMACY",
-                    "VETERINARY_DOCTOR",
-                    "VETERINARY_SCHEDULE",
-                    "VETERINARY_ONLINE_CONSULT",
+                    "MEDICINE_REMINDERS",
+                    "PHARMACY",
+                    "DOCTOR_STATION",
+                    "SCHEDULE",
+                    "ONLINE_CONSULT",
                     "analytics.*"
                 ]
             else:

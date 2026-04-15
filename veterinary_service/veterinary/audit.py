@@ -20,7 +20,7 @@ def log_medical_action(visit, action_type, capability=None, metadata=None):
 @receiver(post_save, sender=Visit)
 def audit_visit_changes(sender, instance, created, **kwargs):
     if created:
-        log_medical_action(instance, 'VISIT_CREATED', capability='VETERINARY_VISITS')
+        log_medical_action(instance, 'VISIT_CREATED', capability='VISITS')
     else:
         # Check for status change
         # Note: This is a simplified check. In a real app, you'd compare with old_instance.
@@ -38,13 +38,13 @@ def audit_form_submissions(sender, instance, created, **kwargs):
         
         if instance.form_definition.code == 'VITALS_FORM':
             action_type = 'VITALS_ENTERED'
-            capability = 'VETERINARY_VITALS'
+            capability = 'VETERINARY_ASSISTANT'
         elif instance.form_definition.code == 'PRESCRIPTION':
             action_type = 'PRESCRIPTION_CREATED'
             capability = 'VETERINARY_PRESCRIPTIONS'
         elif instance.form_definition.code == 'LAB_FORM':
             action_type = 'LAB_ORDERED'
-            capability = 'VETERINARY_LABS'
+            capability = 'LABS'
             
         log_medical_action(
             instance.visit, 

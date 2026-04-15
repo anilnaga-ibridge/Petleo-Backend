@@ -209,7 +209,7 @@ class ClinicViewSet(viewsets.ModelViewSet):
 
 class PetOwnerViewSet(viewsets.ModelViewSet):
     serializer_class = PetOwnerSerializer
-    permission_classes = [permissions.IsAuthenticated, HasVeterinaryAccess, require_granular_capability('VETERINARY_PATIENTS')]
+    permission_classes = [permissions.IsAuthenticated, HasVeterinaryAccess, require_granular_capability('PATIENTS')]
     filter_backends = [django_filters.rest_framework.DjangoFilterBackend, filters.SearchFilter]
     search_fields = ['name', 'phone']
     filterset_fields = ['phone']
@@ -307,7 +307,7 @@ class PetOwnerViewSet(viewsets.ModelViewSet):
 
 class PetViewSet(viewsets.ModelViewSet):
     serializer_class = PetSerializer
-    permission_classes = [permissions.IsAuthenticated, HasVeterinaryAccess, require_granular_capability('VETERINARY_PATIENTS')]
+    permission_classes = [permissions.IsAuthenticated, HasVeterinaryAccess, require_granular_capability('PATIENTS')]
     filter_backends = [django_filters.rest_framework.DjangoFilterBackend, filters.SearchFilter]
     filterset_fields = ['owner']
     search_fields = ['name']
@@ -549,11 +549,11 @@ class VisitQueueViewSet(viewsets.ViewSet):
              
         # Map queue name to required capability
         REQUIRED_CAPS = {
-            'WAITING_ROOM': 'VETERINARY_VISITS',
-            'VITALS_QUEUE': 'VETERINARY_VITALS',
-            'DOCTOR_QUEUE': 'VETERINARY_DOCTOR',
-            'LAB_QUEUE': 'VETERINARY_LABS',
-            'PHARMACY_QUEUE': 'VETERINARY_PHARMACY'
+            'WAITING_ROOM': 'VISITS',
+            'VITALS_QUEUE': 'VETERINARY_ASSISTANT',
+            'DOCTOR_QUEUE': 'DOCTOR_STATION',
+            'LAB_QUEUE': 'LABS',
+            'PHARMACY_QUEUE': 'PHARMACY'
         }
         
         required_cap = REQUIRED_CAPS.get(queue_name)
@@ -1106,7 +1106,7 @@ class FormDefinitionViewSet(viewsets.ModelViewSet):
 class LabViewSet(viewsets.ViewSet):
     permission_classes = [permissions.IsAuthenticated, HasVeterinaryAccess]
 
-    @action(detail=False, methods=['get'], permission_classes=[require_granular_capability('VETERINARY_LABS')])
+    @action(detail=False, methods=['get'], permission_classes=[require_granular_capability('LABS')])
     def pending(self, request):
         """
         List pending lab orders for the clinic.
@@ -1275,9 +1275,9 @@ class DynamicEntityViewSet(viewsets.ViewSet):
             # Capability Check
             user_perms = getattr(request.user, 'permissions', [])
             required_cap = None
-            if entity_type == 'VITALS': required_cap = 'VETERINARY_VITALS'
+            if entity_type == 'VITALS': required_cap = 'VETERINARY_ASSISTANT'
             elif entity_type == 'PRESCRIPTION': required_cap = 'VETERINARY_PRESCRIPTIONS'
-            elif entity_type == 'LAB': required_cap = 'VETERINARY_LABS'
+            elif entity_type == 'LAB': required_cap = 'LABS'
             
             if required_cap and required_cap not in user_perms:
                  return Response({'error': f'Missing capability: {required_cap}'}, status=status.HTTP_403_FORBIDDEN)

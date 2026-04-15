@@ -47,22 +47,10 @@ class HasVeterinaryAccess(permissions.BasePermission):
                 from .views import get_clinic_context
                 clinic_id = get_clinic_context(request)
                 if clinic_id:
-                    log(f"Context found: {clinic_id}. Attaching full clinical suite.")
+                    log(f"Context found: {clinic_id}. Attaching owner implicit access.")
                     request.user.clinic_id = clinic_id
-                    request.user.permissions = [
-                        "VETERINARY_CORE", 
-                        "VETERINARY_ADMIN", 
-                        "VETERINARY_VISITS", 
-                        "VETERINARY_VITALS", 
-                        "VETERINARY_PRESCRIPTIONS", 
-                        "VETERINARY_LABS", 
-                        "VETERINARY_VACCINES",
-                        "VETERINARY_MEDICINE_REMINDERS",
-                        "VETERINARY_PHARMACY",
-                        "VETERINARY_DOCTOR",
-                        "VETERINARY_PATIENTS",
-                        "VETERINARY_CLINIC_SETTINGS"
-                    ]
+                    # Complete Automation: Owners implicitly pass capability checks, so no hardcoded list needed here.
+                    request.user.permissions = [] 
                 else:
                     log("No clinic context found. Permissions remain empty.")
                     request.user.permissions = []
@@ -109,7 +97,15 @@ class HasVeterinaryAccess(permissions.BasePermission):
                      return True
 
                  capabilities = clinic.capabilities or {}
+                 # [SENIOR DEV FIX] Robust check for VETERINARY_MODULE:
+                 # 1. Direct Key check (Legacy/Config)
+                 # 2. Key inside 'permissions' list (Sync-based)
+                 # 3. Fallback to VETERINARY_CORE
                  has_mod = capabilities.get('VETERINARY_MODULE', False)
+                 
+                 if not has_mod and 'permissions' in capabilities:
+                     has_mod = 'VETERINARY_MODULE' in capabilities['permissions'] or 'VETERINARY_CORE' in capabilities['permissions']
+                 
                  log(f"VETERINARY_MODULE Check: {has_mod}")
                  return has_mod
         
@@ -139,8 +135,15 @@ class HasGranularCapability(permissions.BasePermission):
         if not request.user or not request.user.is_authenticated:
             return False
             
+        role = str(getattr(request.user, 'role', '')).upper()
+        
+        # COMPLETE AUTOMATION: Owner Bypass. Organizations inherently have full access to their clinics.
+        if role in ['ORGANIZATION', 'INDIVIDUAL', 'PROVIDER', 'ORGANIZATION_PROVIDER', 'ORGANIZATION_ADMIN']:
+            return True
+
         user_perms = getattr(request.user, 'permissions', [])
         
+        log(f"HasGranularCapability({self.capability_key}).has_permission: user_perms={user_perms}")
         
         if not user_perms:
             return False
@@ -161,7 +164,7 @@ class HasGranularCapability(permissions.BasePermission):
             
             # Handle both flat strings (Legacy/Owner/Expanded) and Objects (Staff)
             if isinstance(p, str):
-                # 1. Base Match (Unrestricted access for legacy strings like 'VETERINARY_VISITS')
+                # 1. Base Match (Unrestricted access for legacy strings like 'VISITS')
                 if p == self.capability_key or ('.' in self.capability_key and p == f"{self.capability_key.split('.')[0]}.*"):
                     return True
                 
@@ -222,21 +225,8 @@ def require_capability(capability):
             # [SENIOR DEV SAFETY NET] Proactively Resolve if missing for Owners
             role = str(getattr(request.user, 'role', '')).upper()
             if role in ['ORGANIZATION', 'INDIVIDUAL', 'PROVIDER', 'ORGANIZATION_PROVIDER', 'ORGANIZATION_ADMIN']:
-                if user_perms is None:
-                    from .views import get_clinic_context
-                    clinic_id = get_clinic_context(request)
-                    if clinic_id:
-                        # Full granular suite for owners
-                        request.user.permissions = [
-                            "appointment.*", "consultation.*", "vitals.*", 
-                            "lab.*", "pharmacy.*", "vaccination.*", 
-                            "billing.*", "reminder.*", "analytics.view",
-                            "VETERINARY_CORE" # Legacy compatibility
-                        ]
-                        user_perms = request.user.permissions
-                    else:
-                        request.user.permissions = []
-                        user_perms = []
+                # COMPLETE AUTOMATION: Owner Bypass. No hardcoded arrays.
+                return func(view, request, *args, **kwargs)
             
             # 2. Check Capability
             allowed = False
@@ -267,6 +257,7 @@ def require_capability(capability):
                 if allowed: break
                         
             if not allowed:
+                log(f"PERMISSION DENIED in require_capability: user_perms={user_perms}, looking for {req_caps}")
                 raise PermissionDenied(f"Permission denied. Missing or insufficient capability for: {capability}")
             
             return func(view, request, *args, **kwargs)

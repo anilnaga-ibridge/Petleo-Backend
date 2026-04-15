@@ -1212,6 +1212,12 @@ class ClinicRegistrationService:
         # 2. Update Clinic status
         clinic.is_active = True
         clinic.subscription_plan = "BASIC"
+        
+        # [SENIOR DEV FIX] Auto-enable VETERINARY_MODULE for clinical access
+        if not clinic.capabilities:
+            clinic.capabilities = {}
+        clinic.capabilities['VETERINARY_MODULE'] = True
+        
         clinic.save()
         
         # 3. Emit Event for other services (RBAC initialization etc)
@@ -1437,35 +1443,35 @@ class ClinicRegistrationService:
 
 class RolePermissionService:
     ROLE_PERMISSIONS = {
-        'Receptionist': ['VETERINARY_CORE', 'VETERINARY_VISITS', 'VETERINARY_SCHEDULE', 'VETERINARY_ONLINE_CONSULT', 'VETERINARY_OFFLINE_VISIT', 'VETERINARY_PATIENTS'],
-        'Doctor': ['VETERINARY_CORE', 'VETERINARY_DOCTOR', 'VETERINARY_CONSULTATION', 'VETERINARY_PRESCRIPTIONS', 'VETERINARY_VITALS', 'VETERINARY_VISITS', 'VETERINARY_SCHEDULE', 'VETERINARY_PATIENTS'],
-        'Senior Doctor': ['VETERINARY_CORE', 'VETERINARY_DOCTOR', 'VETERINARY_CONSULTATION', 'VETERINARY_PRESCRIPTIONS', 'VETERINARY_VITALS', 'VETERINARY_VISITS', 'VETERINARY_LABS', 'VETERINARY_PHARMACY', 'VETERINARY_SCHEDULE', 'VETERINARY_PATIENTS'],
-        'Veterinary Doctor': ['VETERINARY_CORE', 'VETERINARY_DOCTOR', 'VETERINARY_CONSULTATION', 'VETERINARY_PRESCRIPTIONS', 'VETERINARY_VITALS', 'VETERINARY_VISITS', 'VETERINARY_SCHEDULE', 'VETERINARY_PATIENTS'],
-        'Nurse': ['VETERINARY_CORE', 'VETERINARY_VISITS', 'VETERINARY_VITALS', 'VETERINARY_VACCINES', 'VETERINARY_LABS', 'VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_PATIENTS'],
-        'Lab Technician': ['VETERINARY_CORE', 'VETERINARY_LABS'],
-        'Pharmacist': ['VETERINARY_CORE', 'VETERINARY_PHARMACY', 'VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_PRESCRIPTIONS'],
-        'Admin': ['VETERINARY_CORE', 'VETERINARY_ADMIN', 'VETERINARY_ADMIN_SETTINGS', 'VETERINARY_METADATA', 'VETERINARY_VISITS', 'VETERINARY_VITALS', 'VETERINARY_CONSULTATION', 'VETERINARY_PRESCRIPTIONS', 'VETERINARY_LABS', 'VETERINARY_VACCINES', 'VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_PHARMACY', 'VETERINARY_DOCTOR', 'VETERINARY_SCHEDULE', 'VETERINARY_ONLINE_CONSULT', 'VETERINARY_OFFLINE_VISIT', 'VETERINARY_CHECKOUT'],
-        'Practice Manager': ['VETERINARY_CORE', 'VETERINARY_ADMIN', 'VETERINARY_ADMIN_SETTINGS', 'VETERINARY_METADATA', 'VETERINARY_VISITS', 'VETERINARY_VITALS', 'VETERINARY_CONSULTATION', 'VETERINARY_PRESCRIPTIONS', 'VETERINARY_LABS', 'VETERINARY_VACCINES', 'VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_PHARMACY', 'VETERINARY_DOCTOR', 'VETERINARY_SCHEDULE', 'VETERINARY_ONLINE_CONSULT', 'VETERINARY_OFFLINE_VISIT', 'VETERINARY_CHECKOUT'],
-        'Vitals Staff': ['VETERINARY_CORE', 'VETERINARY_VITALS', 'VETERINARY_PATIENTS'],
-        'employee': ['VETERINARY_CORE', 'VETERINARY_VISITS', 'VETERINARY_VITALS', 'VETERINARY_PRESCRIPTIONS', 'VETERINARY_DOCTOR', 'VETERINARY_PATIENTS'],
-        'EMPLOYEE': ['VETERINARY_CORE', 'VETERINARY_VISITS', 'VETERINARY_VITALS', 'VETERINARY_PRESCRIPTIONS', 'VETERINARY_DOCTOR', 'VETERINARY_PATIENTS'],
-        'RECEPTIONIST': ['VETERINARY_CORE', 'VETERINARY_VISITS', 'VETERINARY_SCHEDULE', 'VETERINARY_ONLINE_CONSULT', 'VETERINARY_OFFLINE_VISIT', 'VETERINARY_PATIENTS'],
+        'Receptionist': ['VETERINARY_CORE', 'VISITS', 'SCHEDULE', 'ONLINE_CONSULT', 'OFFLINE_VISITS', 'PATIENTS'],
+        'Doctor': ['VETERINARY_CORE', 'DOCTOR_STATION', 'VETERINARY_CONSULTATION', 'VETERINARY_PRESCRIPTIONS', 'VETERINARY_ASSISTANT', 'VISITS', 'SCHEDULE', 'PATIENTS'],
+        'Senior Doctor': ['VETERINARY_CORE', 'DOCTOR_STATION', 'VETERINARY_CONSULTATION', 'VETERINARY_PRESCRIPTIONS', 'VETERINARY_ASSISTANT', 'VISITS', 'LABS', 'PHARMACY', 'SCHEDULE', 'PATIENTS'],
+        'Veterinary Doctor': ['VETERINARY_CORE', 'DOCTOR_STATION', 'VETERINARY_CONSULTATION', 'VETERINARY_PRESCRIPTIONS', 'VETERINARY_ASSISTANT', 'VISITS', 'SCHEDULE', 'PATIENTS'],
+        'Nurse': ['VETERINARY_CORE', 'VISITS', 'VETERINARY_ASSISTANT', 'VETERINARY_VACCINES', 'LABS', 'MEDICINE_REMINDERS', 'PATIENTS'],
+        'Lab Technician': ['VETERINARY_CORE', 'LABS'],
+        'Pharmacist': ['VETERINARY_CORE', 'PHARMACY', 'MEDICINE_REMINDERS', 'VETERINARY_PRESCRIPTIONS'],
+        'Admin': ['VETERINARY_CORE', 'VETERINARY_ADMIN', 'CLINIC_SETTINGS', 'METADATA_MANAGEMENT', 'VISITS', 'VETERINARY_ASSISTANT', 'VETERINARY_CONSULTATION', 'VETERINARY_PRESCRIPTIONS', 'LABS', 'VETERINARY_VACCINES', 'MEDICINE_REMINDERS', 'PHARMACY', 'DOCTOR_STATION', 'SCHEDULE', 'ONLINE_CONSULT', 'OFFLINE_VISITS', 'VETERINARY_CHECKOUT'],
+        'Practice Manager': ['VETERINARY_CORE', 'VETERINARY_ADMIN', 'CLINIC_SETTINGS', 'METADATA_MANAGEMENT', 'VISITS', 'VETERINARY_ASSISTANT', 'VETERINARY_CONSULTATION', 'VETERINARY_PRESCRIPTIONS', 'LABS', 'VETERINARY_VACCINES', 'MEDICINE_REMINDERS', 'PHARMACY', 'DOCTOR_STATION', 'SCHEDULE', 'ONLINE_CONSULT', 'OFFLINE_VISITS', 'VETERINARY_CHECKOUT'],
+        'Vitals Staff': ['VETERINARY_CORE', 'VETERINARY_ASSISTANT', 'PATIENTS'],
+        'employee': ['VETERINARY_CORE', 'VISITS', 'VETERINARY_ASSISTANT', 'VETERINARY_PRESCRIPTIONS', 'DOCTOR_STATION', 'PATIENTS'],
+        'EMPLOYEE': ['VETERINARY_CORE', 'VISITS', 'VETERINARY_ASSISTANT', 'VETERINARY_PRESCRIPTIONS', 'DOCTOR_STATION', 'PATIENTS'],
+        'RECEPTIONIST': ['VETERINARY_CORE', 'VISITS', 'SCHEDULE', 'ONLINE_CONSULT', 'OFFLINE_VISITS', 'PATIENTS'],
     }
 
     # Mapping of Capability Keys to higher-level Feature IDs used in UI
     CAPABILITY_FEATURE_MAP = {
-        "VETERINARY_VISITS": "vet_visits",
-        "VETERINARY_PATIENTS": "vet_visits",
-        "VETERINARY_VITALS": "vet_vitals",
+        "VISITS": "vet_visits",
+        "PATIENTS": "vet_visits",
+        "VETERINARY_ASSISTANT": "vet_vitals",
         "VETERINARY_DOCTOR_STATION": "vet_doctor_station",
-        "VETERINARY_PHARMACY": "vet_pharmacy",
-        "VETERINARY_LABS": "vet_labs",
+        "PHARMACY": "vet_pharmacy",
+        "LABS": "vet_labs",
         "VETERINARY_SCHEDULING": "vet_scheduling",
-        "VETERINARY_ONLINE_CONSULT": "vet_scheduling",
-        "VETERINARY_OFFLINE_VISIT": "vet_scheduling",
+        "ONLINE_CONSULT": "vet_scheduling",
+        "OFFLINE_VISITS": "vet_scheduling",
         "VETERINARY_REMINDERS": "vet_reminders",
-        "VETERINARY_ADMIN_SETTINGS": "vet_system",
-        "VETERINARY_METADATA": "vet_system",
+        "CLINIC_SETTINGS": "vet_system",
+        "METADATA_MANAGEMENT": "vet_system",
         "VETERINARY_CHECKOUT": "vet_checkout"
     }
 
@@ -1473,23 +1479,23 @@ class RolePermissionService:
     def bridge_capability_keys(granular_caps):
         """
         Enterprise Bridge: Maps legacy service-level keys to granular module keys.
-        Example: {'capability_key': 'VETERINARY_VITALS', 'can_view': True} 
+        Example: {'capability_key': 'VETERINARY_ASSISTANT', 'can_view': True} 
                  -> adds {'capability_key': 'vitals.*', 'can_view': True}
         """
         BRIDGE_MAP = {
-            "VETERINARY_VISITS": "appointment.*",
-            "VETERINARY_VITALS": "vitals.*",
-            "VETERINARY_DOCTOR": "consultation.*",
+            "VISITS": "appointment.*",
+            "VETERINARY_ASSISTANT": "vitals.*",
+            "DOCTOR_STATION": "consultation.*",
             "VETERINARY_PRESCRIPTIONS": "pharmacy.*",
-            "VETERINARY_LABS": "lab.*",
+            "LABS": "lab.*",
             "VETERINARY_VACCINES": "vaccination.*",
-            "VETERINARY_MEDICINE_REMINDERS": "reminder.*",
+            "MEDICINE_REMINDERS": "reminder.*",
             "VETERINARY_CHECKOUT": "billing.*",
-            "VETERINARY_SCHEDULE": "appointment.*",
+            "SCHEDULE": "appointment.*",
             "VETERINARY_ADMIN": "analytics.view",
-            "VETERINARY_ADMIN_SETTINGS": "vet_system.*",
-            "VETERINARY_METADATA": "vet_system.*",
-            "VETERINARY_PATIENTS": "patient.*"
+            "CLINIC_SETTINGS": "vet_system.*",
+            "METADATA_MANAGEMENT": "vet_system.*",
+            "PATIENTS": "patient.*"
         }
         
         bridged_caps = []
@@ -1608,7 +1614,7 @@ class VeterinaryAvailabilityService:
 
         # 1. Identify valid doctors
         doctors_qs = StaffClinicAssignment.objects.filter(
-            Q(role='DOCTOR') | Q(permissions__contains='VETERINARY_DOCTOR'),
+            Q(role='DOCTOR') | Q(permissions__contains='DOCTOR_STATION'),
             clinic=clinic,
             is_active=True
         ).select_related('staff', 'clinic')

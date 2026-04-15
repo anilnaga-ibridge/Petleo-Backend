@@ -173,3 +173,89 @@
 2026-04-03 16:53:59,938 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
 2026-04-03 16:54:06,942 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
 2026-04-03 16:54:11,976 [INFO] ✅ Connected to Kafka broker.
+2026-04-08 11:05:42,888 [INFO] 🚀 Starting Customer Service Kafka Consumer...
+2026-04-08 11:05:44,896 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-08 11:05:51,905 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-08 11:05:56,942 [INFO] ✅ Connected to Kafka broker.
+2026-04-08 16:41:52,338 [INFO] 🚀 Starting Customer Service Kafka Consumer...
+2026-04-08 16:41:54,342 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-08 16:42:01,359 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-08 16:42:08,365 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-08 16:42:13,410 [INFO] ✅ Connected to Kafka broker.
+2026-04-08 16:51:01,641 [INFO] 🔥 User Event: USER_DELETED | User: 59961f88-396f-4769-a485-a1a00d319988
+2026-04-08 16:51:01,776 [INFO] 🗑️ Deleted PetOwnerProfile for 59961f88-396f-4769-a485-a1a00d319988
+2026-04-09 10:56:33,391 [INFO] 🚀 Starting Customer Service Kafka Consumer...
+2026-04-09 10:56:35,397 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-09 10:56:42,404 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-09 10:56:49,407 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-09 10:56:54,422 [INFO] ✅ Connected to Kafka broker.
+2026-04-09 17:50:50,639 [INFO] 🚀 Starting Customer Service Kafka Consumer...
+2026-04-09 17:50:52,645 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-09 17:50:59,657 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-09 17:51:06,662 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-09 17:51:11,697 [INFO] ✅ Connected to Kafka broker.
+2026-04-10 10:34:59,988 [INFO] 🚀 Starting Customer Service Kafka Consumer...
+2026-04-10 10:35:02,000 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-10 10:35:09,014 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-10 10:35:16,025 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-10 10:35:23,041 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-10 10:35:30,049 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-10 10:35:35,105 [INFO] ✅ Connected to Kafka broker.
+2026-04-10 11:08:02,139 [INFO] 🔥 User Event: USER_CREATED | User: 02d2d800-eaae-4839-ac4b-0c5f28a53173
+2026-04-10 11:08:02,214 [ERROR] ❌ Error processing Kafka message: Invalid field name(s) for model PetOwnerProfile: 'avatar_url'.
+2026-04-10 11:08:12,776 [INFO] 🔥 User Event: USER_VERIFIED | User: 02d2d800-eaae-4839-ac4b-0c5f28a53173
+2026-04-10 11:08:12,783 [ERROR] ❌ Error processing Kafka message: Invalid field name(s) for model PetOwnerProfile: 'avatar_url'.
+2026-04-13 10:23:28,303 [INFO] 🚀 Starting Customer Service Kafka Consumer...
+2026-04-13 10:23:30,308 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-13 10:23:37,316 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-13 10:23:42,529 [INFO] ✅ Connected to Kafka broker.
+2026-04-13 12:15:37,019 [INFO] 🔥 User Event: USER_DELETED | User: 02d2d800-eaae-4839-ac4b-0c5f28a53173
+2026-04-13 12:15:39,926 [INFO] 🗑️ Deleted PetOwnerProfile for 02d2d800-eaae-4839-ac4b-0c5f28a53173
+2026-04-13 17:02:25,681 [INFO] 🚀 Starting Customer Service Kafka Consumer...
+2026-04-13 17:02:27,708 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-13 17:02:34,735 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-13 17:02:41,761 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-13 17:02:48,784 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-13 17:02:55,814 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-13 17:03:02,843 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-13 17:03:09,877 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-13 17:03:16,894 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-13 17:03:23,911 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-13 17:03:30,931 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-13 17:03:37,947 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-13 17:03:44,965 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-13 17:03:51,982 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-13 17:03:59,017 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-13 17:04:06,034 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-13 17:04:13,053 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-13 17:04:20,068 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-13 17:04:27,088 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-13 17:04:34,132 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-13 17:04:41,150 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-13 17:04:48,170 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-13 17:04:55,189 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-13 17:05:02,208 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-13 17:05:09,238 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-13 17:05:16,267 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-13 17:05:21,605 [INFO] ✅ Connected to Kafka broker.
+2026-04-13 17:35:38,881 [INFO] 🚀 Starting Customer Service Kafka Consumer...
+2026-04-13 17:35:40,891 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-13 17:35:47,900 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-13 17:35:54,913 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-13 17:36:01,929 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-13 17:36:08,942 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-13 17:36:14,036 [INFO] ✅ Connected to Kafka broker.
+2026-04-14 11:09:39,714 [INFO] 🚀 Starting Customer Service Kafka Consumer...
+2026-04-14 11:09:41,716 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-14 11:09:48,723 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-14 11:09:55,766 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-14 11:10:00,808 [INFO] ✅ Connected to Kafka broker.
+2026-04-15 11:31:25,525 [INFO] 🚀 Starting Customer Service Kafka Consumer...
+2026-04-15 11:31:27,529 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-15 11:31:34,541 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-15 11:31:41,545 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-15 11:31:48,548 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-15 11:31:55,556 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-15 11:32:02,560 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-15 11:32:09,581 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-15 11:32:15,069 [INFO] ✅ Connected to Kafka broker.

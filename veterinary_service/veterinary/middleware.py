@@ -97,31 +97,9 @@ class VeterinaryPermissionMiddleware(MiddlewareMixin):
                         log(f"No X-Clinic-ID header. Using first owned clinic: {clinic.id}")
                 
                 if clinic: # Moved clinic check here to ensure permissions are set only if clinic is found/owned
-                    # Owners/Admins get all granular clinical capabilities
-                    request.user.permissions = [
-                        "VETERINARY_CORE", 
-                        "VETERINARY_ADMIN", 
-                        "VETERINARY_VISITS", 
-                        "VETERINARY_VITALS", 
-                        "VETERINARY_CONSULTATION",
-                        "VETERINARY_PRESCRIPTIONS", 
-                        "VETERINARY_LABS", 
-                        "VETERINARY_VACCINES",
-                        "VETERINARY_MEDICINE_REMINDERS",
-                        "VETERINARY_PHARMACY",
-                        "VETERINARY_DOCTOR",
-                        "VETERINARY_SCHEDULE",
-                        "VETERINARY_ONLINE_CONSULT",
-                        "VETERINARY_OFFLINE_VISIT",
-                        "VETERINARY_PATIENTS",
-                        "VETERINARY_LABS",
-                        "VETERINARY_PHARMACY",
-                        "VETERINARY_CLINIC_SETTINGS",
-                        "analytics.*",
-                        "appointment.*", "vitals.*", "consultation.*",
-                        "pharmacy.*", "lab.*", "vaccination.*",
-                        "reminder.*", "billing.*", "patient.*", "vet_system.*"
-                    ]
+                    # COMPLETE AUTOMATION: Owners inherently pass RBAC capability checks in the decorators and permissions
+                    # so we no longer inject a hardcoded list of capabilities here.
+                    request.user.permissions = []
                     request.user.clinic_id = clinic.id
                 else:
                     log(f"Clinic NOT FOUND or NOT OWNED. target_clinic_id was: {target_clinic_id}")

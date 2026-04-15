@@ -17,14 +17,14 @@ print(f"\nAssignments: {assignments.count()}")
 
 doctor_permissions = [
     'VETERINARY_CORE',
-    'VETERINARY_VISITS',
-    'VETERINARY_VITALS',
-    'VETERINARY_DOCTOR',
+    'VISITS',
+    'VETERINARY_ASSISTANT',
+    'DOCTOR_STATION',
     'VETERINARY_PRESCRIPTIONS',
-    'VETERINARY_LABS',
-    'VETERINARY_SCHEDULE',
-    'VETERINARY_ONLINE_CONSULT',
-    'VETERINARY_OFFLINE_VISIT'
+    'LABS',
+    'SCHEDULE',
+    'ONLINE_CONSULT',
+    'OFFLINE_VISITS'
 ]
 
 for a in assignments:

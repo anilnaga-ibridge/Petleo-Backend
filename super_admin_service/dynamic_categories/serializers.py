@@ -28,8 +28,8 @@ class CategorySerializer(serializers.ModelSerializer):
             if not Capability.objects.filter(key=cat_key).exists():
                 Capability.objects.create(
                     key=cat_key,
-                    name=validated_data.get('name', linked_cap), # Fallback to Category Name
-                    description=f"Auto-generated for Feature: {validated_data.get('name')}",
+                    name=validated_data.get('name', cat_key), # Fallback to Category Name
+                    description=f"Auto-generated for Feature: {validated_data.get('name', cat_key)}",
                     service_type="GENERATED"
                 )
 

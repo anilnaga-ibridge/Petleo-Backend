@@ -80,7 +80,11 @@ class PermissionSyncConsumer(RobustKafkaConsumer):
                             defaults={
                                 "category": cat_tmpl,
                                 "name": f_data["name"],
-                                "description": f_data.get("description", "")
+                                "description": f_data.get("description", ""),
+                                "protocol_type": f_data.get("protocol_type", "MINUTES_BASED"),
+                                "duration_minutes": f_data.get("duration_minutes", 60),
+                                "pricing_strategy": f_data.get("pricing_strategy", "FIXED"),
+                                "base_price": f_data.get("base_price", "0.00")
                             }
                         )
 
@@ -144,6 +148,29 @@ class PermissionSyncConsumer(RobustKafkaConsumer):
                             )
                             
                             # C. Sync Actual Pricing Rule (Required for frontend to show item)
+                            pricing_data_list = parsed_payload.templates.get("pricing", [])
+                            matched_pricing = next((p for p in pricing_data_list if str(p.get("facility_id")) == str(cap.facility_id)), None)
+                            
+                            price_to_use = fac_tmpl.base_price
+                            billing_unit_to_use = "PER_SESSION"
+                            service_duration_type_to_use = "MINUTES" if fac_tmpl.protocol_type in ["MINUTES_BASED", "DAY_BASED"] else "SESSIONS"
+                            pricing_model_to_use = fac_tmpl.pricing_strategy
+                            duration_value_to_use = None
+                            daily_capacity_to_use = None
+                            monthly_limit_to_use = None
+                            
+                            if matched_pricing:
+                                print(f"[PermissionSync] Matched explicit pricing rule for facility {cap.facility_id}")
+                                price_to_use = matched_pricing.get("price", price_to_use)
+                                billing_unit_to_use = matched_pricing.get("billing_unit", billing_unit_to_use)
+                                service_duration_type_to_use = matched_pricing.get("service_duration_type", service_duration_type_to_use)
+                                pricing_model_to_use = matched_pricing.get("pricing_model", pricing_model_to_use)
+                                duration_value_to_use = matched_pricing.get("duration_value")
+                                daily_capacity_to_use = matched_pricing.get("daily_capacity")
+                                monthly_limit_to_use = matched_pricing.get("monthly_limit")
+                            else:
+                                print(f"[PermissionSync] No explicit pricing found for {cap.facility_id}, falling back to base_price: {price_to_use}")
+
                             from provider_dynamic_fields.models import ProviderPricing
                             ProviderPricing.objects.update_or_create(
                                 provider=user,
@@ -151,11 +178,14 @@ class PermissionSyncConsumer(RobustKafkaConsumer):
                                 defaults={
                                     "service_id": cap.service_id,
                                     "category_id": str(p_cat.id),
-                                    "price": fac_tmpl.base_price,
-                                    "billing_unit": "PER_SESSION",
+                                    "price": price_to_use,
+                                    "billing_unit": billing_unit_to_use,
                                     "duration_minutes": fac_tmpl.duration_minutes,
-                                    "service_duration_type": "MINUTES" if fac_tmpl.protocol_type in ["MINUTES_BASED", "DAY_BASED"] else "SESSIONS",
-                                    "pricing_model": fac_tmpl.pricing_strategy,
+                                    "service_duration_type": service_duration_type_to_use,
+                                    "pricing_model": pricing_model_to_use,
+                                    "duration_value": duration_value_to_use,
+                                    "daily_capacity": daily_capacity_to_use,
+                                    "monthly_limit": monthly_limit_to_use,
                                     "description": fac_tmpl.description,
                                     "is_active": True
                                 }

@@ -19,6 +19,7 @@ class VerifiedUser(models.Model):
     role = models.CharField(max_length=50, blank=True, null=True)
     avatar_url = models.URLField(max_length=500, null=True, blank=True)
     permissions = models.JSONField(default=list, blank=True)
+    stripe_customer_id = models.CharField(max_length=100, null=True, blank=True)
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -100,14 +101,25 @@ class VerifiedUser(models.Model):
         CLINICAL_MODULE_KEYS = {
             'PHARMACY', 'VISITS', 'LABS', 'DOCTOR_STATION', 'VETERINARY_ASSISTANT',
             'PATIENTS', 'OFFLINE_VISITS', 'MEDICINE_REMINDERS', 'CLINIC_SETTINGS',
-            'METADATA_MANAGEMENT', 'BOARDING_BASIC', 'VETERINARY_CORE',
+            'METADATA_MANAGEMENT', 'VETERINARY_CORE',
+            # [PRODUCTION FIX] Also include prefixed versions to support standardized DB state
+            'VETERINARY_PHARMACY', 'VETERINARY_VISITS', 'VETERINARY_LABS', 
+            'VETERINARY_DOCTOR', 'VETERINARY_VITALS', 'VETERINARY_PATIENTS', 
+            'VETERINARY_OFFLINE_VISIT', 'VETERINARY_SCHEDULE', 'VETERINARY_PHARMACY_STORE',
+            'VETERINARY_ADMIN_SETTINGS', 'VETERINARY_METADATA',
         }
+        
         has_vet_capabilities = (
             any(cap.startswith('VETERINARY_') for cap in base_caps) or
             bool(base_caps & CLINICAL_MODULE_KEYS)
         )
+        
         if has_vet_capabilities:
             base_caps.add('VETERINARY_CORE')
+        else:
+            # [STRICT] Ensure no stale VETERINARY_CORE if no vet capabilities exist
+            base_caps.discard('VETERINARY_CORE')
+            base_caps.discard('VETERINARY_CORE_VIEW')
             
         # 5. [FIX] Expand VETERINARY_CORE to all sub-capabilities
         # If the org bought "Veterinary Management", they inherently have access to all modules,

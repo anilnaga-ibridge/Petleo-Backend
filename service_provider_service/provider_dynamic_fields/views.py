@@ -531,11 +531,16 @@ class ProviderCategoryViewSet(viewsets.ModelViewSet):
                     # Fetch Template Facilities
                     facs = ProviderTemplateFacility.objects.filter(category=t)
                     for f in facs:
+                        # Try to find matching pricing rule for this template facility
+                        from .models import ProviderTemplatePricing
+                        t_pricing = ProviderTemplatePricing.objects.filter(facility=f).first()
+                        f_price = str(t_pricing.price) if t_pricing else str(f.base_price)
+
                         cat_dict["facilities"].append({
                             "id": f"TEMPLATE_{f.id}",
                             "name": f.name,
                             "description": f.description,
-                            "price": "0.00",
+                            "price": f_price,
                             "is_template": True
                         })
                     

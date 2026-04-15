@@ -42,11 +42,11 @@ def check_murali():
         print(f"     Resolved Perms Count: {len(resolved)}")
         
         has_visits = any(
-            (isinstance(p, str) and p == 'VETERINARY_VISITS') or 
-            (isinstance(p, dict) and p.get('capability_key') == 'VETERINARY_VISITS')
+            (isinstance(p, str) and p == 'VISITS') or 
+            (isinstance(p, dict) and p.get('capability_key') == 'VISITS')
             for p in resolved
         )
-        print(f"     Has VETERINARY_VISITS: {has_visits}")
+        print(f"     Has VISITS: {has_visits}")
 
 if __name__ == "__main__":
     check_murali()
