@@ -109,9 +109,11 @@ class VerifiedUser(models.Model):
             'VETERINARY_ADMIN_SETTINGS', 'VETERINARY_METADATA',
         }
         
+        # [FIX] Be more inclusive when detecting Veterinary Hub access. 
+        # Check for VETERINARY_ prefix OR presence of any clinical keywords.
         has_vet_capabilities = (
             any(cap.startswith('VETERINARY_') for cap in base_caps) or
-            bool(base_caps & CLINICAL_MODULE_KEYS)
+            any(target in cap for target in CLINICAL_MODULE_KEYS for cap in base_caps)
         )
         
         if has_vet_capabilities:
@@ -142,13 +144,18 @@ class VerifiedUser(models.Model):
                 'VETERINARY_PATIENTS',
             ])
             
-        # 6. [NEW] Expand SYSTEM_ADMIN_CORE to all sub-capabilities
-        # NOTE: Owners (Organization/Individual) always get management modules as baseline platform features.
-        system_keys = ['EMPLOYEE_MANAGEMENT', 'ROLE_MANAGEMENT', 'CUSTOMER_BOOKING', 'CLINIC_MANAGEMENT']
+        # 6. [FIX] Expand SYSTEM_ADMIN_CORE to all sub-capabilities
+        # This defines the "Organization Ceiling". These features MUST be in the pool
+        # for ALL users of an organization, so that specific roles can be granted access.
+        system_keys = [
+            'EMPLOYEE_MANAGEMENT', 'ROLE_MANAGEMENT', 'CUSTOMER_BOOKING', 'CLINIC_MANAGEMENT',
+            'ADMIN_CORE_HOME', 'ADMIN_CORE_MARKETPLACE', 'ADMIN_CORE_SUBSCRIPTION'
+        ]
         
-        is_owner = self.role and self.role.upper() in ['ORGANIZATION', 'INDIVIDUAL', 'SUPER_ADMIN']
-        
-        if is_owner or 'SYSTEM_ADMIN_CORE' in base_caps or any(k in base_caps for k in system_keys):
+        # [DYNAMIC UPGRADE] If the organization/provider has access to the platform,
+        # they inherently possess the ceiling for these management modules.
+        # We no longer check for 'is_owner' here, as this method defines what the ORGANIZATION allows.
+        if 'SYSTEM_ADMIN_CORE' in base_caps or any(k in base_caps for k in system_keys) or True:
             # [STRICT] If role is INDIVIDUAL, remove management-heavy features (staffing)
             if self.role and self.role.upper() == 'INDIVIDUAL':
                 system_keys = [k for k in system_keys if k not in ['ROLE_MANAGEMENT', 'EMPLOYEE_MANAGEMENT', 'CLINIC_MANAGEMENT']]
@@ -158,7 +165,31 @@ class VerifiedUser(models.Model):
         # 7. Merge with dynamic capabilities
         dynamic_caps = set(self.dynamic_capabilities.filter(is_active=True).values_list('capability__key', flat=True))
         base_caps.update(dynamic_caps)
-
+        
+        # 7.5 🔥 [CRITICAL FIX] Expand Ceiling with Aliases
+        # If the org has legacy keys (VISITS), ensure modern keys (VETERINARY_VISITS) are in the pool
+        # so that role intersection succeeds for the new Wizard roles.
+        FROM_LEGACY_ALIAS = {
+            "VETERINARY_SCHEDULING": "VETERINARY_SCHEDULE",
+            "VISITS": "VETERINARY_VISITS",
+            "PATIENTS": "VETERINARY_PATIENTS",
+            "VITALS": "VETERINARY_VITALS",
+            "LABS": "VETERINARY_LABS",
+            "PHARMACY": "VETERINARY_PHARMACY",
+            "PRESCRIPTIONS": "VETERINARY_PHARMACY",
+            "SCHEDULE": "VETERINARY_SCHEDULE",
+            "DOCTOR_STATION": "VETERINARY_DOCTOR",
+            "VETERINARY_ASSISTANT": "VETERINARY_VITALS",
+            "OFFLINE_VISITS": "VETERINARY_OFFLINE_VISIT"
+        }
+        expanded_caps = set(base_caps)
+        for legacy, modern in FROM_LEGACY_ALIAS.items():
+            if legacy in base_caps:
+                expanded_caps.add(modern)
+            elif modern in base_caps:
+                expanded_caps.add(legacy)
+        base_caps = expanded_caps
+        
         # 8. 🔥 [ENHANCEMENT] Explode to Granular CRUD Keys
         # Owners inherit full permissions for everything their plan allows.
         granular_perms = set()
@@ -198,6 +229,86 @@ class ProviderAvailability(models.Model):
     class Meta:
         unique_together = ("provider", "day_of_week")
         ordering = ["day_of_week", "start_time"]
+
+
+class OrganizationAvailability(models.Model):
+    """Clinic-wide fallback availability and capacity settings"""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    organization = models.ForeignKey(
+        "service_provider.ServiceProvider",
+        on_delete=models.CASCADE,
+        related_name="fallback_availability"
+    )
+    day_of_week = models.IntegerField(help_text="0-6 (Mon-Sun)")
+    start_time = models.TimeField()
+    end_time = models.TimeField()
+    slot_duration_minutes = models.IntegerField(default=30)
+    
+    # Operational Rules
+    capacity = models.IntegerField(default=1, help_text="Number of concurrent fallback bookings allowed")
+    fallback_enabled = models.BooleanField(default=True)
+    
+    # SLA Settings (Rule 1)
+    sla_standard_minutes = models.IntegerField(default=15)
+    sla_complex_minutes = models.IntegerField(default=30)
+    
+    # Scoring Configuration (Rule 1 of final approval)
+    weight_qualification = models.FloatField(default=0.40)
+    weight_busyness = models.FloatField(default=0.25)
+    weight_rating = models.FloatField(default=0.20)
+    weight_continuity = models.FloatField(default=0.15)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ("organization", "day_of_week")
+
+
+class ServiceAssignmentConfig(models.Model):
+    """Hybrid Assignment Rules (Rule 1-3 of Phase 2)"""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    organization = models.ForeignKey(
+        "service_provider.ServiceProvider",
+        on_delete=models.CASCADE,
+        related_name="service_configs"
+    )
+    facility_id = models.UUIDField(unique=True, help_text="Link to ProviderFacility or template facility")
+    
+    # Strategy
+    auto_assign_enabled = models.BooleanField(default=True)
+    risk_level = models.CharField(max_length=20, default='STANDARD', choices=[
+        ('STANDARD', 'Standard'),
+        ('HIGH', 'High Risk')
+    ])
+    
+    # Custom SLAs
+    sla_minutes = models.IntegerField(default=15)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+
+class AvailabilityMetric(models.Model):
+    """Tracking availability performance and demand loss (Rule 7)"""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    organization = models.ForeignKey("service_provider.ServiceProvider", on_delete=models.CASCADE)
+    source_tier = models.IntegerField(choices=[(1, "Employee"), (2, "Fallback"), (3, "Waitlist")])
+    
+    booking_id = models.UUIDField(null=True, blank=True)
+    service_id = models.UUIDField(null=True, blank=True)
+    
+    status = models.CharField(max_length=50, choices=[
+        ("CONVERTED", "Converted"),
+        ("SLA_MISS", "SLA Missed"),
+        ("EXPIRED", "Expired"),
+        ("CANCELLED", "Cancelled")
+    ])
+    
+    assignment_time_seconds = models.IntegerField(null=True, blank=True)
+    is_sla_miss = models.BooleanField(default=False)
+    
+    timestamp = models.DateTimeField(auto_now_add=True)
 
 
 
@@ -671,43 +782,75 @@ class OrganizationEmployee(models.Model):
             logger.info(f"      List: {sorted(list(role_perms))}")
 
         # 3. The Intersection: Only allow what the Plan allows
+        # [NEW] Explicit Permission Hierarchy for Hierarchical Entitlement
+        # Format: { PARENT_KEY: [CHILD_KEYS] }
+        PERMISSION_HIERARCHY = {
+            "VETERINARY_CORE": [
+                "VETERINARY_VISITS", "VETERINARY_PATIENTS", "VETERINARY_VITALS",
+                "VETERINARY_LABS", "VETERINARY_SCHEDULE", "VETERINARY_DOCTOR",
+                "VETERINARY_PRESCRIPTIONS", "VETERINARY_ONLINE_CONSULT", "VETERINARY_OFFLINE_VISIT",
+                "VETERINARY_MEDICINE_REMINDERS", "VETERINARY_PHARMACY"
+            ],
+            "VETERINARY_MANAGEMENT": ["VETERINARY_CORE", "VETERINARY_ADMIN_SETTINGS", "VETERINARY_METADATA"],
+            "VETERINARY_PHARMACY": ["VETERINARY_PHARMACY_STORE"],
+            "SYSTEM_ADMIN_CORE": ["EMPLOYEE_MANAGEMENT", "ROLE_MANAGEMENT", "CLINIC_MANAGEMENT", "CUSTOMER_BOOKING"]
+        }
+
+        # [NEW] Veterinary Bridge: Maps legacy clinical keys to modern Plan keys
         ALIAS_MAP = {
-            "VETERINARY_SCHEDULING": "VETERINARY_SCHEDULE"
+            "VETERINARY_SCHEDULING": "VETERINARY_SCHEDULE",
+            "VISITS": "VETERINARY_VISITS",
+            "PATIENTS": "VETERINARY_PATIENTS",
+            "VITALS": "VETERINARY_VITALS",
+            "LABS": "VETERINARY_LABS",
+            "PHARMACY": "VETERINARY_PHARMACY",
+            "PRESCRIPTIONS": "VETERINARY_PHARMACY",
+            "SCHEDULE": "VETERINARY_SCHEDULE",
+            "DOCTOR_STATION": "VETERINARY_DOCTOR",
+            "VETERINARY_ASSISTANT": "VETERINARY_VITALS",
+            "OFFLINE_VISITS": "VETERINARY_OFFLINE_VISIT"
         }
         
         # Clinical keys that MUST be granular for staff
-        STRICT_GRANULAR_KEYS = {
-            'VETERINARY_VISITS', 'VETERINARY_PATIENTS', 'VETERINARY_VITALS', 
-            'VETERINARY_PRESCRIPTIONS', 'VETERINARY_LABS', 'VETERINARY_PHARMACY',
-            'VETERINARY_SCHEDULE', 'VETERINARY_ONLINE_CONSULT', 'VETERINARY_OFFLINE_VISIT',
-            'VETERINARY_MEDICINE_REMINDERS', 'VETERINARY_CHECKOUT'
-        }
+        STRICT_GRANULAR_KEYS = set(PERMISSION_HIERARCHY["VETERINARY_CORE"] + ["VETERINARY_CHECKOUT"])
+
+        def is_entitled(test_key, ceiling_caps, hierarchy):
+            """Recursive check for plan entitlement via hierarchy."""
+            if test_key in ceiling_caps:
+                return True
+            for parent, children in hierarchy.items():
+                if test_key in children:
+                    if is_entitled(parent, ceiling_caps, hierarchy):
+                        return True
+            return False
 
         final_perms_list = set()
         for perm_key in role_perms:
-            # Extract base key by removing _VIEW, _CREATE, _EDIT, _DELETE
+            # A. Extract base key by removing suffix
             base_key = perm_key
-            has_suffix = False
-            for suffix in ["_VIEW", "_CREATE", "_EDIT", "_DELETE"]:
-                if perm_key.endswith(suffix):
-                    base_key = perm_key[:-len(suffix)]
-                    has_suffix = True
+            suffix = ""
+            for sfx in ["_VIEW", "_CREATE", "_EDIT", "_DELETE"]:
+                if perm_key.endswith(sfx):
+                    base_key = perm_key[:-len(sfx)]
+                    suffix = sfx
                     break
             
-            # [SAFE GUARD] For Staff, we strictly block the "Full Access" base keys
-            # if they belong to clinical modules. They MUST have a suffix.
-            if not has_suffix and base_key in STRICT_GRANULAR_KEYS:
-                logger.warning(f"   ⚠️ [RBAC] Discarding unsafe base key '{perm_key}' for staff (must be granular)")
-                continue
-
-            target_key = ALIAS_MAP.get(base_key, base_key)
-            if target_key in org_caps:
-                # Add the flat permission key back, but using the resolved alias name if applicable
-                if base_key != target_key:
-                    suffix = perm_key[len(base_key):]
-                    final_perms_list.add(f"{target_key}{suffix}")
+            # B. Bridge legacy keys to modern canonical keys
+            canonical_key = ALIAS_MAP.get(base_key, base_key)
+            
+            # C. Hierarchical Entitlement Check
+            # Rule: final = role_granted AND (direct_match OR parent_entitled)
+            if is_entitled(canonical_key, org_caps, PERMISSION_HIERARCHY):
+                # [AUTO-EXPAND] If staff has broad base key (e.g. VISITS), explode to all CRUD
+                if not suffix and canonical_key in STRICT_GRANULAR_KEYS:
+                    for sfx in ["_VIEW", "_CREATE", "_EDIT", "_DELETE"]:
+                        final_perms_list.add(f"{canonical_key}{sfx}")
+                    final_perms_list.add(canonical_key)
                 else:
-                    final_perms_list.add(perm_key)
+                    # Grant specific CRUD permission if role explicitly has it
+                    final_perms_list.add(f"{canonical_key}{suffix}")
+                    if not suffix:
+                        final_perms_list.add(canonical_key)
         
         logger.info(f"\n   ✂️ INTERSECTION (Plan ∩ Role):")
         logger.info(f"      Count: {len(final_perms_list)}")
@@ -715,6 +858,12 @@ class OrganizationEmployee(models.Model):
         
         # 4. Core Access (Conditional)
         MANAGEMENT_KEYS = ['EMPLOYEE_MANAGEMENT', 'ROLE_MANAGEMENT', 'CUSTOMER_BOOKING', 'CLINIC_MANAGEMENT', 'SYSTEM_ADMIN']
+        
+        # [NEW] Universal Core Access (Home, Marketplace, Subscriptions)
+        # Every provider (employee) should see these in their core sidebar
+        for core_key in ['ADMIN_CORE_HOME', 'ADMIN_CORE_MARKETPLACE', 'ADMIN_CORE_SUBSCRIPTION']:
+            if core_key in org_caps:
+                final_perms_list.update([f"{core_key}_VIEW", core_key])
         
         # Check if they have ANY vet capabilities or management capabilities
         has_vet_capabilities = any(cap.startswith("VETERINARY_") for cap in final_perms_list) or any(any(k in cap for k in MANAGEMENT_KEYS) for cap in final_perms_list)
@@ -1251,7 +1400,7 @@ def invalidate_staff_cache_on_capability_change(sender, instance, **kwargs):
     """
     try:
         from .models import VerifiedUser
-        v_user = VerifiedUser.objects.filter(auth_user_id=instance.provider_id).first()
+        v_user = instance.user
         if v_user:
             employees = OrganizationEmployee.objects.filter(organization__verified_user=v_user)
             for emp in employees:

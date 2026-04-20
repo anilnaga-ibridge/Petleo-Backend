@@ -219,4 +219,44 @@ class PermissionSyncConsumer(RobustKafkaConsumer):
                     is_active=True
                 )
 
+            # 4. RECONCILIATION STATE SYNC (Read Model Alignment)
+            from provider_cart.models import PurchasedPlan
+            from django.utils import timezone
+            
+            # Find the local plan record associated with this sync
+            # Note: We prefer matching by the exact purchase_id from payload if available
+            local_plan = PurchasedPlan.objects.filter(
+                verified_user=user,
+                id=parsed_payload.plan_id
+            ).first() or PurchasedPlan.objects.filter(
+                verified_user=user,
+                is_active=True
+            ).order_by('-created_at').first()
+
+            if local_plan:
+                # Update replicated sync metadata
+                inner_data = parsed_payload.templates.get("_meta", {}) # SA might pass extra meta here
+                
+                # Payload v2 context
+                is_leg = getattr(parsed_payload, 'is_legacy_reconciled', False) 
+                # Check raw data if dataclass didn't have it (fallback)
+                if not hasattr(parsed_payload, 'is_legacy_reconciled'):
+                    is_leg = parsed_payload.templates.get("is_legacy_reconciled", False)
+
+                local_plan.sync_is_legacy_reconciled = is_leg
+                local_plan.sync_entitlement_source = parsed_payload.templates.get("entitlement_source", "BILLING")
+                
+                local_plan.sync_metadata_json = {
+                    "migration_record_no": parsed_payload.templates.get("migration_record_no"),
+                    "schema_version": parsed_payload.schema_version,
+                    "synced_at": timezone.now().isoformat(),
+                    "event_id": str(parsed_payload.event_id)
+                }
+                local_plan.save(update_fields=[
+                    "sync_is_legacy_reconciled", 
+                    "sync_entitlement_source", 
+                    "sync_metadata_json"
+                ])
+                logger.info(f"💾 Replicated reconciliation state for Plan {local_plan.id}")
+
         logger.info(f"✅ Full Sync Completed for {user.email}")

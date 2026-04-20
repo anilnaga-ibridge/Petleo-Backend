@@ -36,10 +36,14 @@ class Booking(models.Model):
     
     STATUS_CHOICES = [
         ('PENDING', 'Pending'),
+        ('SEARCHING_STAFF', 'Searching Staff'), # Tier 2 Initial State
+        ('UNASSIGNED', 'Unassigned'),           # Tier 2 SLA Warning State
         ('PAID', 'Paid'),
         ('CONFIRMED', 'Confirmed'),
         ('COMPLETED', 'Completed'),
         ('CANCELLED', 'Cancelled'),
+        ('EXPIRED_REQUEST', 'Expired Request'), # Rule 4
+        ('RESCHEDULE_REQUIRED', 'Reschedule Required') # Rule 4
     ]
 
     PAYMENT_STATUS_CHOICES = [
@@ -80,11 +84,15 @@ class BookingItem(models.Model):
     
     ITEM_STATUS_CHOICES = [
         ('PENDING', 'Pending'),
+        ('SEARCHING_STAFF', 'Searching Staff'),
+        ('UNASSIGNED', 'Unassigned'),
         ('CONFIRMED', 'Confirmed'),
         ('IN_PROGRESS', 'In Progress'),
         ('COMPLETED', 'Completed'),
         ('CANCELLED', 'Cancelled'),
         ('REJECTED', 'Rejected'),
+        ('EXPIRED_REQUEST', 'Expired Request'),
+        ('RESCHEDULE_REQUIRED', 'Reschedule Required')
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -153,5 +161,119 @@ class BookingStatusHistory(models.Model):
     def __str__(self):
         target = self.booking_item.id if self.booking_item else self.booking.id
         return f"{target}: {self.previous_status} -> {self.new_status}"
+
+
+class InvoiceSequence(models.Model):
+    """
+    Tracks sequential invoice numbers per calendar year.
+    Used for PO-YYYY-NNNNNN format.
+    """
+    year = models.PositiveIntegerField(unique=True)
+    last_number = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        verbose_name = "Invoice Sequence"
+        verbose_name_plural = "Invoice Sequences"
+
+    def __str__(self):
+        return f"{self.year}: {self.last_number}"
+
+
+class TaxConfiguration(models.Model):
+    """
+    Dynamic tax rates for different jurisdictions or services.
+    """
+    key = models.CharField(max_length=50, unique=True, help_text="e.g. GST_STANDARD, VAT_EUROPE")
+    rate = models.DecimalField(max_digits=5, decimal_places=2, help_text="Percentage rate (e.g. 18.00)")
+    is_active = models.BooleanField(default=True)
+    description = models.TextField(blank=True, null=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.key}: {self.rate}%"
+
+
+class Invoice(models.Model):
+    """
+    Production-grade invoice model with immutable snapshots of provider,
+    customer, and service details at the moment of issuance.
+    """
+    STATUS_CHOICES = [
+        ('DRAFT', 'Draft'),
+        ('ISSUED', 'Issued'),
+        ('PAID', 'Paid'),
+        ('REFUNDED', 'Refunded'),
+        ('CANCELLED', 'Cancelled'),
+        ('VOID', 'Void'),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    invoice_number = models.CharField(max_length=50, unique=True, db_index=True)
+    booking = models.ForeignKey(Booking, on_delete=models.SET_NULL, null=True, related_name='invoices')
+    
+    issued_at = models.DateTimeField(default=timezone.now)
+    paid_at = models.DateTimeField(null=True, blank=True)
+    
+    # Financials
+    subtotal = models.DecimalField(max_digits=12, decimal_places=2)
+    tax_amount = models.DecimalField(max_digits=12, decimal_places=2)
+    discount_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    total_amount = models.DecimalField(max_digits=12, decimal_places=2)
+    currency = models.CharField(max_length=3, default='INR')
+    
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='ISSUED')
+    
+    # Immutable Snapshots (Critical for production records)
+    provider_snapshot = models.JSONField(help_text="Snapshot: name, address, tax_id, etc.")
+    customer_snapshot = models.JSONField(help_text="Snapshot: name, email, address, etc.")
+    tax_snapshot = models.JSONField(help_text="Snapshot: tax_mode, rates applied, etc.")
+    items_snapshot = models.JSONField(help_text="List of services, pets, and prices covered by this invoice")
+    
+    # Technical Fields
+    pdf_file = models.FileField(upload_to='invoices/%Y/%m/%d/', null=True, blank=True)
+    transaction_reference = models.CharField(max_length=255, null=True, blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-issued_at']
+        indexes = [
+            models.Index(fields=['invoice_number']),
+            models.Index(fields=['status']),
+            models.Index(fields=['issued_at']),
+        ]
+
+    def __str__(self):
+        return f"{self.invoice_number} ({self.status})"
+
+
+class WaitlistEntry(models.Model):
+    """Tier 3: Demand capture for fully booked slots (Rule 6)"""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    organization_id = models.UUIDField()
+    owner = models.ForeignKey(PetOwnerProfile, on_delete=models.CASCADE)
+    pet = models.ForeignKey(Pet, on_delete=models.CASCADE)
+    service_id = models.UUIDField()
+    
+    preferred_date = models.DateField()
+    preferred_time_start = models.TimeField()
+    preferred_time_end = models.TimeField()
+    
+    # Priority & Lifecycle
+    is_vip = models.BooleanField(default=False) # Rule 6
+    status = models.CharField(max_length=20, default='PENDING', choices=[
+        ('PENDING', 'Pending'),
+        ('CONVERTED', 'Converted'),
+        ('EXPIRED', 'Expired')
+    ])
+    
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-is_vip', 'created_at'] # Oldest first + VIP (Rule 6)
 
 

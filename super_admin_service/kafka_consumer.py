@@ -530,6 +530,58 @@ while True:
                 )
                 logger.info(f"✅ Document Verification Synced: {data.get('filename')} (ID: {doc_id})")
 
+
+            elif event_type == "PROVIDER.WORKFORCE.SNAPSHOT":
+                from admin_core.models import AnalyticsSnapshot
+                from django.utils import timezone
+                
+                # Fetch existing workforce data
+                snapshot, created = AnalyticsSnapshot.objects.get_or_create(
+                    snapshot_key="workforce_stats",
+                    defaults={"data_json": {"top_orgs": [], "total_employees": 0}}
+                )
+                
+                data_payload = snapshot.data_json
+                orgs = data_payload.get("top_orgs", [])
+                
+                # Update or append organization staff count
+                found = False
+                for org in orgs:
+                    if org["id"] == data.get("organization_id"):
+                        org["count"] = data.get("employee_count")
+                        org["name"] = data.get("organization_name")
+                        found = True
+                        break
+                
+                if not found:
+                    orgs.append({
+                        "id": data.get("organization_id"),
+                        "name": data.get("organization_name"),
+                        "count": data.get("employee_count")
+                    })
+                
+                # Sort and trim to top 10
+                orgs.sort(key=lambda x: x["count"], reverse=True)
+                data_payload["top_orgs"] = orgs[:10]
+                data_payload["total_employees"] = sum(o["count"] for o in orgs)
+                
+                snapshot.data_json = data_payload
+                snapshot.generated_at = timezone.now()
+                snapshot.save()
+                logger.info(f"📊 Updated global workforce stats via Kafka")
+
+            elif event_type == "BILLING.INVOICE.PAID":
+                from admin_core.models import AnalyticsSnapshot
+                from django.utils import timezone
+                
+                snapshot = AnalyticsSnapshot.objects.filter(snapshot_key="summary_stats").first()
+                if snapshot:
+                    amount = data.get("amount", 0)
+                    snapshot.data_json["total_revenue"] += float(amount)
+                    snapshot.data_json["today_revenue"] += float(amount)
+                    snapshot.save()
+                    logger.info(f"💰 Real-time revenue update: +{amount}")
+
             else:
                 logger.warning(f"⚠️ Unknown event type: {event_type}")
 

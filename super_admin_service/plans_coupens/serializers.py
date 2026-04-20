@@ -1,5 +1,9 @@
 from rest_framework import serializers
-from .models import Plan, PlanCapability, Coupon, PurchasedPlan, ProviderPlanCapability, BillingCycleConfig
+from .models import (
+    Plan, PlanCapability, Coupon, PurchasedPlan, 
+    ProviderPlanCapability, BillingCycleConfig, Invoice,
+    LegacyEntitlementRecovery
+)
 from dynamic_services.models import Service
 from dynamic_categories.models import Category
 from dynamic_facilities.serializers import FacilitySerializer
@@ -188,10 +192,24 @@ class CouponSerializer(serializers.ModelSerializer):
         return data
 
 
+class LegacyEntitlementRecoverySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LegacyEntitlementRecovery
+        fields = ['migration_record_number', 'recovered_at', 'reason', 'metadata_json']
+
+
 class PurchasedPlanSerializer(serializers.ModelSerializer):
+    plan_title = serializers.CharField(source='plan.title', read_only=True)
+    legacy_recovery = LegacyEntitlementRecoverySerializer(read_only=True)
+
     class Meta:
         model = PurchasedPlan
-        fields = "__all__"
+        fields = [
+            'id', 'plan', 'plan_title', 'billing_cycle', 
+            'start_date', 'end_date', 'is_active', 'status',
+            'is_legacy_reconciled', 'entitlement_source', 'legacy_recovery',
+            'metadata_json'
+        ]
 
 
 class ProviderPlanCapabilitySerializer(serializers.ModelSerializer):
@@ -241,10 +259,6 @@ class ProviderPlanViewSerializer(serializers.ModelSerializer):
         }
 
     def get_access(self, obj):
-        """
-        Groups flat PlanCapability rows into a hierarchical structure:
-        Service -> Category -> Facilities
-        """
         capabilities = obj.capabilities.select_related(
             "service", "category", "facility"
         ).order_by("service__display_name", "category__name")
@@ -260,15 +274,14 @@ class ProviderPlanViewSerializer(serializers.ModelSerializer):
                 grouped[s_id] = {
                     "service": {
                         "id": s_id,
-                        "name": cap.service.name, # Technical name for frontend logic (e.g. VETERINARY)
+                        "name": cap.service.name,
                         "display_name": cap.service.display_name,
                     },
-                    "permissions": {}, # Service-level permissions
+                    "permissions": {}, 
                     "categories": {}
                 }
             
             if not cap.category:
-                # Service-level permissions (e.g. for Veterinary role-based grouping)
                 grouped[s_id]["permissions"] = cap.permissions
             else:
                 c_id = str(cap.category.id)
@@ -281,12 +294,10 @@ class ProviderPlanViewSerializer(serializers.ModelSerializer):
                         "facilities": []
                     }
                 
-                # If this capability is for the category itself (no facility), set permissions
                 if not cap.facility:
                     grouped[s_id]["categories"][c_id]["permissions"] = cap.permissions
                     grouped[s_id]["categories"][c_id]["limits"] = cap.limits
                 else:
-                    # It's a facility capability
                     grouped[s_id]["categories"][c_id]["facilities"].append({
                         "id": str(cap.facility.id),
                         "name": cap.facility.name,
@@ -294,7 +305,6 @@ class ProviderPlanViewSerializer(serializers.ModelSerializer):
                         "limits": cap.limits
                     })
 
-        # Convert to list format
         result = []
         for s_key, s_val in grouped.items():
             cats_list = []
@@ -308,3 +318,10 @@ class ProviderPlanViewSerializer(serializers.ModelSerializer):
             })
             
         return result
+
+class InvoiceSerializer(serializers.ModelSerializer):
+    plan_title = serializers.CharField(source='purchased_plan.plan.title', read_only=True)
+    
+    class Meta:
+        model = Invoice
+        fields = '__all__'

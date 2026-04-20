@@ -1,3 +1,4 @@
+import logging
 
 from rest_framework import viewsets, status, permissions, generics
 from rest_framework.decorators import action
@@ -18,10 +19,13 @@ from .serializers import (
     PurchasedPlanSerializer, ProviderPlanCapabilitySerializer,
     ProviderPlanViewSerializer,
     BillingCycleConfigSerializer,
+    InvoiceSerializer,
 )
 from django.db.models import Q
 from .services import assign_plan_permissions_to_user, calculate_end_date
 from django.db import transaction
+
+logger = logging.getLogger(__name__)
 
 # -------------------- BILLING CYCLE CONFIG --------------------
 class BillingCycleConfigViewSet(viewsets.ModelViewSet):
@@ -231,6 +235,26 @@ class PurchasedPlanViewSet(viewsets.ReadOnlyModelViewSet):
 
         return Response({"message": f"Expired {count} plans."}, status=status.HTTP_200_OK)
 
+    @action(detail=True, methods=["post"], url_path="refresh-entitlements", permission_classes=[IsAuthenticated])
+    def refresh_entitlements(self, request, pk=None):
+        """
+        Manually trigger a cross-service entitlement synchronization.
+        POST /api/superadmin/purchased-plans/{pk}/refresh-entitlements/
+        """
+        plan = self.get_object()
+        
+        # Security: only owner or superadmin can refresh
+        if not request.user.is_superuser and plan.user != request.user:
+            return Response({"detail": "Permission denied."}, status=status.HTTP_403_FORBIDDEN)
+            
+        from .billing_service import EntitlementOrchestrator
+        success, msg = EntitlementOrchestrator.trigger_sync(plan, reason="MANUAL_REFRESH")
+        
+        if success:
+            return Response({"detail": msg}, status=status.HTTP_200_OK)
+        else:
+            return Response({"detail": msg}, status=status.HTTP_429_TOO_MANY_REQUESTS if "Rate limit" in msg else status.HTTP_400_BAD_REQUEST)
+
 # -------------------- PROVIDER PLAN PERMISSIONS --------------------
 class ProviderPlanCapabilityViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = ProviderPlanCapability.objects.all()
@@ -241,236 +265,179 @@ class ProviderPlanCapabilityViewSet(viewsets.ReadOnlyModelViewSet):
 # Purchase endpoint (any authenticated user can purchase)
 from rest_framework.permissions import IsAuthenticated, AllowAny
 
+from rest_framework import viewsets, status, permissions, generics
+from rest_framework.decorators import action, api_view, permission_classes
+from rest_framework.response import Response
+from django.shortcuts import get_object_or_404
+from django.utils import timezone
+from django.db import transaction
+from django.conf import settings
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from admin_core.authentication import CentralAuthJWTAuthentication as AuthServiceJWTAuthentication
+from admin_core.permissions import IsSuperAdmin
+from .models import (
+    Plan, Coupon, PlanCapability, PurchasedPlan, 
+    ProviderPlanCapability, BillingCycleConfig, Invoice
+)
+from .billing_service import InvoiceOrchestrator, SettlementService
+from .pdf_engine import PDFEngine
+from admin_core.models import ProviderBillingProfile
+
+# ... (Previous ViewSets preserved)
+
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def purchase_plan(request):
     """
-    Body:
-    {
-      "plan_id": "<uuid>"
-    }
+    Initiates the B2B purchase flow.
+    Returns an ISSUED invoice.
     """
     user = request.user
     plan_id = request.data.get("plan_id")
-
-    with open("purchase_debug.log", "a") as f:
-        f.write(f"Purchase Request: User={user}, Plan={plan_id}\n")
 
     if not plan_id:
         return Response({"detail": "plan_id is required"}, status=status.HTTP_400_BAD_REQUEST)
 
     plan = get_object_or_404(Plan, id=plan_id)
-
     if not plan.is_active:
-        return Response({"detail": "This plan is no longer available for purchase."}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"detail": "This plan is no longer available."}, status=status.HTTP_400_BAD_REQUEST)
 
+    # 1. Ensure Billing Profile exists
+    billing_profile = getattr(user, 'billing_profile', None)
+    if not billing_profile:
+        return Response({
+            "detail": "Billing profile missing. Please complete organization details first.",
+            "code": "BILLING_PROFILE_MISSING"
+        }, status=status.HTTP_400_BAD_REQUEST)
 
-    # -------------------------------------------------------------------
-    # PURCHASE + ASSIGN PERMISSIONS + PUBLISH KAFKA EVENT
-    # -------------------------------------------------------------------
     with transaction.atomic():
-
-        # Calculate End Date
-        start_date = timezone.now()
-        end_date = None
-        
-        # Simple duration calculation based on billing_cycle enum
-        if plan.billing_cycle == "MONTHLY":
-            end_date = start_date + timezone.timedelta(days=30)
-        elif plan.billing_cycle == "YEARLY":
-            end_date = start_date + timezone.timedelta(days=365)
-
-        # Create or Update purchase record
-        purchased, created = PurchasedPlan.objects.update_or_create(
+        # 2. Create PENDING purchase
+        purchased = PurchasedPlan.objects.create(
             user=user,
             plan=plan,
             billing_cycle=plan.billing_cycle,
-            defaults={
-                "start_date": start_date,
-                "end_date": end_date,
-                "is_active": True
-            }
+            status="PENDING",
+            is_active=False
         )
 
-        # Assign permissions inside SuperAdmin DB
-        assign_plan_permissions_to_user(user, plan)
-
-        # Build permissions payload
-        perms = ProviderPlanCapability.objects.filter(user=user, plan=plan)
-
-        permissions_list = [
-            {
-                "service_id": str(p.service_id) if p.service_id else None,
-                "category_id": str(p.category_id) if p.category_id else None,
-                "facility_id": str(p.facility_id) if p.facility_id else None,
-                "permissions": p.permissions,
-                "limits": p.limits
-            }
-            for p in perms
-        ]
-
-        # -------------------------------------------------------------------
-        # FETCH TEMPLATES FOR SYNC
-        # -------------------------------------------------------------------
-        # 1. Get all services allowed in the plan
-        allowed_service_ids = set()
-        for p in perms:
-            if p.service_id:
-                allowed_service_ids.add(p.service_id)
-
-        # 2. Fetch full objects
-        from dynamic_services.models import Service
-        from dynamic_categories.models import Category
-        from dynamic_facilities.models import Facility
-        from dynamic_pricing.models import PricingRule
-
-        services = Service.objects.filter(id__in=allowed_service_ids)
+        # 3. Use Orchestrator to generate Invoice with Snapshots
+        invoice = InvoiceOrchestrator.create_invoice(purchased, user, billing_profile)
         
-        # 3. Construct Payload
-        print(f"DEBUG: Constructing templates payload for {len(allowed_service_ids)} services")
+        # 4. Generate PDF async/immediately for the ISSUED state
+        PDFEngine.generate_invoice_pdf(invoice.id)
+
+    return Response({
+        "message": "Purchase initiated. Please complete payment.",
+        "purchase_id": str(purchased.id),
+        "invoice_number": invoice.invoice_number,
+        "total_amount": str(invoice.total_amount),
+        "currency": invoice.currency,
+        "payment_url": f"/billing/pay/{invoice.id}" # Simulated gateway link
+    }, status=status.HTTP_201_CREATED)
+
+
+class PaymentWebhookView(generics.GenericAPIView):
+    """
+    Secure HMAC-verified endpoint for payment settlements.
+    """
+    permission_classes = [AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        payload = request.body.decode('utf-8')
+        # 0. Mock Bypass for Testing (only in DEBUG)
+        is_mock = request.headers.get('X-Mock-Payment') == 'true'
+        if settings.DEBUG and is_mock:
+            logger.info("🛠️ DEBUG: Processing MOCK payment bypass.")
+        else:
+            if not all([signature, timestamp, nonce]):
+                return Response({"detail": "Security headers missing"}, status=status.HTTP_401_UNAUTHORIZED)
+
+            # 1. Signature & Replay Verification
+            if not SettlementService.verify_webhook_signature(payload, signature, timestamp, nonce):
+                return Response({"detail": "Invalid signature or replay window"}, status=status.HTTP_401_UNAUTHORIZED)
+
+        # 2. Process Settlement (Atomic & Idempotent)
+        data = request.data
+        invoice_id = data.get("invoice_id")
+        payment_ref = data.get("payment_ref")
         
-        templates_payload = {
-            "services": [
-                {
-                    "id": str(s.id),
-                    "name": s.name,
-                    "display_name": s.display_name,
-                    "icon": s.icon
-                } for s in services
-            ],
-            "categories": [], # Will fill below
-            "facilities": [], # Will fill below
-            "pricing": []     # Will fill below
-        }
+        try:
+            success = SettlementService.process_payment_success(invoice_id, payment_ref, data)
+            if success:
+                return Response({"status": "settled"}, status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.error(f"Settlement failed: {e}")
+            return Response({"detail": "Settlement error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        # ---------------------------------------------------------
-        # REFINED FETCHING FROM PERMISSIONS
-        # ---------------------------------------------------------
-        seen_categories = set()
-        seen_facilities = set()
-        allowed_category_ids = set()
-        allowed_facility_ids = set()
+        return Response({"status": "failed"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # 1. Categories & Facilities from Permissions
-        for p in perms:
-            # Categories
-            if p.category:
-                if p.category.id not in seen_categories:
-                    templates_payload["categories"].append({
-                        "id": str(p.category.id),
-                        "service_id": str(p.category.service.id),
-                        "name": p.category.name,
-                        "description": getattr(p.category, "description", ""),
-                        "category_key": p.category.category_key,
-                        "is_template": True
-                    })
-                    seen_categories.add(p.category.id)
-                    allowed_category_ids.add(p.category.id)
 
-            # Facilities (if this capability is for a specific facility)
-            if p.facility:
-                if p.facility.id not in seen_facilities:
-                    templates_payload["facilities"].append({
-                        "id": str(p.facility.id),
-                        "category_id": str(p.category.id) if p.category else None, 
-                        "name": p.facility.name,
-                        "description": p.facility.description
-                    })
-                    seen_facilities.add(p.facility.id)
-                    allowed_facility_ids.add(p.facility.id)
+class InvoiceViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Provider-facing Invoice ViewSet.
+    Allows listing own invoices and downloading PDFs.
+    """
+    permission_classes = [IsAuthenticated]
+    serializer_class = InvoiceSerializer
 
-        # 2. Pricing Rules
-        # Filter pricing to only include rules relevant to allowed services, categories, and facilities
-        all_pricing = PricingRule.objects.filter(service__id__in=allowed_service_ids)
-        
-        for p in all_pricing:
-            # Rule 1: Must match service (already filtered)
+    def get_queryset(self):
+        return Invoice.objects.filter(provider=self.request.user)
+
+    @action(detail=True, methods=["get"])
+    def download(self, request, pk=None):
+        invoice = self.get_object()
+        if not invoice.pdf_file:
+            # Regenerate if missing
+            PDFEngine.generate_invoice_pdf(invoice.id)
+            invoice.refresh_from_db()
             
-            # Rule 2: If category is set, it must be in allowed_category_ids
-            if p.category and p.category.id not in allowed_category_ids:
-                continue
-                
-            # Rule 3: If facility is set, it must be in allowed_facility_ids
-            if p.facility and p.facility.id not in allowed_facility_ids:
-                continue
-                
-            templates_payload["pricing"].append({
-                "id": str(p.id),
-                "service_id": str(p.service.id),
-                "category_id": str(p.category.id) if p.category else None,
-                "facility_id": str(p.facility.id) if p.facility else None,
-                "price": float(p.base_price),
-                "billing_unit": p.billing_unit,
-                "duration_minutes": p.duration_minutes,
-                "currency_code": p.currency_code,
-                "is_template": True
-            })
+        return Response({"download_url": invoice.pdf_file.url})
+
+    @action(detail=False, methods=["get"], url_path="migration-record/(?P<recovery_id>[^/.]+)/download", permission_classes=[IsAuthenticated])
+    def download_migration_record(self, request, recovery_id=None):
+        """
+        Download an audit-safe migration record PDF.
+        """
+        from .models import LegacyEntitlementRecovery
+        import uuid
         
-        stats_msg = f"DEBUG: Payload Stats - Services: {len(templates_payload['services'])}, Categories: {len(templates_payload['categories'])}, Facilities: {len(templates_payload['facilities'])}, Pricing: {len(templates_payload['pricing'])}\n"
-        print(stats_msg)
-        with open("purchase_debug.log", "a") as f:
-            f.write(stats_msg)
-            f.write(f"Templates: {templates_payload}\n")
-
-        purchased_plan_data = {
-            "plan_id": str(plan.id),
-            "plan_title": plan.title,
-            "billing_cycle": plan.billing_cycle,
-            "start_date": purchased.start_date.isoformat() if purchased.start_date else None,
-            "end_date": purchased.end_date.isoformat() if purchased.end_date else None,
-            "is_active": purchased.is_active
-        }
-
-        # -------------------------------------------
-        # DYNAMIC PERMISSIONS SYNC
-        # -------------------------------------------
-        from dynamic_permissions.models import PlanCapability as DynPlanCapability, ProviderCapability as DynProviderCapability
-        from admin_core.models import VerifiedUser
-
-        dynamic_caps_payload = []
-        auth_user_id_str = str(user.auth_user_id) if hasattr(user, 'auth_user_id') else str(user.id)
+        # Check if recovery_id is a UUID or a record number
+        try:
+            uuid.UUID(recovery_id)
+            lookup = {"id": recovery_id}
+        except (ValueError, TypeError, AttributeError):
+            lookup = {"migration_record_number": recovery_id}
+            
+        recovery = get_object_or_404(LegacyEntitlementRecovery, **lookup)
         
-        # Resolve VerifiedUser instance
-        verified_user_instance = VerifiedUser.objects.filter(auth_user_id=auth_user_id_str).first()
+        # Security: owner or superadmin
+        is_staff = getattr(request.user, 'is_staff', False)
+        is_super = getattr(request.user, 'is_super_admin', False)
         
-        if verified_user_instance:
-             # Find DB Plan Capabilities
-             dyn_caps = DynPlanCapability.objects.filter(plan=plan)
-             for dc in dyn_caps:
-                 DynProviderCapability.objects.update_or_create(
-                     user=verified_user_instance,
-                     capability=dc.capability,
-                     defaults={'is_active': True}
-                 )
-                 
-                 # Add to payload
-                 modules = dc.capability.modules.filter(is_active=True).values('key', 'name', 'route', 'icon', 'sequence')
-                 dynamic_caps_payload.append({
-                     "capability_key": dc.capability.key,
-                     "modules": list(modules)
-                 })
+        if not (is_staff or is_super) and recovery.purchased_plan.user != request.user:
+            return Response({"detail": "Permission denied."}, status=status.HTTP_403_FORBIDDEN)
+            
+        pdf_path = recovery.metadata_json.get("pdf_record_path")
+        if not pdf_path:
+             from .pdf_engine import PDFEngine
+             pdf_path = PDFEngine.generate_migration_record_pdf(recovery.id)
+             
+        return Response({"download_url": pdf_path})
 
-        # Publish Kafka Event
-        print("DEBUG: Kafka Producer sending templates...")
-        publish_permissions_updated(
-            auth_user_id=auth_user_id_str,
-            purchase_id=str(purchased.id),
-            permissions_list=permissions_list,
-            purchased_plan=purchased_plan_data,
-            templates=templates_payload,
-            dynamic_capabilities=dynamic_caps_payload
-        )
+    @action(detail=False, methods=["get"], url_path="summary")
+    def billing_summary(self):
+        """
+        Quick stats for Dashboard.
+        """
+        qs = self.get_queryset()
+        return Response({
+            "active_plan": PurchasedPlanSerializer(
+                PurchasedPlan.objects.filter(user=self.request.user, is_active=True).first()
+            ).data,
+            "pending_invoices": qs.filter(status="ISSUED").count(),
+            "total_spent": sum(i.total_amount for i in qs.filter(status="PAID"))
+        })
 
-    return Response(
-        {
-            "detail": "Plan purchased and permissions assigned",
-            "purchase_id": str(purchased.id),
-            "permissions": permissions_list,
-            "templates": templates_payload,
-            "purchased_plan": purchased_plan_data
-        },
-        status=status.HTTP_201_CREATED
-    )
 
 
 # small helper

@@ -4,6 +4,33 @@ from django.dispatch import receiver
 from .models import OrganizationEmployee, ProviderRole, ProviderRoleCapability, VerifiedUser
 from provider_dynamic_fields.models import ProviderCapabilityAccess
 
+
+@receiver([post_save, post_delete], sender=OrganizationEmployee)
+def publish_workforce_snapshot(sender, instance, **kwargs):
+    """
+    Publish a workforce pulse to Kafka when staff count changes.
+    Consumed by Super Admin for global analytics.
+    """
+    from service_provider.kafka_producer import publish_event
+    import logging
+    logger = logging.getLogger(__name__)
+
+    try:
+        org = instance.organization
+        total_employees = org.employees.filter(status='ACTIVE').count()
+        
+        event_data = {
+            "organization_id": str(org.id),
+            "organization_name": org.legal_name,
+            "employee_count": total_employees,
+            "updated_at": timezone.now().isoformat()
+        }
+
+        publish_event("PROVIDER.WORKFORCE.SNAPSHOT", event_data)
+        logger.info(f"📡 Published workforce snapshot for {org.legal_name}: {total_employees} staff")
+    except Exception as e:
+        logger.error(f"❌ Failed to publish workforce snapshot: {e}")
+
 @receiver([post_save, post_delete], sender=OrganizationEmployee)
 def invalidate_employee_cache(sender, instance, **kwargs):
     """Invalidate cache when employee record changes (e.g. role assigned)."""

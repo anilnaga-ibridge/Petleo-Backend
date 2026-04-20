@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Booking, BookingItem, BookingStatusHistory
+from .models import Booking, BookingItem, BookingStatusHistory, Invoice
 from pets.serializers import PetListSerializer
 from customers.serializers import PetOwnerProfileSerializer
 
@@ -8,6 +8,17 @@ class BookingStatusHistorySerializer(serializers.ModelSerializer):
     class Meta:
         model = BookingStatusHistory
         fields = ['id', 'previous_status', 'new_status', 'changed_by', 'changed_at']
+        read_only_fields = fields
+
+
+class InvoiceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Invoice
+        fields = [
+            'id', 'invoice_number', 'booking', 'issued_at', 'paid_at',
+            'subtotal', 'tax_amount', 'total_amount', 'currency', 'status',
+            'provider_snapshot', 'customer_snapshot', 'items_snapshot', 'pdf_file'
+        ]
         read_only_fields = fields
 
 
@@ -20,6 +31,9 @@ class BookingSerializer(serializers.ModelSerializer):
     category_name = serializers.SerializerMethodField()
     facility_name = serializers.SerializerMethodField()
     provider_name = serializers.SerializerMethodField()
+    
+    # Invoice linkage
+    invoice = serializers.SerializerMethodField()
 
     # Proxy fields from first BookingItem for frontend support
     provider_id = serializers.SerializerMethodField()
@@ -41,13 +55,19 @@ class BookingSerializer(serializers.ModelSerializer):
             'pet', 'pet_details', 'pet_name',
             'provider_name', 'service_name', 'category_name', 'facility_name',
             'service_id', 'facility_id', 'selected_time', 'address_snapshot', 'service_snapshot',
-            'notes', 'status', 'rejection_reason', 'completed_at', 'created_at',
-            'updated_at', 'status_history', 'item_id', 'completion_otp', 'total_price'
+            'notes', 'status', 'payment_status', 'rejection_reason', 'completed_at', 'created_at',
+            'updated_at', 'status_history', 'item_id', 'completion_otp', 'total_price', 'invoice'
         ]
         read_only_fields = [
             'id', 'owner', 'status', 'rejection_reason', 'created_at', 'updated_at',
-            'status_history', 'pet_details', 'owner_details', 'pet_name', 'item_id', 'completion_otp'
+            'status_history', 'pet_details', 'owner_details', 'pet_name', 'item_id', 'completion_otp', 'invoice'
         ]
+
+    def get_invoice(self, obj):
+        invoice = obj.invoices.first()
+        if invoice:
+            return InvoiceSerializer(invoice).data
+        return None
 
     def _get_first_item(self, obj):
         """

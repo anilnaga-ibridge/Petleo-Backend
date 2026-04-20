@@ -176,3 +176,17 @@ LOGGING = {
         },
     },
 }
+
+# ============================================================================
+# BILLING & INVOICE SETTINGS
+# ============================================================================
+SELLER_NAME = "PetLeo India Pvt Ltd"
+SELLER_GSTIN = "29ABCDE1234F1Z5"
+SELLER_ADDRESS = "123, Koramangala, Bangalore, KA - 560034"
+SELLER_STATE = "Karnataka"
+SELLER_STATE_CODE = "KA"
+
+# Production HMAC Secret for Webhooks
+BILLING_WEBHOOK_SECRET = os.environ.get("BILLING_WEBHOOK_SECRET", "super-secret-hmac-key-for-billing")
+BILLING_REPLAY_WINDOW_SECONDS = 300  # 5 minutes
+

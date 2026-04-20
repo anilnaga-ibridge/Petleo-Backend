@@ -6,7 +6,8 @@ from django.conf import settings
 from django.core.management.base import BaseCommand
 from service_provider.services.booking_projection import BookingProjectionService
 from service_provider.services.cached_slots import AvailabilityCacheService
-from datetime import datetime
+from django.core.cache import cache
+from datetime import datetime, timedelta
 
 logger = logging.getLogger("booking_consumer")
 
@@ -17,11 +18,26 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS("Starting Booking Projection Consumer..."))
         self.run_booking_consumer()
 
+    def _invalidate_bi_cache(self, provider_id):
+        """Clears all BI Analytics cache keys for a specific provider."""
+        if not provider_id:
+            return
+            
+        ranges = ['today', '7d', '30d', 'month', 'custom']
+        keys_to_clear = []
+        for r in ranges:
+            keys_to_clear.append(f"bi_summary_{provider_id}_{r}")
+            keys_to_clear.append(f"bi_services_{provider_id}_{r}")
+            
+        cache.delete_many(keys_to_clear)
+        logger.info(f"⚡ BI Analytics Cache cleared for provider {provider_id}")
+
     def run_booking_consumer(self):
         """
         Listens to 'booking_events' from customer_service and updates:
         1. The Booking Projection Cache
         2. Invalidates the Availability HTML/Frontend Cache
+        3. Invalidates the BI Analytics Pro Cache
         """
         try:
             consumer = KafkaConsumer(
@@ -41,9 +57,13 @@ class Command(BaseCommand):
                 
                 logger.info(f"📥 Received Booking Event: {event_type} for ID: {data.get('booking_id')}")
 
+                provider_id = data.get('provider_id')
+                if provider_id:
+                     self._invalidate_bi_cache(provider_id)
+
                 employee_id = data.get('assigned_employee_id')
                 if not employee_id:
-                    logger.info(f"⏭ Skip event: No assigned employee.")
+                    logger.info(f"⏭ Skip slot projection: No assigned employee.")
                     continue
                     
                 selected_time_str = data.get('selected_time')

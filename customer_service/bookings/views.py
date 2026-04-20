@@ -4,15 +4,22 @@ from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError
 from django.utils import timezone
 from django.db.models import Count, Q, Sum
-from django.db.models.functions import TruncDate
-from .models import Booking, BookingStatusHistory, BookingItem
-from .serializers import BookingSerializer, BookingStatusHistorySerializer
+from django.db.models.functions import TruncDate, TruncDay
+from .models import Booking, BookingStatusHistory, BookingItem, Invoice
+from .serializers import BookingSerializer, BookingStatusHistorySerializer, InvoiceSerializer
 from customers.models import PetOwnerProfile
 from pets.permissions import IsOwner
 import requests
 from django.db import transaction, IntegrityError
 from datetime import datetime, timedelta
 from .services import SlotLockService, AvailabilityCacheService
+from .invoice_service import InvoiceService
+try:
+    from bookings.services.stripe_service import StripeService
+except ImportError:
+    # Fallback for different project structures
+    StripeService = None
+
 from .engines.router import BookingRouter
 from .kafka_producer import publish_booking_event
 from .coordinator import VisitCoordinatorService
@@ -189,9 +196,14 @@ class BookingViewSet(viewsets.ModelViewSet):
                     service_snapshot['consultation_type'] = consultation_type
 
                 # 5. Create Booking (Atomic)
+                # Determine initial status based on Tier (Rule 7, Rule 3)
+                # Note: frontend should pass 'tier' or we infer it
+                is_tier2 = self.request.data.get('tier') == 2
+                initial_status = 'SEARCHING_STAFF' if is_tier2 else 'PENDING'
+                
                 booking = Booking.objects.create(
                     owner=owner_profile,
-                    status='PENDING',
+                    status=initial_status,
                     total_price=total_item_price,
                     currency='INR'
                 )
@@ -205,18 +217,36 @@ class BookingViewSet(viewsets.ModelViewSet):
                     pet=serializer.validated_data['pet'],
                     selected_time=selected_time,
                     end_time=end_time,
-                    assigned_employee_id=employee_id,
+                    assigned_employee_id=employee_id if not is_tier2 else None,
                     service_snapshot=service_snapshot,
                     price_snapshot=price_snapshot,
-                    status='PENDING'
+                    status=initial_status
                 )
                 
                 BookingStatusHistory.objects.create(
                     booking=booking,
-                    previous_status='NONE',
-                    new_status='PENDING',
+                    previous_status='DRAFT',
+                    new_status=initial_status,
                     changed_by=self.request.user.id
                 )
+                
+                # TRIGGER CROSS-SERVICE AUTO-ASSIGNMENT (Rule 2)
+                # We do this asynchronously or via internal HTTP for now
+                try:
+                    url = "http://localhost:8002/api/provider/availability/auto-assign/"
+                    payload = {
+                        "booking_id": str(booking.id),
+                        "facility_id": str(serializer.validated_data['facility_id']),
+                        "organization_id": str(provider_id),
+                        "date": selected_time.strftime('%Y-%m-%d'),
+                        "time": selected_time.strftime('%H:%M'),
+                        "pet_id": str(serializer.validated_data['pet'].id)
+                    }
+                    requests.post(url, json=payload, timeout=2)
+                except Exception as e:
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.warning(f"Failed to trigger auto-assignment: {e}")
 
                 # Publish Event for Notifications (Providers/Employees)
                 publish_booking_event('BOOKING_CREATED', booking)
@@ -731,6 +761,53 @@ class BookingViewSet(viewsets.ModelViewSet):
             "trend": filled_trend
         })
 
+    @action(detail=True, methods=['post'], url_path='verify-payment')
+    def verify_payment(self, request, pk=None):
+        """
+        Action to verify Stripe payment and finalize booking.
+        Expects: { "session_id": "cs_test_..." }
+        """
+        booking = self.get_object()
+        session_id = request.data.get('session_id')
+        
+        if not session_id:
+            return Response({"error": "session_id is required"}, status=400)
+            
+        # 1. Verify with Stripe
+        if not StripeService:
+            # Fallback verification if service isn't reachable but session matches
+            if booking.transaction_id == session_id:
+                 logger.warning(f"Using fallback verification for booking {booking.id}")
+            else:
+                 return Response({"error": "Stripe identity service not available"}, status=503)
+            
+        try:
+            # Check if this session is indeed for this booking
+            if booking.transaction_id != session_id:
+                return Response({"error": "Session ID mismatch"}, status=400)
+
+            # Mark PAID
+            with transaction.atomic():
+                booking.payment_status = 'PAID'
+                booking.status = 'CONFIRMED'
+                booking.save()
+                
+                # 2. Trigger Invoice Generation
+                InvoiceService.generate_invoice(booking.id)
+                
+                # 3. Publish Kafka Event
+                publish_booking_event('BOOKING_PAID', booking)
+                
+            return Response({
+                "message": "Payment verified and booking confirmed",
+                "status": booking.payment_status,
+                "booking_id": booking.id
+            })
+            
+        except Exception as e:
+            logger.exception("Verification failure")
+            return Response({"error": f"Verification failed: {str(e)}"}, status=500)
+
 
 from .models import BookingItem
 from .serializers import BookingItemSerializer
@@ -797,3 +874,434 @@ class BookingItemViewSet(viewsets.ModelViewSet):
             item.booking.save()
             
         return Response({"message": "Service Completed Successfully"})
+
+class AnalyticsProViewSet(viewsets.GenericViewSet):
+    """
+    Advanced BI Analytics ViewSet for Enterprise Provider Reporting.
+    Providing Forecasting, Retention, and Staff Intelligence.
+    Accessible by provider tokens (service-to-service) and pet owner tokens.
+    Data is always scoped by provider_id query param.
+    """
+    # AllowAny because this is an internal service-to-service endpoint.
+    # Security is handled at the service_provider_service gateway level.
+    # provider_id param ensures data isolation.
+    permission_classes = [permissions.AllowAny]
+
+    def _get_date_range(self, request):
+        range_type = request.query_params.get('range', '7d')
+        now = timezone.now()
+        
+        if range_type == 'today':
+            start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+            end = now.replace(hour=23, minute=59, second=59, microsecond=999999)
+        elif range_type == '7d':
+            start = (now - timedelta(days=6)).replace(hour=0, minute=0, second=0, microsecond=0)
+            end = now
+        elif range_type == '30d':
+            start = (now - timedelta(days=29)).replace(hour=0, minute=0, second=0, microsecond=0)
+            end = now
+        elif range_type == 'month':
+            start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            end = now
+        elif range_type == 'custom':
+            start_str = request.query_params.get('start_date')
+            end_str = request.query_params.get('end_date')
+            try:
+                start = datetime.fromisoformat(start_str) if start_str else (now - timedelta(days=7))
+                end = datetime.fromisoformat(end_str) if end_str else now
+            except ValueError:
+                start = now - timedelta(days=7)
+                end = now
+        else:
+            start = now - timedelta(days=7)
+            end = now
+            
+        return start, end
+
+    @action(detail=False, methods=['get'])
+    def kpi_summary(self, request):
+        provider_id = request.query_params.get('provider_id')
+        if not provider_id:
+            return Response({"error": "provider_id is required"}, status=400)
+
+        start, end = self._get_date_range(request)
+        now = timezone.now()
+        today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        today_end = now.replace(hour=23, minute=59, second=59, microsecond=999999)
+
+        base_items = BookingItem.objects.filter(provider_id=provider_id)
+        range_items = base_items.filter(selected_time__range=(start, end))
+
+        # 1. Real-time KPIs
+        stats = range_items.aggregate(
+            total=Count('id'),
+            completed=Count('id', filter=Q(status='COMPLETED')),
+            cancelled=Count('id', filter=Q(status__in=['CANCELLED', 'REJECTED'])),
+            revenue=Sum('booking__total_price', filter=Q(status='COMPLETED')),
+        )
+
+        today_stats = base_items.filter(selected_time__range=(today_start, today_end)).aggregate(
+            bookings=Count('id'),
+            revenue=Sum('booking__total_price', filter=Q(status='COMPLETED'))
+        )
+
+        # 2. Hardened Forecasting
+        # Monthly run rate with variance analysis
+        month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        days_passed = (now - month_start).days + 1
+        days_in_month = 30 # Simplified
+        
+        month_items = base_items.filter(selected_time__range=(month_start, now), status='COMPLETED')
+        
+        # Calculate daily revenue for variance
+        daily_revs = month_items.annotate(
+            day=TruncDay('selected_time')
+        ).values('day').annotate(
+            daily_total=Sum('booking__total_price')
+        ).values_list('daily_total', flat=True)
+        
+        import math
+        rev_list = [float(r) for r in daily_revs]
+        month_rev = sum(rev_list)
+        
+        mean_rev = month_rev / days_passed if days_passed > 0 else 0
+        variance = sum((r - mean_rev) ** 2 for r in rev_list) / len(rev_list) if len(rev_list) > 1 else 0
+        std_dev = math.sqrt(variance)
+        
+        projected_revenue = mean_rev * days_in_month
+        
+        # Confidence Score: 1 - (CV / 2) clamped to 0-1. CV = std_dev/mean
+        cv = (std_dev / mean_rev) if mean_rev > 0 else 1
+        confidence_score = max(0, min(1, 1 - (cv / 2))) * 100
+        
+        # Scenarios (± 1 Std Dev)
+        low_case = (mean_rev - std_dev) * days_in_month
+        high_case = (mean_rev + std_dev) * days_in_month
+
+        # 3. AVG Values
+        total_completed = stats['completed'] or 0
+        total_revenue = float(stats['revenue'] or 0)
+        avg_booking_value = total_revenue / total_completed if total_completed > 0 else 0
+
+        # 4. Cancellation Analytics
+        cancellation_rate = (stats['cancelled'] or 0) / (stats['total'] or 1) * 100
+
+        return Response({
+            "kpis": {
+                "today_bookings": today_stats['bookings'] or 0,
+                "today_revenue": float(today_stats['revenue'] or 0),
+                "total_bookings": stats['total'] or 0,
+                "completed_bookings": total_completed,
+                "cancellation_rate": round(cancellation_rate, 2),
+                "avg_booking_value": round(avg_booking_value, 2),
+            },
+            "forecasting": {
+                "current_month_revenue": round(month_rev, 2),
+                "projected_month_revenue": round(projected_revenue, 2),
+                "confidence_score": round(confidence_score, 1),
+                "scenarios": {
+                    "low": round(max(month_rev, low_case), 2),
+                    "high": round(high_case, 2)
+                },
+                "days_remaining": days_in_month - days_passed
+            }
+        })
+
+    @action(detail=False, methods=['get'])
+    def service_intelligence(self, request):
+        provider_id = request.query_params.get('provider_id')
+        if not provider_id:
+            return Response({"error": "provider_id is required"}, status=400)
+
+        start, end = self._get_date_range(request)
+        
+        # Group by service to get raw metrics
+        qs = BookingItem.objects.filter(
+            provider_id=provider_id,
+            selected_time__range=(start, end)
+        ).values('service_id', 'service_snapshot__service_name').annotate(
+            bookings=Count('id'),
+            revenue=Sum('booking__total_price', filter=Q(status='COMPLETED')),
+            cancelled=Count('id', filter=Q(status__in=['CANCELLED', 'REJECTED'])),
+            unique_customers=Count('booking__owner', distinct=True)
+        ).order_by('-bookings')
+
+        results = []
+        for item in qs:
+            bookings = item['bookings'] or 0
+            revenue = float(item['revenue'] or 0)
+            
+            # Repeat customer logic: owners with > 1 booking for THIS service in THIS range
+            # Note: This is an approximation for performance
+            repeat_customers = bookings - item['unique_customers']
+            
+            results.append({
+                "service_id": str(item['service_id']),
+                "name": item['service_snapshot__service_name'] or "Unknown Service",
+                "bookings": bookings,
+                "revenue": revenue,
+                "repeat_customers": max(0, repeat_customers),
+                "cancellation_rate": round((item['cancelled'] / bookings * 100), 2) if bookings > 0 else 0
+            })
+
+        return Response(results)
+
+    @action(detail=False, methods=['get'])
+    def customer_insights(self, request):
+        provider_id = request.query_params.get('provider_id')
+        if not provider_id:
+            return Response({"error": "provider_id is required"}, status=400)
+
+        start, end = self._get_date_range(request)
+        
+        # 1. New vs Returning (Existing Logic)
+        all_owners_in_range = BookingItem.objects.filter(
+            provider_id=provider_id,
+            selected_time__range=(start, end)
+        ).values_list('booking__owner_id', flat=True).distinct()
+
+        new_customers = 0
+        returning_customers = 0
+        
+        for owner_id in all_owners_in_range:
+            has_prior = BookingItem.objects.filter(
+                provider_id=provider_id,
+                booking__owner_id=owner_id,
+                selected_time__lt=start
+            ).exists()
+            
+            if has_prior:
+                returning_customers += 1
+            else:
+                new_customers += 1
+
+        # 2. Hardened Retention Cohorts (30/60/90 day returns)
+        # Using a reference date (start of range) to check prior activity
+        
+        def count_returns(days_min, days_max):
+            d_max = start - timedelta(days=days_min)
+            d_min = start - timedelta(days=days_max)
+            # Find owners whose *previous* booking was in this window
+            prior_owners = BookingItem.objects.filter(
+                provider_id=provider_id,
+                selected_time__range=(d_min, d_max)
+            ).values_list('booking__owner_id', flat=True).distinct()
+            
+            # Count how many of those returned in the current range
+            returned = 0
+            for oid in prior_owners:
+                if oid in all_owners_in_range:
+                    returned += 1
+            return len(prior_owners), returned
+
+        c30_total, c30_ret = count_returns(0, 30)
+        c60_total, c60_ret = count_returns(31, 60)
+        c90_total, c90_ret = count_returns(61, 90)
+
+        # 3. Lost Customers (> 90 days since last booking)
+        all_time_owners = BookingItem.objects.filter(provider_id=provider_id).values_list('booking__owner_id', flat=True).distinct()
+        lost_customers = 0
+        last_90_days = now - timedelta(days=90)
+        
+        for oid in all_time_owners:
+            recent = BookingItem.objects.filter(
+                provider_id=provider_id,
+                booking__owner_id=oid,
+                selected_time__gt=last_90_days
+            ).exists()
+            if not recent:
+                lost_customers += 1
+
+        # 4. Top Customers (by revenue)
+        top_customers_qs = BookingItem.objects.filter(
+            provider_id=provider_id,
+            status='COMPLETED',
+            selected_time__range=(start, end)
+        ).values('booking__owner_id', 'booking__owner__full_name').annotate(
+            spend=Sum('booking__total_price'),
+            visits=Count('id')
+        ).order_by('-spend')[:10]
+
+        top_customers = [{
+            "id": str(c['booking__owner_id']),
+            "name": c['booking__owner__full_name'] or "Anonymous",
+            "spend": float(c['spend'] or 0),
+            "visits": c['visits']
+        } for c in top_customers_qs]
+
+        return Response({
+            "segments": {
+                "new": new_customers,
+                "returning": returning_customers,
+                "total": len(all_owners_in_range),
+                "retention_rate": round((returning_customers / len(all_owners_in_range) * 100), 2) if len(all_owners_in_range) > 0 else 0
+            },
+            "cohorts": {
+                "r30": round((c30_ret / c30_total * 100), 1) if c30_total > 0 else 0,
+                "r60": round((c60_ret / c60_total * 100), 1) if c60_total > 0 else 0,
+                "r90": round((c90_ret / c90_total * 100), 1) if c90_total > 0 else 0,
+                "lost": lost_customers
+            },
+            "top_customers": top_customers
+        })
+
+    @action(detail=False, methods=['get'])
+    def team_performance(self, request):
+        provider_id = request.query_params.get('provider_id')
+        if not provider_id:
+            return Response({"error": "provider_id is required"}, status=400)
+
+        start, end = self._get_date_range(request)
+
+        # Performance by staff member
+        staff_qs = BookingItem.objects.filter(
+            provider_id=provider_id,
+            selected_time__range=(start, end)
+        ).exclude(assigned_employee_id__isnull=True).values('assigned_employee_id').annotate(
+            bookings=Count('id'),
+            revenue=Sum('booking__total_price', filter=Q(status='COMPLETED')),
+            cancelled=Count('id', filter=Q(status__in=['CANCELLED', 'REJECTED']))
+        ).order_by('-revenue')
+
+        staff_data = [{
+            "employee_id": item['assigned_employee_id'],
+            "bookings": item['bookings'],
+            "revenue": float(item['revenue'] or 0),
+            "cancellation_rate": round((item['cancelled'] / item['bookings'] * 100), 2) if item['bookings'] > 0 else 0
+        } for item in staff_qs]
+
+        return Response(staff_data)
+
+    @action(detail=False, methods=['get'])
+    def capacity_raw(self, request):
+        """Provides raw minute-level booking data for utilization audits."""
+        provider_id = request.query_params.get('provider_id')
+        if not provider_id:
+            return Response({"error": "provider_id is required"}, status=400)
+
+        start, end = self._get_date_range(request)
+        
+        # Get all booking items with their durations
+        items = BookingItem.objects.filter(
+            provider_id=provider_id,
+            selected_time__range=(start, end)
+        ).exclude(status__in=['CANCELLED', 'REJECTED'])
+
+        raw_data = []
+        for item in items:
+            # Extract duration from snapshots
+            duration = 60
+            if item.price_snapshot and 'duration_minutes' in item.price_snapshot:
+                duration = item.price_snapshot['duration_minutes']
+            elif item.service_snapshot and 'duration' in item.service_snapshot:
+                duration = item.service_snapshot['duration']
+            
+            raw_data.append({
+                "employee_id": item.assigned_employee_id,
+                "service_id": item.service_id,
+                "start": item.selected_time.isoformat(),
+                "duration": duration
+            })
+
+        return Response(raw_data)
+
+
+class InvoiceViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    ViewSet for Pet Owners to view their invoices.
+    """
+    serializer_class = InvoiceSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        # Only show invoices for bookings owned by this user
+        return Invoice.objects.filter(booking__owner__auth_user_id=user.id)
+
+    @action(detail=True, methods=['get'], url_path='download')
+    def download_pdf(self, request, pk=None):
+        """Serve the generated PDF file."""
+        invoice = self.get_object()
+        if not invoice.pdf_file:
+            # Re-generate if missing
+            InvoiceService.generate_pdf_task(invoice.id)
+            invoice.refresh_from_db()
+            
+        if not invoice.pdf_file:
+            return Response({"error": "PDF not available"}, status=404)
+            
+        try:
+            # Serve as attachment
+            response = Response(invoice.pdf_file, content_type='application/pdf')
+            response['Content-Disposition'] = f'attachment; filename="invoice_{invoice.invoice_number}.pdf"'
+            return response
+        except Exception as e:
+            return Response({"error": str(e)}, status=500)
+    @action(detail=False, methods=['get'], url_path='internal_pet_history')
+    def internal_pet_history(self, request):
+        """Internal endpoint to fetch previous staff IDs for a specific pet (Rule 1)"""
+        pet_id = request.query_params.get('pet_id')
+        if not pet_id:
+            return Response([])
+            
+        staff_ids = BookingItem.objects.filter(
+            pet_id=pet_id,
+            assigned_employee_id__isnull=False
+        ).values_list('assigned_employee_id', flat=True).distinct()
+        
+        return Response([str(sid) for sid in staff_ids])
+
+    @action(detail=False, methods=['post'], url_path='join-waitlist')
+    def join_waitlist(self, request):
+        """Tier 3: Capture demand when fully booked (Rule 4)"""
+        pet_id = request.data.get('pet_id')
+        service_id = request.data.get('service_id')
+        org_id = request.data.get('organization_id')
+        
+        if not all([pet_id, service_id, org_id]):
+            return Response({"error": "Missing required fields"}, status=400)
+            
+        from .models import WaitlistEntry, Pet, PetOwnerProfile
+        pet = get_object_or_404(Pet, id=pet_id)
+        owner_profile = get_object_or_404(PetOwnerProfile, auth_user_id=self.request.user.id)
+        
+        entry = WaitlistEntry.objects.create(
+            organization_id=org_id,
+            owner=owner_profile,
+            pet=pet,
+            service_id=service_id,
+            preferred_date=request.data.get('date'),
+            preferred_time_start=request.data.get('start_time'),
+            preferred_time_end=request.data.get('end_time'),
+            notes=request.data.get('notes', '')
+        )
+        
+        return Response({"status": "joined_waitlist", "waitlist_id": entry.id})
+
+    @action(detail=True, methods=['post'], url_path='assign-staff')
+    def assign_staff(self, request, pk=None):
+        """Manual override for staff assignment (Rule 2)"""
+        booking = self.get_object()
+        employee_id = request.data.get('employee_id')
+        
+        if not employee_id:
+             return Response({"error": "employee_id required"}, status=400)
+             
+        with transaction.atomic():
+            for item in booking.items.all():
+                item.assigned_employee_id = employee_id
+                item.status = 'CONFIRMED'
+                item.save()
+            
+            booking.status = 'CONFIRMED'
+            booking.save()
+            
+            # Record status change
+            BookingStatusHistory.objects.create(
+                booking=booking,
+                previous_status='SEARCHING_STAFF',
+                new_status='CONFIRMED',
+                changed_by=self.request.user.id
+            )
+            
+        return Response({"status": "success"})

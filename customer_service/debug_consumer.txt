@@ -259,3 +259,34 @@
 2026-04-15 11:32:02,560 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
 2026-04-15 11:32:09,581 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
 2026-04-15 11:32:15,069 [INFO] ✅ Connected to Kafka broker.
+2026-04-16 11:18:43,662 [INFO] 🚀 Starting Customer Service Kafka Consumer...
+2026-04-16 11:18:45,668 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-16 11:18:52,674 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-16 11:18:57,704 [INFO] ✅ Connected to Kafka broker.
+2026-04-17 10:37:14,135 [INFO] 🚀 Starting Customer Service Kafka Consumer...
+2026-04-17 10:37:16,140 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-17 10:37:23,143 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-17 10:37:30,153 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-17 10:37:35,175 [INFO] ✅ Connected to Kafka broker.
+2026-04-18 11:15:22,943 [INFO] 🚀 Starting Customer Service Kafka Consumer...
+2026-04-18 11:15:24,946 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-18 11:15:31,962 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-18 11:15:38,981 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-18 11:15:44,025 [INFO] ✅ Connected to Kafka broker.
+2026-04-18 15:02:19,497 [INFO] 🔥 User Event: USER_CREATED | User: c28542db-b6ed-4fe1-8829-c377798a0845
+2026-04-18 15:02:20,698 [ERROR] ❌ Error processing Kafka message: Invalid field name(s) for model PetOwnerProfile: 'avatar_url'.
+2026-04-18 15:02:33,569 [INFO] 🔥 User Event: USER_VERIFIED | User: c28542db-b6ed-4fe1-8829-c377798a0845
+2026-04-18 15:02:33,633 [ERROR] ❌ Error processing Kafka message: Invalid field name(s) for model PetOwnerProfile: 'avatar_url'.
+2026-04-20 11:15:55,482 [INFO] 🚀 Starting Customer Service Kafka Consumer...
+2026-04-20 11:15:57,520 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-20 11:16:04,538 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-20 11:16:11,576 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-20 11:16:18,586 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-20 11:16:25,591 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-20 11:16:32,600 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-20 11:16:39,604 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-20 11:16:46,606 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-20 11:16:53,617 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-20 11:17:00,624 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-20 11:17:07,628 [WARNING] ⚠️ Kafka unavailable: NoBrokersAvailable
+2026-04-20 11:17:12,667 [INFO] ✅ Connected to Kafka broker.

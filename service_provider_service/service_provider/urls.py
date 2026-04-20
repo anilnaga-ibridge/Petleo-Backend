@@ -47,6 +47,7 @@ urlpatterns = [
 from rest_framework.routers import DefaultRouter
 from .views import EmployeeViewSet, EmployeeAssignmentViewSet, CapabilityViewSet, ProviderRoleViewSet, ConsultationTypeViewSet, DashboardViewSet
 from .views_availability import AvailabilityViewSet, ScheduleViewSet, LeaveViewSet, BlockTimeViewSet
+from .views_analytics_pro import AnalyticsProViewSet
 
 router = DefaultRouter()
 router.register(r'public-providers', PublicProviderViewSet, basename='public-providers')
@@ -55,6 +56,7 @@ router.register(r'employee-assignments', EmployeeAssignmentViewSet, basename='em
 router.register(r'capabilities', CapabilityViewSet, basename='capabilities')
 router.register(r'roles', ProviderRoleViewSet, basename='roles')
 router.register(r'dashboard', DashboardViewSet, basename='dashboard')
+router.register(r'analytics-pro', AnalyticsProViewSet, basename='analytics-pro')
 router.register(r'consultation-types', ConsultationTypeViewSet, basename='consultation-types')
 router.register(r'availability', AvailabilityViewSet, basename='availability')
 router.register(r'schedules', ScheduleViewSet, basename='schedules')

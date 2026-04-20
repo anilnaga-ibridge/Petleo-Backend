@@ -12,6 +12,7 @@ from .services.availability_service import AvailabilityService
 from .services.organization_availability_service import OrganizationAvailabilityService
 from .services.smart_assignment_service import SmartAssignmentService
 from .services.cached_slots import AvailabilityCacheService
+from .models import OrganizationAvailability, AvailabilityMetric
 from .models_scheduling import EmployeeWeeklySchedule, EmployeeLeave, EmployeeBlockTime, EmployeeDailySchedule
 from .serializers_scheduling import (
     EmployeeWeeklyScheduleSerializer, 
@@ -70,24 +71,29 @@ class AvailabilityViewSet(viewsets.ViewSet):
                 while current + timedelta(minutes=avail.slot_duration_minutes) <= end:
                     time_str = current.strftime('%H:%M')
                     if time_str not in occupied_times:
-                        slots.append(time_str)
+                        slots.append({
+                            "time": time_str,
+                            "tier": 1,
+                            "type": "INSTANT_CONFIRMED"
+                        })
                     current += timedelta(minutes=avail.slot_duration_minutes)
                     
         elif provider.provider_type == 'ORGANIZATION':
             if employee_id:
-                # Specific Employee Path — facility_id is optional (duration falls back to 30 min default)
-                slots = AvailabilityService.get_available_slots(employee_id, facility_id, target_date, consultation_type_id)
+                # Specific Employee Path
+                raw_slots = AvailabilityService.get_available_slots(employee_id, facility_id, target_date, consultation_type_id)
+                slots = [{"time": s, "tier": 1, "type": "INSTANT_CONFIRMED"} for s in raw_slots]
             elif facility_id:
-                # Service-First Aggregated Path (Model 2) — auto-assign best employee
+                # Service-First Aggregated Path (Tier 1 & Tier 2)
                 slots = OrganizationAvailabilityService.get_org_available_slots(provider_id, facility_id, target_date, consultation_type_id)
             else:
-                # Fallback: merge slots across all active employees (no facility filter)
+                # Fallback: merge slots across all active employees
                 employees = provider.employees.filter(status='ACTIVE')
                 temp_slots = set()
                 for emp in employees:
                     emp_slots = AvailabilityService.get_available_slots(str(emp.auth_user_id), None, target_date)
                     temp_slots.update(emp_slots)
-                slots = sorted(list(temp_slots))
+                slots = sorted([{"time": s, "tier": 1, "type": "INSTANT_CONFIRMED"} for s in temp_slots], key=lambda x: x['time'])
 
 
         return Response({"slots": slots})
@@ -138,6 +144,87 @@ class AvailabilityViewSet(viewsets.ViewSet):
                     )
         
         return Response({"message": "Settings saved successfully"})
+
+    @action(detail=False, methods=['post'], url_path='auto-assign')
+    def auto_assign(self, request):
+       """Internal endpoint to trigger hybrid assignment (Rule 2)"""
+       booking_id = request.data.get('booking_id')
+       facility_id = request.data.get('facility_id')
+       org_id = request.data.get('organization_id')
+       date = request.data.get('date')
+       time_str = request.data.get('time')
+       pet_id = request.data.get('pet_id')
+       
+       if not all([booking_id, facility_id, org_id]):
+           return Response({"error": "Missing params"}, status=400)
+           
+       # 1. Check Service Config (Rule 2-3)
+       from .models import ServiceAssignmentConfig
+       config = ServiceAssignmentConfig.objects.filter(facility_id=facility_id).first()
+       
+       # Default: Standard, Auto-Assign enabled
+       is_high_risk = config.risk_level == 'HIGH' if config else False
+       is_auto_enabled = config.auto_assign_enabled if config else True
+       
+       if is_auto_enabled and not is_high_risk:
+           # TRIGGER AUTO ASSIGNMENT
+           best_emp = SmartAssignmentService.assign_employee_for_slot(org_id, facility_id, date, time_str, pet_id)
+           if best_emp:
+               # NOTIFY CUSTOMER SERVICE TO CONFIRM
+               try:
+                   url = f"http://localhost:8005/api/pet-owner/bookings/bookings/{booking_id}/assign-staff/"
+                   requests.post(url, json={"employee_id": str(best_emp.auth_user_id)}, timeout=2)
+                   return Response({"status": "AUTO_ASSIGNED", "employee_id": str(best_emp.auth_user_id)})
+               except Exception as e:
+                   logger.error(f"Failed to sync auto-assignment back to customer service: {e}")
+                   
+       return Response({"status": "TRIAGE_REQUIRED", "reason": "High risk or auto-assign disabled"})
+
+    @action(detail=False, methods=['post'], url_path='check-slas')
+    def check_slas(self, request):
+        """Background task entry point to flag SLA misses (Rule 5)"""
+        # Fetch all SEARCHING_STAFF bookings across all providers
+        try:
+            url = "http://localhost:8005/api/pet-owner/bookings/bookings/internal_triage_queue/"
+            resp = requests.get(url, timeout=5)
+            if resp.status_code != 200:
+                return Response({"error": "Failed to fetch triage queue"}, status=500)
+            
+            bookings = resp.json()
+            processed_count = 0
+            
+            from .services.availability_metric_service import AvailabilityMetricService
+            from .models import ServiceAssignmentConfig
+            
+            for b in bookings:
+                if b['status'] != 'SEARCHING_STAFF': continue
+                
+                # Fetch SLA for this facility
+                # Fallback to 15m
+                sla_mins = 15
+                config = ServiceAssignmentConfig.objects.filter(facility_id=b.get('facility_id')).first()
+                if config:
+                    sla_mins = config.sla_minutes
+                
+                created_at = datetime.fromisoformat(b['created_at'].replace('Z', '+00:00'))
+                if datetime.now(timezone.utc) > created_at + timedelta(minutes=sla_mins):
+                    # SLA MISSED! Move to UNASSIGNED
+                    try:
+                        update_url = f"http://localhost:8005/api/pet-owner/bookings/bookings/{b['id']}/"
+                        requests.patch(update_url, json={"status": "UNASSIGNED"}, timeout=2)
+                        
+                        AvailabilityMetricService.log_event(
+                            org_id=b.get('organization_id'),
+                            event_type='SLA_MISS',
+                            booking_id=b['id']
+                        )
+                        processed_count += 1
+                    except Exception as e:
+                        logger.error(f"Failed to flag SLA miss for booking {b['id']}: {e}")
+            
+            return Response({"processed": processed_count})
+        except Exception as e:
+            return Response({"error": str(e)}, status=500)
 
     @action(detail=False, methods=['get'], url_path='employee-hours')
     def employee_hours(self, request):

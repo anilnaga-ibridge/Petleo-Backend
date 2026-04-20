@@ -69,15 +69,16 @@ for message in consumer:
         # ==========================
         # PERMISSION SYNC EVENTS
         # ==========================
+        # ==========================
+        # PERMISSION SYNC EVENTS (Canonical Path)
+        # ==========================
         if event_type == "PROVIDER.PERMISSIONS.UPDATED":
-            logger.info("🔑 Processing Permission Sync Event...")
+            logger.info(f"🔑 Processing Permission Sync Event: {event.get('event_id')}")
             try:
                 from service_provider.kafka.permission_consumer import PermissionSyncConsumer
                 
-                # Use the dedicated handler class (it has idempotency and logic)
-                sync_handler = PermissionSyncConsumer(topic="provider_permissions_events")
-                
-                logger.info(f"   Calling process() for event {event.get('event_id')}")
+                # Consistently use 'admin_events' as the source for idempotency tracking
+                sync_handler = PermissionSyncConsumer(topic="admin_events")
                 sync_handler.process(event)
                 logger.info("   ✅ Finished processing Permission Sync Event.")
             except Exception as sync_err:
@@ -354,20 +355,6 @@ for message in consumer:
         elif event_type == "DOCUMENT_DEFINITION_DELETED":
             LocalDocumentDefinition.objects.filter(id=data["id"]).delete()
             logger.info(f"🗑️ Deleted Document Definition: {data.get('id')}")
-
-        # ==========================
-        # PERMISSIONS SYNC (ENTERPRISE v2)
-        # ==========================
-        elif event_type == "PROVIDER.PERMISSIONS.UPDATED":
-            from service_provider.kafka.permission_consumer import PermissionSyncConsumer
-            
-            # Instance of the robust consumer
-            # Note: topic here refers to the identifier in idempotency table
-            p_consumer = PermissionSyncConsumer(topic="admin_events")
-            
-            # Process the event with full enterprise-grade handling
-            # (Idempotency, Retries, DLQ, Atomic Transactions)
-            p_consumer.process(event)
 
 
         elif event_type == "PROVIDER.PERMISSIONS.REVOKED":

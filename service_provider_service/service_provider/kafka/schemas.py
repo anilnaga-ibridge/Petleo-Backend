@@ -109,14 +109,21 @@ class PermissionSyncPayload:
     def validate_and_parse(cls, data: Dict[str, Any]):
         try:
             inner_data = data.get("data", {})
+            schema_version = str(data.get("schema_version", "1.0"))
+            
+            # Map legacy 'auth_user_id' -> 'provider_id'
+            p_id = inner_data.get("provider_id") or inner_data.get("auth_user_id")
+            if not p_id:
+                raise ValidationError("Missing provider_id/auth_user_id in payload")
+
             return cls(
                 event_id=uuid.UUID(str(data.get("event_id", uuid.uuid4()))),
-                schema_version=str(data.get("schema_version", "1.0")),
-                timestamp=str(data.get("timestamp", data.get("occurred_at", ""))),
-                provider_id=uuid.UUID(str(inner_data.get("provider_id", inner_data.get("auth_user_id")))),
+                schema_version=schema_version,
+                timestamp=str(data.get("timestamp", data.get("occurred_at", timezone.now().isoformat() if 'timezone' in globals() else ""))),
+                provider_id=uuid.UUID(str(p_id)),
                 plan_id=str(inner_data.get("purchase_id", inner_data.get("plan_id", ""))),
                 capabilities=[CapabilityPayload.from_dict(c) for c in inner_data.get("capabilities", inner_data.get("permissions", []))],
                 templates=inner_data.get("templates", {})
             )
         except (KeyError, ValueError, TypeError) as e:
-            raise ValidationError(f"Invalid PermissionSyncPayload: {str(e)}")
+            raise ValidationError(f"Invalid PermissionSyncPayload ({str(e)})")

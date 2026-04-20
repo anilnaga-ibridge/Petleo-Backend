@@ -123,10 +123,30 @@ class VeterinaryCheckoutPermission(permissions.BasePermission):
         user_perms = getattr(request.user, 'permissions', [])
         return "VETERINARY_CHECKOUT" in user_perms
 
+VET_BRIDGE = {
+    "VISITS": "VETERINARY_VISITS",
+    "PATIENTS": "VETERINARY_PATIENTS",
+    "VITALS": "VETERINARY_VITALS",
+    "VETERINARY_ASSISTANT": "VETERINARY_VITALS",
+    "DOCTOR_STATION": "VETERINARY_DOCTOR",
+    "PHARMACY": "VETERINARY_PHARMACY",
+    "PHARMACY_STORE": "VETERINARY_PHARMACY_STORE",
+    "LABS": "VETERINARY_LABS",
+    "SCHEDULE": "VETERINARY_SCHEDULE",
+    "OFFLINE_VISITS": "VETERINARY_OFFLINE_VISIT",
+    "ONLINE_CONSULT": "VETERINARY_ONLINE_CONSULT",
+    "MEDICINE_REMINDERS": "VETERINARY_MEDICINE_REMINDERS",
+    "CLINIC_SETTINGS": "VETERINARY_ADMIN_SETTINGS",
+    "METADATA_MANAGEMENT": "VETERINARY_METADATA"
+}
+
+# Bidirectional mapping
+REVERSE_VET_BRIDGE = {v: k for k, v in VET_BRIDGE.items()}
+
 class HasGranularCapability(permissions.BasePermission):
     """
-    10/10 Enterprise Permission.
     Checks if the user possesses the specific granular capability and the required action flag.
+    Supports bridging between legacy keys (e.g. VISITS) and modern keys (e.g. VETERINARY_VISITS).
     """
     def __init__(self, capability_key=None):
         self.capability_key = capability_key
@@ -148,8 +168,12 @@ class HasGranularCapability(permissions.BasePermission):
         if not user_perms:
             return False
 
-        if not self.capability_key:
-            return len(user_perms) > 0
+        # Standardize search keys (bridged)
+        search_keys = [self.capability_key]
+        if self.capability_key in VET_BRIDGE:
+            search_keys.append(VET_BRIDGE[self.capability_key])
+        if self.capability_key in REVERSE_VET_BRIDGE:
+            search_keys.append(REVERSE_VET_BRIDGE[self.capability_key])
 
         # Determine required flag based on HTTP Method
         required_flag = 'can_view'
@@ -157,25 +181,27 @@ class HasGranularCapability(permissions.BasePermission):
         elif request.method in ['PUT', 'PATCH']: required_flag = 'can_edit'
         elif request.method == 'DELETE': required_flag = 'can_delete'
 
-        # Check for match in list of objects
+        # 3. Check for match in list of objects
         for p in user_perms:
             # Determine required suffix based on HTTP Method for strict string matching
             suffix = required_flag.upper().replace('CAN_', '_') # e.g. _VIEW, _CREATE, _EDIT, _DELETE
             
             # Handle both flat strings (Legacy/Owner/Expanded) and Objects (Staff)
             if isinstance(p, str):
-                # 1. Base Match (Unrestricted access for legacy strings like 'VISITS')
-                if p == self.capability_key or ('.' in self.capability_key and p == f"{self.capability_key.split('.')[0]}.*"):
-                    return True
-                
-                # 2. Granular Suffix Match (Strict action-based access for strings like 'VETERINARY_VISITS_CREATE')
-                if p == f"{self.capability_key}{suffix}":
-                    return True
+                for sk in search_keys:
+                    # 1. Base Match (Unrestricted access for legacy strings like 'VISITS')
+                    if p == sk or ('.' in sk and p == f"{sk.split('.')[0]}.*"):
+                        return True
+                    
+                    # 2. Granular Suffix Match (Strict action-based access for strings like 'VETERINARY_VISITS_CREATE')
+                    if p == f"{sk}{suffix}":
+                        return True
                     
             elif isinstance(p, dict):
                 p_key = p.get('capability_key')
-                if p_key == self.capability_key or ('.' in self.capability_key and p_key == f"{self.capability_key.split('.')[0]}.*"):
-                    return p.get(required_flag, False)
+                for sk in search_keys:
+                    if p_key == sk or ('.' in sk and p_key == f"{sk.split('.')[0]}.*"):
+                        return p.get(required_flag, False)
                 
         return False
 
@@ -241,19 +267,29 @@ def require_capability(capability):
             elif request.method == 'DELETE': required_flag = 'can_delete'
 
             for req_cap in req_caps:
+                # Standardize search keys (bridged)
+                search_keys = [req_cap]
+                if req_cap in VET_BRIDGE:
+                    search_keys.append(VET_BRIDGE[req_cap])
+                if req_cap in REVERSE_VET_BRIDGE:
+                    search_keys.append(REVERSE_VET_BRIDGE[req_cap])
+
                 for p in current_perms:
                     # Handle flat strings (Legacy/Owner)
                     if isinstance(p, str):
-                        if p == req_cap or ('.' in req_cap and p == f"{req_cap.split('.')[0]}.*"):
-                            allowed = True
-                            break
+                        for sk in search_keys:
+                            if p == sk or ('.' in sk and p == f"{sk.split('.')[0]}.*"):
+                                allowed = True
+                                break
                     # Handle dictionaries (Staff with granular flags)
                     elif isinstance(p, dict):
                         p_key = p.get('capability_key')
-                        if p_key == req_cap or ('.' in req_cap and p_key == f"{req_cap.split('.')[0]}.*"):
-                            if p.get(required_flag, False):
-                                allowed = True
-                                break
+                        for sk in search_keys:
+                            if p_key == sk or ('.' in sk and p_key == f"{sk.split('.')[0]}.*"):
+                                if p.get(required_flag, False):
+                                    allowed = True
+                                    break
+                    if allowed: break
                 if allowed: break
                         
             if not allowed:
@@ -295,17 +331,26 @@ def has_capability_access(user, required_cap, required_action='view'):
     suffix = f"_{required_action.upper()}"
 
     for p in user_perms:
+        # Standardize search keys (bridged)
+        search_keys = [required_cap]
+        if required_cap in VET_BRIDGE:
+            search_keys.append(VET_BRIDGE[required_cap])
+        if required_cap in REVERSE_VET_BRIDGE:
+            search_keys.append(REVERSE_VET_BRIDGE[required_cap])
+
         # A. Handle Granular Object (Preferred)
         if isinstance(p, dict):
             p_key = p.get('capability_key')
-            if p_key == required_cap or ('.' in required_cap and p_key == f"{required_cap.split('.')[0]}.*"):
-                if p.get(action_flag, False):
-                    return True
+            for sk in search_keys:
+                if p_key == sk or ('.' in sk and p_key == f"{sk.split('.')[0]}.*"):
+                    if p.get(action_flag, False):
+                        return True
 
         # B. Handle Flat String (Heritage / Re-resolved)
         elif isinstance(p, str):
-            # Universal match or exact match or suffix match
-            if p == required_cap or p == f"{required_cap}{suffix}" or ('.' in required_cap and p == f"{required_cap.split('.')[0]}.*"):
-                return True
+            for sk in search_keys:
+                # Universal match or exact match or suffix match
+                if p == sk or p == f"{sk}{suffix}" or ('.' in sk and p == f"{sk.split('.')[0]}.*"):
+                    return True
 
     return False

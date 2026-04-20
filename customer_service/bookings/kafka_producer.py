@@ -50,6 +50,7 @@ def publish_booking_event(event_type, booking_instance):
             "owner_name": booking_instance.owner.full_name,
             "pet_name": first_item.pet.name,
             "provider_auth_id": str(first_item.provider_auth_id),
+            "provider_id": str(first_item.provider_id),
             "assigned_employee_id": str(first_item.assigned_employee_id) if first_item.assigned_employee_id else None,
             "service_name": snapshot.get('service_name', 'General Service'),
             "selected_time": first_item.selected_time.isoformat(),

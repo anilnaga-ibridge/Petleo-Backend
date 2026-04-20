@@ -96,6 +96,11 @@ class PurchasedPlan(models.Model):
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(default=timezone.now)
 
+    # --- Replicated Metadata (Source of Truth: Super Admin) ---
+    sync_is_legacy_reconciled = models.BooleanField(default=False)
+    sync_entitlement_source = models.CharField(max_length=50, default='BILLING')
+    sync_metadata_json = models.JSONField(default=dict) # migration_record_no, schema_version, synced_at, event_id
+
     @property
     def days_left(self):
         if not self.end_date:

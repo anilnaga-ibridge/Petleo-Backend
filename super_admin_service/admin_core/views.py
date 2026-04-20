@@ -17,6 +17,11 @@ from plans_coupens.models import PurchasedPlan, Plan
 from django.db.models import Sum, Count
 from datetime import timedelta
 from django.utils import timezone
+from .analytics_service import (
+    get_snapshot, compute_executive_metrics, 
+    compute_intelligence_suite, compute_revenue_trend,
+    get_operational_alerts
+)
 
 class VerifiedUserViewSet(viewsets.ReadOnlyModelViewSet):
     """
@@ -114,65 +119,117 @@ class SuperAdminViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
+
+
 class SuperAdminDashboardViewSet(viewsets.ViewSet):
     """
-    Aggregate System Analytics for Super Admin Dashboard.
+    Luxury Command Center API - Snapshot Powered.
     """
     permission_classes = [IsSuperAdmin]
 
-    @action(detail=False, methods=['get'])
-    def metrics(self, request):
-        now = timezone.now()
-        thirty_days_ago = now - timedelta(days=30)
-        
-        # 1. Clinic / Subscription Metrics
-        total_subscriptions = PurchasedPlan.objects.filter(is_active=True).count()
-        new_subscriptions_30d = PurchasedPlan.objects.filter(start_date__gte=thirty_days_ago).count()
-        
-        # 2. Revenue
-        total_mrr = PurchasedPlan.objects.filter(is_active=True).aggregate(
-            total=Sum('plan__price')
-        )['total'] or 0.00
-        
-        # 3. User Growth
-        total_users = VerifiedUser.objects.count()
-        new_users_30d = VerifiedUser.objects.filter(created_at__gte=thirty_days_ago).count()
-        
-        # 4. Additional Platform Stats (for Command Center)
-        from dynamic_services.models import Service
-        from pets.models import PetType
-        from admin_core.models import Permission 
-        
-        total_services = Service.objects.count()
-        total_plans = Plan.objects.count()
-        total_pets = PetType.objects.count()
-        
-        # In this system, "Roles" are often defined by Permission count 
-        from django.contrib.auth.models import Group
-        total_roles = Group.objects.count() or Permission.objects.count() 
 
-        # 5. Plan Distribution
-        plan_distribution = PurchasedPlan.objects.filter(is_active=True).values(
-            'plan__title'
-        ).annotate(count=Count('id')).order_by('-count')
+
+    @action(detail=False, methods=['get'])
+    def executive_summary(self, request):
+        """High-trust KPI Suite with Smart Insights."""
+        snapshot = get_snapshot('executive_summary')
+        if not snapshot:
+            data = compute_executive_metrics()
+        else:
+            data = snapshot.data_json
         
         return Response({
-            "overview": {
-                "active_subscriptions": total_subscriptions,
-                "new_subscriptions_30d": new_subscriptions_30d,
-                "monthly_recurring_revenue": float(total_mrr),
-                "total_verified_users": total_users,
-                "new_users_30d": new_users_30d,
-                "total_services": total_services,
-                "total_plans": total_plans,
-                "total_pets": total_pets,
-                "total_roles": total_roles
-            },
-            "plans": [
-                {"name": p['plan__title'], "count": p['count']} 
-                for p in plan_distribution
-            ],
-            "timestamp": now.isoformat()
+            "metrics": data,
+            "generated_at": snapshot.generated_at if snapshot else timezone.now(),
+            "is_stale": snapshot.is_stale if snapshot else True
+        })
+
+    @action(detail=False, methods=['get'])
+    def revenue(self, request):
+        """Dynamic revenue velocity snapshots."""
+        snapshot = get_snapshot('revenue_trend')
+        if not snapshot:
+            from .analytics_service import compute_revenue_trend
+            data = compute_revenue_trend()
+        else:
+            data = snapshot.data_json
+        return Response(data)
+
+    @action(detail=False, methods=['get'])
+    def intelligence(self, request):
+        """Tiered rankings and growth tracking."""
+        snapshot = get_snapshot('intelligence_suite')
+        if not snapshot:
+            data = compute_intelligence_suite()
+        else:
+            data = snapshot.data_json
+        return Response(data)
+
+    @action(detail=False, methods=['get'])
+    def risk_center(self, request):
+        """Detailed risk alerting."""
+        return Response({
+            "alerts": get_operational_alerts(),
+            "thresholds": {"sync_delay_ms": 1800000} # 30 mins
+        })
+
+    @action(detail=False, methods=['get'])
+    def health(self, request):
+        """Platform vitals."""
+        snapshot = get_snapshot('executive_summary')
+        health_score = snapshot.data_json.get('platform_health', 100) if snapshot else 100
+        return Response({"score": health_score, "status": "OPTIMAL" if health_score >= 90 else "DEGRADED"})
+
+
+    @action(detail=False, methods=['get'])
+    def refresh(self, request):
+        """Full rebuild of luxury snapshots."""
+        compute_executive_metrics()
+        compute_intelligence_suite()
+        compute_revenue_trend()
+        return Response({"status": "Intelligence suites rebuilding"})
+
+
+
+
+    @action(detail=False, methods=['get'], url_path='plan-buyers/(?P<plan_id>[^/.]+)')
+    def plan_buyers(self, request, plan_id=None):
+        """Detailed list of buyers for a specific plan with high-trust fallbacks."""
+        print(f"🔍 [DEBUG] Hardened fetch for plan_id: {plan_id}")
+        plan = get_object_or_404(Plan, id=plan_id)
+        purchases = PurchasedPlan.objects.filter(plan=plan).select_related('user')
+        
+        # Identity Reconciliation (Consistent auth_user_id matching)
+        user_auth_ids = [p.user.auth_user_id for p in purchases if p.user.auth_user_id]
+        v_users = {v.auth_user_id: v for v in VerifiedUser.objects.filter(auth_user_id__in=user_auth_ids)}
+        
+        data = []
+        for p in purchases:
+            v_user = v_users.get(p.user.auth_user_id)
+            
+            # Layered Metadata Fallback
+            full_name = v_user.full_name if v_user and v_user.full_name else (
+                f"{p.user.first_name} {p.user.last_name}".strip() or p.user.email.split('@')[0]
+            )
+            
+            # Role Reasoning (Consistent Individual vs Organization labels)
+            # Use Plan.target_type as high-trust fallback when identity sync is pending
+            raw_role = v_user.role if v_user and v_user.role else p.plan.target_type
+            role = raw_role.lower() if raw_role else "organization"
+            
+            data.append({
+                "user_id": str(p.user_id),
+                "name": full_name,
+                "email": v_user.email if v_user else p.user.email,
+                "role": role,
+                "status": p.status,
+                "purchased_at": p.start_date
+            })
+            
+        print(f"   -> Returning {len(data)} subscribers for {plan.title}")
+        return Response({
+            "plan_title": plan.title,
+            "buyers": data
         })
 
 

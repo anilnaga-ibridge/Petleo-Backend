@@ -982,21 +982,37 @@ def get_my_permissions(request):
             has_vet_hub = True
 
     # -----------------------------------------
-    # [NEW] PLAN TITLE ENRICHMENT
+    # [NEW] CORE ADMINISTRATIVE MODULES INJECTION
+    # Ensures Home, Marketplace, and Subscription are always in the tree if authorized.
     # -----------------------------------------
-    if plan_data and not is_employee:
-        plan_title_lower = (plan_data.get('title') or '').lower()
-        has_vet_in_perms = any(
-            (p.get('service_key') or '').upper() == 'VETERINARY_CORE'
-            for p in permissions_list
-        )
+    CORE_MODULES = [
+        ("ADMIN_CORE_HOME", "Home", "tabler-smart-home"),
+        ("ADMIN_CORE_MARKETPLACE", "Marketplace Profile", "tabler-building-store"),
+        ("ADMIN_CORE_SUBSCRIPTION", "My Subscription", "tabler-crown"),
+    ]
+    
+    for cap_key, display_name, icon in CORE_MODULES:
+        # Check if the user has either the base key or the VIEW variant
+        is_authorized = cap_key in user_perms_set or f"{cap_key}_VIEW" in user_perms_set
         
-        if (has_vet_in_perms or has_clinical_cats) and 'veterinary' not in plan_title_lower:
-            plan_data['title'] = plan_data['title'] + ' (Veterinary)'
-            plan_data['plan_title'] = plan_data['title']  # Sync enriched title to both fields
+        if is_authorized:
+            # Avoid duplication
+            if not any(p.get('service_key') == cap_key for p in permissions_list):
+                 permissions_list.insert(0, {
+                    "service_id": cap_key,
+                    "service_name": display_name,
+                    "service_key": cap_key,
+                    "icon": icon,
+                    "categories": [],
+                    "can_view": True,
+                    "can_create": True,
+                    "can_edit": True,
+                    "can_delete": True
+                })
 
     response_data = {
         "permissions": permissions_list,
+        "dynamic_capabilities": list(user_perms_set), # [NEW] Flat list for frontend stores
         "plan": plan_data,
         "user_profile": user_profile
     }
@@ -1694,20 +1710,7 @@ def get_my_access(request):
         # VETERINARY_*, BOARDING_*, GROOMING_* etc. keys with _VIEW/_CREATE/_EDIT/_DELETE suffixes
         raw_keys = user.get_all_plan_capabilities()
     
-    # 2. [NUCLEAR FILTER] Strip Veterinary if plan doesn't support it
-    # This prevents leakage for 'Gold' or 'Basic' plans that should not have clinical access.
-    from provider_cart.models import PurchasedPlan
-    active_plan = PurchasedPlan.objects.filter(verified_user=user, is_active=True).first()
-    plan_title = (active_plan.plan_title or "").lower() if active_plan else ""
-    
-    is_vet_plan = "veterinary" in plan_title
-    is_explicit_non_vet = ("gold" in plan_title or "basic" in plan_title) and not is_vet_plan
-    
-    if is_explicit_non_vet:
-        # Atomic removal of all VETERINARY_* keys
-        raw_keys = [k for k in raw_keys if not str(k).startswith("VETERINARY")]
-        
-    # Map back to base keys for Module lookup
+    # 2. Derive base keys for Module lookup
     capability_keys = set()
     for key in raw_keys:
         base_key = key
@@ -1716,6 +1719,33 @@ def get_my_access(request):
                 base_key = key[:-len(sfx)]
                 break
         capability_keys.add(base_key)
+
+    # [BRIDGE] Expand granular keys to legacy FeatureModule keys
+    # This ensures modern employee roles correctly trigger the sidebar modules.
+    VET_MAP = {
+        "VETERINARY_VISITS": "VISITS",
+        "VETERINARY_PATIENTS": "PATIENTS",
+        "VETERINARY_VITALS": ["VITALS", "VETERINARY_ASSISTANT"],
+        "VETERINARY_DOCTOR": "DOCTOR_STATION",
+        "VETERINARY_PHARMACY": "PHARMACY",
+        "VETERINARY_PHARMACY_STORE": "PHARMACY_STORE",
+        "VETERINARY_LABS": "LABS",
+        "VETERINARY_SCHEDULE": "SCHEDULE",
+        "VETERINARY_OFFLINE_VISIT": "OFFLINE_VISITS",
+        "VETERINARY_ONLINE_CONSULT": "ONLINE_CONSULT",
+        "VETERINARY_MEDICINE_REMINDERS": "MEDICINE_REMINDERS",
+        "VETERINARY_CORE": ["VETERINARY-MANAGEMENT", "VETERINARY"],
+    }
+    
+    extra_keys = set()
+    for k in capability_keys:
+        if k in VET_MAP:
+            mapped = VET_MAP[k]
+            if isinstance(mapped, list):
+                extra_keys.update(mapped)
+            else:
+                extra_keys.add(mapped)
+    capability_keys.update(extra_keys)
         
     # 2. Fetch Modules for these keys
     from .models import FeatureModule
@@ -2471,4 +2501,5 @@ def resource_occupancy(request):
         return Response({"error": "Provider profile not found"}, status=404)
     except Exception as e:
         logger.error(f"[resource_occupancy] Error: {e}")
+        return Response([], status=200)
         return Response([], status=200)

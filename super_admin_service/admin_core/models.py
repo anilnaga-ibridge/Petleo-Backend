@@ -173,3 +173,64 @@ class GlobalBranding(models.Model):
 
     def __str__(self):
         return f"Global Branding - {self.app_name}"
+
+class ProviderBillingProfile(models.Model):
+    """
+    Stores billing and tax information for a provider organization/individual.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    verified_user = models.OneToOneField(
+        VerifiedUser,
+        on_delete=models.CASCADE,
+        related_name="billing_profile",
+        to_field="auth_user_id"
+    )
+
+    legal_name = models.CharField(max_length=255, help_text="Legal business name for invoices")
+    billing_address = models.TextField(help_text="Full registered address")
+    billing_state = models.CharField(max_length=100)
+    billing_state_code = models.CharField(max_length=10, help_text="e.g. KA, MH")
+    billing_gstin = models.CharField(max_length=15, blank=True, null=True)
+
+    # Reconciliation fields
+    is_incomplete = models.BooleanField(default=False)
+    source = models.CharField(
+        max_length=50, 
+        choices=[('ORGANIC', 'Organic'), ('RECOVERY', 'Recovery')], 
+        default='ORGANIC'
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Billing: {self.legal_name} ({self.verified_user.email})"
+
+
+class AnalyticsSnapshot(models.Model):
+    """
+    Cached snapshots for high-performance analytics.
+    Avoids heavy DB aggregation on every request.
+    """
+    snapshot_key = models.CharField(max_length=100, db_index=True)
+    period_date = models.DateField(null=True, blank=True, help_text="e.g. 2026-04-17 for daily snapshots")
+    data_json = models.JSONField(default=dict)
+    generated_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField(null=True, blank=True)
+    version = models.CharField(max_length=20, default="1.0")
+
+    class Meta:
+        db_table = "analytics_snapshots"
+        unique_together = ("snapshot_key", "period_date", "version")
+        indexes = [
+            models.Index(fields=["snapshot_key", "period_date"]),
+        ]
+
+    def __str__(self):
+        return f"Snapshot: {self.snapshot_key} ({self.period_date or 'Global'}) - v{self.version}"
+
+    @property
+    def is_stale(self):
+        if self.expires_at and timezone.now() > self.expires_at:
+            return True
+        return False

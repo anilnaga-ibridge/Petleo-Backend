@@ -68,28 +68,45 @@ def publish_permissions_event(event_name: str, payload: dict):
 # -------------------------------------------
 #  Permission Updated Event
 # -------------------------------------------
-def publish_permissions_updated(auth_user_id: str, purchase_id: str, permissions_list: list, purchased_plan: dict, templates: dict = None, dynamic_capabilities: list = None):
+def publish_permissions_updated(auth_user_id: str, purchase_id: str, permissions_list: list, purchased_plan: dict, templates: dict = None, dynamic_capabilities: list = None, entitlement_source: str = 'BILLING', is_legacy_reconciled: bool = False):
     if templates:
         print(f"DEBUG: Kafka Producer sending templates: {len(templates.get('services', []))} services, {len(templates.get('categories', []))} categories")
     else:
         print("DEBUG: Kafka Producer sending NO templates")
 
+    # Add extra metadata into templates for consumer discovery without breaking schema
+    enriched_templates = templates or {}
+    enriched_templates["entitlement_source"] = entitlement_source
+    enriched_templates["is_legacy_reconciled"] = is_legacy_reconciled
+    
+    # [FIX] If this is a legacy reconciliation, pass the MR number for the read-model
+    if is_legacy_reconciled:
+        from .models import LegacyEntitlementRecovery
+        recovery = LegacyEntitlementRecovery.objects.filter(purchased_plan_id=purchase_id).first()
+        if recovery:
+            enriched_templates["migration_record_no"] = recovery.migration_record_number
+
     payload = {
         "event_type": "provider.permissions.updated",
-        "timestamp": timezone.now().isoformat(),
+        "schema_version": "2.0",
         "event_id": str(uuid.uuid4()),
-        "schema_version": "1.1",
+        "occurred_at": timezone.now().isoformat(),
+        "timestamp": timezone.now().isoformat(), # Keep for backward compatibility
         "data": {
             "provider_id": str(auth_user_id),
+            "auth_user_id": str(auth_user_id), # Matching both keys for consumer compatibility
             "purchase_id": str(purchase_id),
+            "plan_id": str(purchased_plan.get('plan_id')),
             "capabilities": permissions_list,
             "purchased_plan": purchased_plan,
-            "templates": templates or {},
+            "templates": enriched_templates,
             "dynamic_capabilities": dynamic_capabilities or [],
+            "entitlement_source": entitlement_source,
+            "is_legacy_reconciled": is_legacy_reconciled
         },
     }
 
-    print(f"DEBUG: [KAFKA SEND] provider.permissions.updated | User: {auth_user_id} | Perms: {len(permissions_list)} | Svc: {len(templates.get('services', []))} | Cat: {len(templates.get('categories', []))}")
+    print(f"DEBUG: [KAFKA SEND] provider.permissions.updated | User: {auth_user_id} | Ver: 2.0 | Source: {entitlement_source}")
     publish_permissions_event("provider.permissions.updated", payload)
 
 
